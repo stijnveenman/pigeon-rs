@@ -17,3 +17,8 @@ target/
 *.pdb
 
 # End of https://www.toptal.com/developers/gitignore/api/rust,direnv
+
+
+# Added by cargo
+
+/target
