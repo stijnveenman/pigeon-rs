@@ -141,6 +141,8 @@ impl Handler {
             };
 
             debug!(?frame);
+
+            self.connection.write_frame(&frame).await?;
         }
 
         Ok(())
