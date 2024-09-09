@@ -1,3 +1,8 @@
+pub mod server;
+
+mod shutdown;
+use shutdown::Shutdown;
+
 pub const DEFAULT_PORT: u16 = 6394;
 
 pub type Error = Box<dyn std::error::Error + Send + Sync>;

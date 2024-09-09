@@ -1,6 +1,6 @@
 use clap::Parser;
-use pigeon_rs::DEFAULT_PORT;
-use tokio::net::TcpListener;
+use pigeon_rs::{server, DEFAULT_PORT};
+use tokio::{net::TcpListener, signal};
 use tracing::{info, level_filters::LevelFilter};
 use tracing_subscriber::{
     fmt,
@@ -26,7 +26,9 @@ pub async fn main() -> pigeon_rs::Result<()> {
     let address = &format!("127.0.0.1:{}", port);
     let listener = TcpListener::bind(address).await?;
 
-    info!("Created listener on {}", address);
+    info!("Starting listener on {}", address);
+
+    server::run(listener, signal::ctrl_c()).await;
 
     Ok(())
 }
