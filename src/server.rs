@@ -5,9 +5,9 @@ use tokio::{
     sync::{broadcast, mpsc, Semaphore},
     time,
 };
-use tracing::{error, info, warn};
+use tracing::{debug, error, info};
 
-use crate::shutdown::Shutdown;
+use crate::{connection::Connection, shutdown::Shutdown};
 
 const MAX_CONNECTIONS: usize = 250;
 
@@ -21,7 +21,7 @@ struct Listener {
 
 #[derive(Debug)]
 struct Handler {
-    //connection: Connection,
+    connection: Connection,
     shutdown: Shutdown,
     _shutdown_complete: mpsc::Sender<()>,
 }
@@ -85,22 +85,20 @@ impl Listener {
             let socket = self.accept().await?;
 
             let mut handler = Handler {
-                //connection: Connection::new(socket),
+                connection: Connection::new(socket),
                 shutdown: Shutdown::new(self.notify_shutdown.subscribe()),
                 _shutdown_complete: self.shutdown_complete_tx.clone(),
             };
 
-            warn!("got connection, dropping socket")
-
-            //tokio::spawn(async move {
-            //    // Process the connection. If an error is encountered, log it.
-            //    if let Err(err) = handler.run().await {
-            //        error!(cause = ?err, "connection error");
-            //    }
-            //    // Move the permit into the task and drop it after completion.
-            //    // This returns the permit back to the semaphore.
-            //    drop(permit);
-            //});
+            tokio::spawn(async move {
+                // Process the connection. If an error is encountered, log it.
+                if let Err(err) = handler.run().await {
+                    error!(cause = ?err, "connection error");
+                }
+                // Move the permit into the task and drop it after completion.
+                // This returns the permit back to the semaphore.
+                drop(permit);
+            });
         }
     }
 
@@ -121,5 +119,30 @@ impl Listener {
 
             backoff *= 2;
         }
+    }
+}
+
+impl Handler {
+    async fn run(&mut self) -> crate::Result<()> {
+        while !self.shutdown.is_shutdown() {
+            let maybe_frame = tokio::select! {
+                res = self.connection.read_frame() => res?,
+                _ = self.shutdown.recv() => {
+                    return Ok(());
+                }
+            };
+
+            // If `None` is returned from `read_frame()` then the peer closed
+            // the socket. There is no further work to do and the task can be
+            // terminated.
+            let frame = match maybe_frame {
+                Some(frame) => frame,
+                None => return Ok(()),
+            };
+
+            debug!(?frame);
+        }
+
+        Ok(())
     }
 }
