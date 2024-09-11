@@ -1,10 +1,10 @@
 pub mod server;
 
-mod shutdown;
-use shutdown::Shutdown;
+mod client;
+pub use client::Client;
 
 mod connection;
-use connection::Connection;
+mod shutdown;
 
 pub const DEFAULT_PORT: u16 = 6394;
 

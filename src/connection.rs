@@ -1,4 +1,4 @@
-use std::io::Cursor;
+use std::{ascii::AsciiExt, io::Cursor};
 
 use bytes::BytesMut;
 use tokio::{
@@ -64,6 +64,10 @@ impl Connection {
 
 /// Find a line
 fn get_line<'a>(src: &mut Cursor<&'a [u8]>) -> Result<&'a [u8], ()> {
+    if src.get_ref().is_empty() {
+        return Err(());
+    };
+
     // Scan the bytes directly
     let start = src.position() as usize;
     // Scan to the second to last byte

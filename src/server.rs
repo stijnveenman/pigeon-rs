@@ -84,6 +84,8 @@ impl Listener {
 
             let socket = self.accept().await?;
 
+            info!("Received connection from {:?}", socket.peer_addr().unwrap());
+
             let mut handler = Handler {
                 connection: Connection::new(socket),
                 shutdown: Shutdown::new(self.notify_shutdown.subscribe()),
