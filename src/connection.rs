@@ -1,6 +1,6 @@
-use std::{ascii::AsciiExt, io::Cursor};
+use std::io::Cursor;
 
-use bytes::BytesMut;
+use bytes::{Buf, BytesMut};
 use tokio::{
     io::{self, AsyncReadExt, AsyncWriteExt, BufWriter},
     net::TcpStream,
@@ -22,6 +22,8 @@ impl Connection {
 
     pub async fn write_frame(&mut self, frame: &str) -> io::Result<()> {
         self.stream.write_all(frame.as_bytes()).await?;
+        self.stream.write_all(b"\r\n").await?;
+        self.stream.flush().await?;
 
         Ok(())
     }
@@ -57,6 +59,8 @@ impl Connection {
         };
 
         let string = String::from_utf8(line.to_vec())?;
+
+        self.buffer.advance(line.len() + 2);
 
         Ok(Some(string))
     }

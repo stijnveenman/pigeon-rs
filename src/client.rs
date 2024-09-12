@@ -1,4 +1,5 @@
 use tokio::net::{TcpStream, ToSocketAddrs};
+use tracing::info;
 
 use crate::connection::Connection;
 
@@ -34,5 +35,15 @@ impl Client {
         let connection = Connection::new(socket);
 
         Ok(Client { connection })
+    }
+
+    pub async fn echo(&mut self, key: &str) -> crate::Result<()> {
+        self.connection.write_frame(key).await?;
+
+        let response = self.connection.read_frame().await?;
+
+        info!(response);
+
+        Ok(())
     }
 }

@@ -84,7 +84,9 @@ impl Listener {
 
             let socket = self.accept().await?;
 
-            info!("Received connection from {:?}", socket.peer_addr().unwrap());
+            let addr = socket.peer_addr().unwrap();
+
+            info!("Received connection from {:?}", addr);
 
             let mut handler = Handler {
                 connection: Connection::new(socket),
@@ -97,6 +99,9 @@ impl Listener {
                 if let Err(err) = handler.run().await {
                     error!(cause = ?err, "connection error");
                 }
+
+                info!("{:?} disconnected", addr);
+
                 // Move the permit into the task and drop it after completion.
                 // This returns the permit back to the semaphore.
                 drop(permit);
@@ -142,7 +147,7 @@ impl Handler {
                 None => return Ok(()),
             };
 
-            debug!(?frame);
+            info!(?frame);
 
             self.connection.write_frame(&frame).await?;
         }
