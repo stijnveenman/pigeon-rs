@@ -1,5 +1,6 @@
-use bytes::{Buf, Bytes};
+use bytes::Buf;
 use std::io::Cursor;
+use tracing::info;
 
 use bytes::BytesMut;
 use tokio::{
@@ -21,6 +22,14 @@ impl Connection {
             stream: BufWriter::new(socket),
             buffer: BytesMut::with_capacity(4 * 1024),
         }
+    }
+
+    pub async fn write_request(&mut self, api_key: u8) -> io::Result<()> {
+        self.stream.write_u8(0).await?;
+        self.stream.write_u8(api_key).await?;
+        self.stream.flush().await?;
+
+        Ok(())
     }
 
     pub async fn read_frame(&mut self) -> crate::Result<Option<u8>> {

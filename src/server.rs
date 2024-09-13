@@ -5,7 +5,7 @@ use tokio::{
     sync::{broadcast, mpsc, Semaphore},
     time,
 };
-use tracing::{debug, error, info};
+use tracing::{error, info};
 
 use crate::{connection::Connection, shutdown::Shutdown};
 
@@ -147,7 +147,7 @@ impl Handler {
                 None => return Ok(()),
             };
 
-            debug!(?frame);
+            info!(?frame);
         }
 
         Ok(())

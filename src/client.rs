@@ -37,7 +37,9 @@ impl Client {
         Ok(Client { connection })
     }
 
-    pub async fn echo(&mut self, key: &str) -> crate::Result<()> {
+    pub async fn echo(&mut self, key: u8) -> crate::Result<()> {
+        self.connection.write_request(key).await?;
+
         let response = self.connection.read_frame().await?;
 
         Ok(())

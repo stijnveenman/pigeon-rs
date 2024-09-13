@@ -11,14 +11,6 @@ pub enum Error {
     Other(crate::Error),
 }
 
-pub fn peek_u8(src: &mut Cursor<&[u8]>) -> Result<u8, Error> {
-    if !src.has_remaining() {
-        return Err(Error::Incomplete);
-    }
-
-    Ok(src.chunk()[0])
-}
-
 pub fn get_u8(src: &mut Cursor<&[u8]>) -> Result<u8, Error> {
     if !src.has_remaining() {
         return Err(Error::Incomplete);

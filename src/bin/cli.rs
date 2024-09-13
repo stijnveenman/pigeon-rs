@@ -16,7 +16,7 @@ async fn main() -> pigeon_rs::Result<()> {
         Err(_) => panic!("failed to establish connection"),
     };
 
-    client.echo("hello world").await.unwrap();
+    client.echo(2).await.unwrap();
 
     Ok(())
 }
