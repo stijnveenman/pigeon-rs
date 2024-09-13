@@ -1,4 +1,4 @@
-use bytes::{Buf, Bytes};
+use bytes::Buf;
 use std::fmt;
 use std::io::Cursor;
 
@@ -25,6 +25,20 @@ pub fn get_i16(src: &mut Cursor<&[u8]>) -> Result<i16, Error> {
     }
 
     Ok(src.get_i16())
+}
+
+pub fn get_u32(src: &mut Cursor<&[u8]>) -> Result<u32, Error> {
+    if src.remaining() < 4 {
+        return Err(Error::Incomplete);
+    }
+
+    Ok(src.get_u32())
+}
+
+pub fn get_usize(src: &mut Cursor<&[u8]>) -> Result<usize, Error> {
+    let a = get_u32(src)?;
+
+    usize::try_from(a).map_err(|e| e.to_string().into())
 }
 
 impl From<String> for Error {

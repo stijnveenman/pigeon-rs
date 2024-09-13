@@ -1,6 +1,5 @@
 use bytes::Buf;
 use std::io::Cursor;
-use tracing::info;
 
 use bytes::BytesMut;
 use tokio::{
@@ -32,7 +31,7 @@ impl Connection {
         Ok(())
     }
 
-    pub async fn read_frame(&mut self) -> crate::Result<Option<u8>> {
+    pub async fn read_frame(&mut self) -> crate::Result<Option<Request>> {
         loop {
             if let Some(frame) = self.parse_frame()? {
                 return Ok(Some(frame));
@@ -52,7 +51,7 @@ impl Connection {
         }
     }
 
-    fn parse_frame(&mut self) -> crate::Result<Option<u8>> {
+    fn parse_frame(&mut self) -> crate::Result<Option<Request>> {
         let mut buf = Cursor::new(&self.buffer[..]);
 
         match Request::check(&mut buf) {

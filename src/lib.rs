@@ -5,6 +5,9 @@ mod cursor;
 mod client;
 pub use client::Client;
 
+mod api_key;
+pub use api_key::ApiKey;
+
 mod connection;
 mod shutdown;
 

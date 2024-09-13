@@ -1,13 +1,13 @@
 mod create_partitions_request;
 
-use strum_macros::FromRepr;
-
-use clap::error::Result;
 use create_partitions_request::CreatePartitionsRequest;
 
 use std::io::Cursor;
 
-use crate::cursor::{get_i16, Error};
+use crate::{
+    cursor::{get_i16, Error},
+    ApiKey,
+};
 
 pub trait FromFrame {
     fn check(src: &mut Cursor<&[u8]>, api_version: i16) -> Result<(), Error>;
@@ -16,14 +16,9 @@ pub trait FromFrame {
         Self: Sized;
 }
 
+#[derive(Debug)]
 pub enum Request {
     CreatePartitionRequest(CreatePartitionsRequest),
-}
-
-#[derive(FromRepr, Debug, PartialEq)]
-#[repr(i16)]
-enum ApiKey {
-    CreatePartition = 1,
 }
 
 impl Request {
