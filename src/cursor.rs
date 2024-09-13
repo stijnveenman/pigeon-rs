@@ -27,18 +27,38 @@ pub fn get_i16(src: &mut Cursor<&[u8]>) -> Result<i16, Error> {
     Ok(src.get_i16())
 }
 
-pub fn get_u32(src: &mut Cursor<&[u8]>) -> Result<u32, Error> {
+pub fn get_i32(src: &mut Cursor<&[u8]>) -> Result<isize, Error> {
     if src.remaining() < 4 {
         return Err(Error::Incomplete);
     }
 
-    Ok(src.get_u32())
+    Ok(src.get_i32() as isize)
 }
 
-pub fn get_usize(src: &mut Cursor<&[u8]>) -> Result<usize, Error> {
-    let a = get_u32(src)?;
+pub fn get_u32(src: &mut Cursor<&[u8]>) -> Result<usize, Error> {
+    if src.remaining() < 4 {
+        return Err(Error::Incomplete);
+    }
 
-    usize::try_from(a).map_err(|e| e.to_string().into())
+    Ok(src.get_u32() as usize)
+}
+
+pub fn get_u16(src: &mut Cursor<&[u8]>) -> Result<usize, Error> {
+    if src.remaining() < 2 {
+        return Err(Error::Incomplete);
+    }
+
+    Ok(src.get_u16() as usize)
+}
+
+pub fn get_string(src: &mut Cursor<&[u8]>) -> Result<String, Error> {
+    let len = get_u16(src)?;
+
+    let start = src.position() as usize;
+    let end = start + len;
+    let buf = &src.get_ref()[start..end];
+
+    String::from_utf8(buf.to_vec()).map_err(|e| e.to_string().into())
 }
 
 impl From<String> for Error {
