@@ -38,11 +38,7 @@ impl Client {
     }
 
     pub async fn echo(&mut self, key: &str) -> crate::Result<()> {
-        self.connection.write_frame(key).await?;
-
         let response = self.connection.read_frame().await?;
-
-        info!(response);
 
         Ok(())
     }

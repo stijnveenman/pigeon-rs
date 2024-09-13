@@ -1,10 +1,13 @@
+use bytes::{Buf, Bytes};
 use std::io::Cursor;
 
-use bytes::{Buf, BytesMut};
+use bytes::BytesMut;
 use tokio::{
     io::{self, AsyncReadExt, AsyncWriteExt, BufWriter},
     net::TcpStream,
 };
+
+use crate::{cursor::Error, request::Request};
 
 #[derive(Debug)]
 pub struct Connection {
@@ -20,15 +23,7 @@ impl Connection {
         }
     }
 
-    pub async fn write_frame(&mut self, frame: &str) -> io::Result<()> {
-        self.stream.write_all(frame.as_bytes()).await?;
-        self.stream.write_all(b"\r\n").await?;
-        self.stream.flush().await?;
-
-        Ok(())
-    }
-
-    pub async fn read_frame(&mut self) -> crate::Result<Option<String>> {
+    pub async fn read_frame(&mut self) -> crate::Result<Option<u8>> {
         loop {
             if let Some(frame) = self.parse_frame()? {
                 return Ok(Some(frame));
@@ -48,44 +43,24 @@ impl Connection {
         }
     }
 
-    fn parse_frame(&mut self) -> crate::Result<Option<String>> {
+    fn parse_frame(&mut self) -> crate::Result<Option<u8>> {
         let mut buf = Cursor::new(&self.buffer[..]);
 
-        let line = get_line(&mut buf);
+        match Request::check(&mut buf) {
+            Ok(_) => {
+                let len = buf.position() as usize;
 
-        let line = match line {
-            Err(()) => return Ok(None),
-            Ok(line) => line,
-        };
+                buf.set_position(0);
 
-        let string = String::from_utf8(line.to_vec())?;
+                let frame = Request::parse(&mut buf)?;
 
-        self.buffer.advance(line.len() + 2);
+                self.buffer.advance(len);
 
-        Ok(Some(string))
-    }
-}
+                Ok(Some(frame))
+            }
 
-/// Find a line
-fn get_line<'a>(src: &mut Cursor<&'a [u8]>) -> Result<&'a [u8], ()> {
-    if src.get_ref().is_empty() {
-        return Err(());
-    };
-
-    // Scan the bytes directly
-    let start = src.position() as usize;
-    // Scan to the second to last byte
-    let end = src.get_ref().len() - 1;
-
-    for i in start..end {
-        if src.get_ref()[i] == b'\r' && src.get_ref()[i + 1] == b'\n' {
-            // We found a line, update the position to be *after* the \n
-            src.set_position((i + 2) as u64);
-
-            // Return the line
-            return Ok(&src.get_ref()[start..i]);
+            Err(Error::Incomplete) => Ok(None),
+            Err(e) => Err(e.into()),
         }
     }
-
-    Err(())
 }

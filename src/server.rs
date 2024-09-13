@@ -147,9 +147,7 @@ impl Handler {
                 None => return Ok(()),
             };
 
-            info!(?frame);
-
-            self.connection.write_frame(&frame).await?;
+            debug!(?frame);
         }
 
         Ok(())
