@@ -19,6 +19,26 @@ pub fn get_u8(src: &mut Cursor<&[u8]>) -> Result<u8, Error> {
     Ok(src.get_u8())
 }
 
+pub fn get_i16(src: &mut Cursor<&[u8]>) -> Result<i16, Error> {
+    if src.remaining() < 2 {
+        return Err(Error::Incomplete);
+    }
+
+    Ok(src.get_i16())
+}
+
+impl From<String> for Error {
+    fn from(src: String) -> Error {
+        Error::Other(src.into())
+    }
+}
+
+impl From<&str> for Error {
+    fn from(src: &str) -> Error {
+        src.to_string().into()
+    }
+}
+
 impl std::error::Error for Error {}
 
 impl fmt::Display for Error {
