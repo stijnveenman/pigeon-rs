@@ -3,6 +3,7 @@ pub mod server;
 mod protocol;
 
 mod client;
+pub mod logging;
 pub use client::Client;
 
 mod api_key;
