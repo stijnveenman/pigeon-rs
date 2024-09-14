@@ -24,8 +24,8 @@ pub enum Request {
     CreatePartitionRequest(CreatePartitionsRequest),
 }
 
-impl Request {
-    pub fn check(src: &mut Cursor<&[u8]>) -> Result<(), Error> {
+impl Framing for Request {
+    fn check(src: &mut Cursor<&[u8]>, _api_version: i16) -> Result<(), Error> {
         let api_key = get_i16(src)?;
         let api_key = ApiKey::from_repr(api_key).ok_or(Error::from("invalid api key"))?;
         let api_version = get_i16(src)?;
@@ -35,7 +35,7 @@ impl Request {
         }
     }
 
-    pub fn parse(src: &mut Cursor<&[u8]>) -> Result<Request, Error> {
+    fn parse(src: &mut Cursor<&[u8]>, _api_version: i16) -> Result<Request, Error> {
         let api_key = get_i16(src)?;
         let api_key = ApiKey::from_repr(api_key).ok_or(Error::from("invalid api key"))?;
         let api_version = get_i16(src)?;
@@ -45,5 +45,9 @@ impl Request {
                 CreatePartitionsRequest::parse(src, api_version)?,
             )),
         }
+    }
+
+    async fn write_to(&self, dst: &mut BufWriter<TcpStream>, _api_version: i16) -> io::Result<()> {
+        todo!()
     }
 }

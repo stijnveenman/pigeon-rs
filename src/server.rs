@@ -7,7 +7,7 @@ use tokio::{
 };
 use tracing::{error, info};
 
-use crate::{connection::Connection, shutdown::Shutdown};
+use crate::{connection::Connection, request::Request, shutdown::Shutdown};
 
 const MAX_CONNECTIONS: usize = 250;
 
@@ -133,7 +133,7 @@ impl Handler {
     async fn run(&mut self) -> crate::Result<()> {
         while !self.shutdown.is_shutdown() {
             let maybe_frame = tokio::select! {
-                res = self.connection.read_frame() => res?,
+                res = self.connection.read_frame::<Request>() => res?,
                 _ = self.shutdown.recv() => {
                     return Ok(());
                 }

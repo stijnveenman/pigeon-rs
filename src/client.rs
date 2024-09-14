@@ -41,7 +41,7 @@ impl Client {
 
     pub async fn create_topic(&mut self, name: &str) -> crate::Result<()> {
         self.connection
-            .write_request(CreatePartitionsRequest {
+            .write_frame(CreatePartitionsRequest {
                 topics: vec![create_partitions_request::Topic {
                     name: name.to_string(),
                     num_partitions: 1,

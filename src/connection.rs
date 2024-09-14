@@ -26,7 +26,7 @@ impl Connection {
         }
     }
 
-    pub async fn write_request<T: Framing>(&mut self, request: T) -> io::Result<()> {
+    pub async fn write_frame<T: Framing>(&mut self, request: T) -> io::Result<()> {
         request.write_to(&mut self.stream, 0).await?;
 
         self.stream.flush().await?;
@@ -34,7 +34,7 @@ impl Connection {
         Ok(())
     }
 
-    pub async fn read_frame(&mut self) -> crate::Result<Option<Request>> {
+    pub async fn read_frame<T: Framing + Sized>(&mut self) -> crate::Result<Option<T>> {
         loop {
             if let Some(frame) = self.parse_frame()? {
                 return Ok(Some(frame));
@@ -54,16 +54,16 @@ impl Connection {
         }
     }
 
-    fn parse_frame(&mut self) -> crate::Result<Option<Request>> {
+    fn parse_frame<T: Framing + Sized>(&mut self) -> crate::Result<Option<T>> {
         let mut buf = Cursor::new(&self.buffer[..]);
 
-        match Request::check(&mut buf) {
+        match T::check(&mut buf, -1) {
             Ok(_) => {
                 let len = buf.position() as usize;
 
                 buf.set_position(0);
 
-                let frame = Request::parse(&mut buf)?;
+                let frame = T::parse(&mut buf, -1)?;
 
                 self.buffer.advance(len);
 
