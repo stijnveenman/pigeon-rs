@@ -3,11 +3,9 @@ use std::io::Cursor;
 use tokio::io::AsyncWriteExt;
 
 use crate::{
-    protocol::{get_i32, get_u32, Error},
+    protocol::{get_i32, get_u32, Error, Framing},
     ApiKey,
 };
-
-use super::Framing;
 
 #[derive(Debug)]
 pub struct Topic {

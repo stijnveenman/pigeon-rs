@@ -7,10 +7,7 @@ use tokio::{
     net::TcpStream,
 };
 
-use crate::{
-    protocol::Error,
-    request::{Framing, Request},
-};
+use crate::protocol::{Error, Framing};
 
 #[derive(Debug)]
 pub struct Connection {

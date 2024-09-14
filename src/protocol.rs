@@ -1,9 +1,10 @@
 use bytes::Buf;
 use std::fmt;
 use std::io::Cursor;
-use tokio::io::AsyncWriteExt;
-
-use crate::request::Framing;
+use tokio::{
+    io::{self, AsyncWriteExt, BufWriter},
+    net::TcpStream,
+};
 
 #[derive(Debug)]
 pub enum Error {
@@ -12,6 +13,15 @@ pub enum Error {
 
     /// Invalid message encoding
     Other(crate::Error),
+}
+
+#[allow(async_fn_in_trait)]
+pub trait Framing {
+    fn check(src: &mut Cursor<&[u8]>, api_version: i16) -> Result<(), Error>;
+    fn parse(src: &mut Cursor<&[u8]>, api_version: i16) -> Result<Self, Error>
+    where
+        Self: Sized;
+    async fn write_to(&self, dst: &mut BufWriter<TcpStream>, api_version: i16) -> io::Result<()>;
 }
 
 pub fn get_u8(src: &mut Cursor<&[u8]>) -> Result<u8, Error> {
