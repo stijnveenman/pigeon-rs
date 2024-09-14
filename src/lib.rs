@@ -11,7 +11,7 @@ pub use api_key::ApiKey;
 mod connection;
 mod shutdown;
 
-mod request;
+pub mod request;
 
 pub const DEFAULT_PORT: u16 = 6394;
 

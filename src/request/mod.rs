@@ -1,8 +1,9 @@
-mod create_partitions_request;
+pub mod create_partitions_request;
 
 use create_partitions_request::CreatePartitionsRequest;
+use tokio::{io::BufWriter, net::TcpStream};
 
-use std::io::Cursor;
+use std::io::{self, Cursor};
 
 use crate::{
     protocol::{get_i16, Error},
@@ -14,6 +15,11 @@ pub trait FromFrame {
     fn parse(src: &mut Cursor<&[u8]>, api_version: i16) -> Result<Self, Error>
     where
         Self: Sized;
+}
+
+#[allow(async_fn_in_trait)]
+pub trait ToFrame {
+    async fn write_to(&self, dst: &mut BufWriter<TcpStream>, api_version: i16) -> io::Result<()>;
 }
 
 #[derive(Debug)]

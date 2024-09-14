@@ -7,7 +7,10 @@ use tokio::{
     net::TcpStream,
 };
 
-use crate::{protocol::Error, request::Request};
+use crate::{
+    protocol::Error,
+    request::{Request, ToFrame},
+};
 
 #[derive(Debug)]
 pub struct Connection {
@@ -23,9 +26,9 @@ impl Connection {
         }
     }
 
-    pub async fn write_request(&mut self, api_key: u8) -> io::Result<()> {
-        self.stream.write_u8(0).await?;
-        self.stream.write_u8(api_key).await?;
+    pub async fn write_request<T: ToFrame>(&mut self, request: T) -> io::Result<()> {
+        request.write_to(&mut self.stream, 0).await?;
+
         self.stream.flush().await?;
 
         Ok(())

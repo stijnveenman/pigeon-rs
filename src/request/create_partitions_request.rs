@@ -1,18 +1,23 @@
 use std::io::Cursor;
 
-use crate::protocol::{get_i32, get_string, get_u32, Error};
+use tokio::io::AsyncWriteExt;
 
-use super::FromFrame;
+use crate::{
+    protocol::{get_i32, get_string, get_u32, Error},
+    ApiKey,
+};
+
+use super::{FromFrame, ToFrame};
 
 #[derive(Debug)]
 pub struct Topic {
-    name: String,
-    num_partitions: isize,
+    pub name: String,
+    pub num_partitions: isize,
 }
 
 #[derive(Debug)]
 pub struct CreatePartitionsRequest {
-    topics: Vec<Topic>,
+    pub topics: Vec<Topic>,
 }
 
 impl FromFrame for CreatePartitionsRequest {
@@ -58,5 +63,34 @@ impl FromFrame for Topic {
             name: get_string(src)?,
             num_partitions: get_i32(src)?,
         })
+    }
+}
+
+impl ToFrame for CreatePartitionsRequest {
+    async fn write_to(
+        &self,
+        dst: &mut tokio::io::BufWriter<tokio::net::TcpStream>,
+        api_version: i16,
+    ) -> std::io::Result<()> {
+        dst.write_i16(ApiKey::CreatePartition as i16).await?;
+        dst.write_i16(api_version).await?;
+
+        dst.write_u32(self.topics.len() as u32).await?;
+
+        for topic in &self.topics {
+            topic.write_to(dst, api_version).await?;
+        }
+
+        Ok(())
+    }
+}
+
+impl ToFrame for Topic {
+    async fn write_to(
+        &self,
+        dst: &mut tokio::io::BufWriter<tokio::net::TcpStream>,
+        api_version: i16,
+    ) -> std::io::Result<()> {
+        todo!()
     }
 }
