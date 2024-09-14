@@ -1,6 +1,6 @@
 pub mod server;
 
-mod cursor;
+mod protocol;
 
 mod client;
 pub use client::Client;

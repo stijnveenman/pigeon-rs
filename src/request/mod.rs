@@ -5,7 +5,7 @@ use create_partitions_request::CreatePartitionsRequest;
 use std::io::Cursor;
 
 use crate::{
-    cursor::{get_i16, Error},
+    protocol::{get_i16, Error},
     ApiKey,
 };
 
