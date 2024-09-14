@@ -10,15 +10,12 @@ use crate::{
     ApiKey,
 };
 
-pub trait FromFrame {
+#[allow(async_fn_in_trait)]
+pub trait Framing {
     fn check(src: &mut Cursor<&[u8]>, api_version: i16) -> Result<(), Error>;
     fn parse(src: &mut Cursor<&[u8]>, api_version: i16) -> Result<Self, Error>
     where
         Self: Sized;
-}
-
-#[allow(async_fn_in_trait)]
-pub trait ToFrame {
     async fn write_to(&self, dst: &mut BufWriter<TcpStream>, api_version: i16) -> io::Result<()>;
 }
 

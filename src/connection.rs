@@ -9,7 +9,7 @@ use tokio::{
 
 use crate::{
     protocol::Error,
-    request::{Request, ToFrame},
+    request::{Framing, Request},
 };
 
 #[derive(Debug)]
@@ -26,7 +26,7 @@ impl Connection {
         }
     }
 
-    pub async fn write_request<T: ToFrame>(&mut self, request: T) -> io::Result<()> {
+    pub async fn write_request<T: Framing>(&mut self, request: T) -> io::Result<()> {
         request.write_to(&mut self.stream, 0).await?;
 
         self.stream.flush().await?;

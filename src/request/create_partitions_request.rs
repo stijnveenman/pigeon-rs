@@ -3,11 +3,11 @@ use std::io::Cursor;
 use tokio::io::AsyncWriteExt;
 
 use crate::{
-    protocol::{get_i32, get_string, get_u32, Error},
+    protocol::{get_i32, get_u32, Error},
     ApiKey,
 };
 
-use super::{FromFrame, ToFrame};
+use super::Framing;
 
 #[derive(Debug)]
 pub struct Topic {
@@ -20,7 +20,7 @@ pub struct CreatePartitionsRequest {
     pub topics: Vec<Topic>,
 }
 
-impl FromFrame for CreatePartitionsRequest {
+impl Framing for CreatePartitionsRequest {
     fn check(src: &mut Cursor<&[u8]>, api_version: i16) -> Result<(), Error> {
         let len = get_u32(src)?;
 
@@ -45,28 +45,7 @@ impl FromFrame for CreatePartitionsRequest {
 
         Ok(CreatePartitionsRequest { topics })
     }
-}
 
-impl FromFrame for Topic {
-    fn check(src: &mut Cursor<&[u8]>, _api_version: i16) -> Result<(), Error> {
-        get_string(src)?;
-        get_i32(src)?;
-
-        Ok(())
-    }
-
-    fn parse(src: &mut Cursor<&[u8]>, _api_version: i16) -> Result<Self, Error>
-    where
-        Self: Sized,
-    {
-        Ok(Topic {
-            name: get_string(src)?,
-            num_partitions: get_i32(src)?,
-        })
-    }
-}
-
-impl ToFrame for CreatePartitionsRequest {
     async fn write_to(
         &self,
         dst: &mut tokio::io::BufWriter<tokio::net::TcpStream>,
@@ -85,12 +64,32 @@ impl ToFrame for CreatePartitionsRequest {
     }
 }
 
-impl ToFrame for Topic {
+impl Framing for Topic {
+    fn check(src: &mut Cursor<&[u8]>, api_version: i16) -> Result<(), Error> {
+        String::check(src, api_version)?;
+        get_i32(src)?;
+
+        Ok(())
+    }
+
+    fn parse(src: &mut Cursor<&[u8]>, api_version: i16) -> Result<Self, Error>
+    where
+        Self: Sized,
+    {
+        Ok(Topic {
+            name: String::parse(src, api_version)?,
+            num_partitions: get_i32(src)?,
+        })
+    }
+
     async fn write_to(
         &self,
         dst: &mut tokio::io::BufWriter<tokio::net::TcpStream>,
         api_version: i16,
     ) -> std::io::Result<()> {
-        todo!()
+        self.name.write_to(dst, api_version).await?;
+        dst.write_i32(self.num_partitions as i32).await?;
+
+        Ok(())
     }
 }

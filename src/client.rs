@@ -1,6 +1,9 @@
 use tokio::net::{TcpStream, ToSocketAddrs};
 
-use crate::{connection::Connection, request::create_partitions_request::CreatePartitionsRequest};
+use crate::{
+    connection::Connection,
+    request::create_partitions_request::{self, CreatePartitionsRequest},
+};
 
 pub struct Client {
     connection: Connection,
@@ -38,7 +41,12 @@ impl Client {
 
     pub async fn create_topic(&mut self, name: &str) -> crate::Result<()> {
         self.connection
-            .write_request(CreatePartitionsRequest { topics: vec![] })
+            .write_request(CreatePartitionsRequest {
+                topics: vec![create_partitions_request::Topic {
+                    name: name.to_string(),
+                    num_partitions: 1,
+                }],
+            })
             .await?;
 
         Ok(())
