@@ -38,7 +38,10 @@ impl Framing for Request {
         }
     }
 
-    async fn write_to(&self, dst: &mut BufWriter<TcpStream>, _api_version: i16) -> io::Result<()> {
-        todo!()
+    async fn write_to(&self, dst: &mut BufWriter<TcpStream>, api_version: i16) -> io::Result<()> {
+        match self {
+            Request::CreatePartitionRequest(request) => request.write_to(dst, api_version),
+        }
+        .await
     }
 }
