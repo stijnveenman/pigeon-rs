@@ -5,6 +5,7 @@ use tokio::{
     io::{self, AsyncWriteExt, BufWriter},
     net::TcpStream,
 };
+use tracing::instrument::WithSubscriber;
 
 #[derive(Debug)]
 pub enum Error {
@@ -62,6 +63,43 @@ pub fn get_u16(src: &mut Cursor<&[u8]>) -> Result<usize, Error> {
     }
 
     Ok(src.get_u16() as usize)
+}
+
+impl<T: Framing> Framing for Vec<T> {
+    fn check(src: &mut Cursor<&[u8]>, api_version: i16) -> Result<(), Error> {
+        let len = get_u32(src)?;
+
+        for _ in 0..len {
+            T::parse(src, api_version)?;
+        }
+
+        Ok(())
+    }
+
+    fn parse(src: &mut Cursor<&[u8]>, api_version: i16) -> Result<Self, Error>
+    where
+        Self: Sized,
+    {
+        let len = get_u32(src)?;
+
+        let mut v = Vec::with_capacity(len);
+
+        for _ in 0..len {
+            v.push(T::parse(src, api_version)?);
+        }
+
+        Ok(v)
+    }
+
+    async fn write_to(&self, dst: &mut BufWriter<TcpStream>, api_version: i16) -> io::Result<()> {
+        dst.write_u32(self.len() as u32).await?;
+
+        for i in self {
+            i.write_to(dst, api_version).await?;
+        }
+
+        Ok(())
+    }
 }
 
 impl Framing for String {

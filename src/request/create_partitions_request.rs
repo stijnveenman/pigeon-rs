@@ -3,7 +3,7 @@ use std::io::Cursor;
 use tokio::io::AsyncWriteExt;
 
 use crate::{
-    protocol::{get_i32, get_u32, Error, Framing},
+    protocol::{get_i32, Error, Framing},
     ApiKey,
 };
 
@@ -20,11 +20,7 @@ pub struct CreatePartitionsRequest {
 
 impl Framing for CreatePartitionsRequest {
     fn check(src: &mut Cursor<&[u8]>, api_version: i16) -> Result<(), Error> {
-        let len = get_u32(src)?;
-
-        for _ in 0..len {
-            Topic::parse(src, api_version)?;
-        }
+        Vec::<Topic>::parse(src, api_version)?;
 
         Ok(())
     }
@@ -33,15 +29,9 @@ impl Framing for CreatePartitionsRequest {
     where
         Self: Sized,
     {
-        let len = get_u32(src)?;
-
-        let mut topics = Vec::with_capacity(len);
-
-        for _ in 0..len {
-            topics.push(Topic::parse(src, api_version)?);
-        }
-
-        Ok(CreatePartitionsRequest { topics })
+        Ok(CreatePartitionsRequest {
+            topics: Vec::<Topic>::parse(src, api_version)?,
+        })
     }
 
     async fn write_to(
@@ -52,11 +42,7 @@ impl Framing for CreatePartitionsRequest {
         dst.write_i16(ApiKey::CreatePartition as i16).await?;
         dst.write_i16(api_version).await?;
 
-        dst.write_u32(self.topics.len() as u32).await?;
-
-        for topic in &self.topics {
-            topic.write_to(dst, api_version).await?;
-        }
+        self.topics.write_to(dst, api_version).await?;
 
         Ok(())
     }
