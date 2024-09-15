@@ -5,7 +5,6 @@ use tokio::{
     io::{self, AsyncWriteExt, BufWriter},
     net::TcpStream,
 };
-use tracing::instrument::WithSubscriber;
 
 #[derive(Debug)]
 pub enum Error {
