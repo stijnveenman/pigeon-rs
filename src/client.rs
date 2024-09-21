@@ -3,6 +3,7 @@ use tokio::net::{TcpStream, ToSocketAddrs};
 use crate::{
     connection::Connection,
     request::create_partitions_request::{self, CreatePartitionsRequest},
+    response::create_partitions_response::CreateTopicResponse,
 };
 
 pub struct Client {
@@ -39,7 +40,7 @@ impl Client {
         Ok(Client { connection })
     }
 
-    pub async fn create_topic(&mut self, name: &str) -> crate::Result<()> {
+    pub async fn create_topic(&mut self, name: &str) -> crate::Result<CreateTopicResponse> {
         self.connection
             .write_frame(CreatePartitionsRequest {
                 topics: vec![create_partitions_request::Topic {
@@ -49,6 +50,11 @@ impl Client {
             })
             .await?;
 
-        Ok(())
+        let frame = self.connection.read_frame::<CreateTopicResponse>().await?;
+
+        match frame {
+            Some(frame) => Ok(frame),
+            None => Err("connection closed".into()),
+        }
     }
 }

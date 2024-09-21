@@ -9,11 +9,11 @@ pub struct TopicResponse {
 }
 
 #[derive(Debug)]
-pub struct CreatePartitionsResponse {
+pub struct CreateTopicResponse{
     pub topics: Vec<TopicResponse>,
 }
 
-impl Framing for CreatePartitionsResponse {
+impl Framing for CreateTopicResponse{
     fn check(
         src: &mut std::io::Cursor<&[u8]>,
         api_version: i16,
@@ -30,7 +30,7 @@ impl Framing for CreatePartitionsResponse {
     where
         Self: Sized,
     {
-        Ok(CreatePartitionsResponse {
+        Ok(CreateTopicResponse{
             topics: Vec::<TopicResponse>::parse(src, api_version)?,
         })
     }

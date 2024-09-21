@@ -7,7 +7,10 @@ use tokio::{
 };
 use tracing::{error, info};
 
-use crate::{connection::Connection, request::Request, shutdown::Shutdown};
+use crate::{
+    connection::Connection, request::Request,
+    response::create_partitions_response::CreateTopicResponse, shutdown::Shutdown,
+};
 
 const MAX_CONNECTIONS: usize = 250;
 
@@ -148,6 +151,8 @@ impl Handler {
             };
 
             info!(?frame);
+
+            frame.apply(&mut self.connection).await?;
         }
 
         Ok(())

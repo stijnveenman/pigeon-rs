@@ -3,7 +3,9 @@ use std::io::Cursor;
 use tokio::io::AsyncWriteExt;
 
 use crate::{
+    connection::Connection,
     protocol::{get_i32, Error, Framing},
+    response::create_partitions_response::CreateTopicResponse,
     ApiKey,
 };
 
@@ -16,6 +18,15 @@ pub struct Topic {
 #[derive(Debug)]
 pub struct CreatePartitionsRequest {
     pub topics: Vec<Topic>,
+}
+
+impl CreatePartitionsRequest {
+    pub async fn apply(self, dst: &mut Connection) -> crate::Result<()> {
+        dst.write_frame(CreateTopicResponse { topics: vec![] })
+            .await?;
+
+        Ok(())
+    }
 }
 
 impl Framing for CreatePartitionsRequest {

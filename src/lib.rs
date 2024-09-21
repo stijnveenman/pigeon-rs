@@ -13,6 +13,7 @@ mod connection;
 mod shutdown;
 
 pub mod request;
+pub mod response;
 
 pub const DEFAULT_PORT: u16 = 6394;
 

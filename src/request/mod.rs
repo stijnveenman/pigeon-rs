@@ -6,6 +6,7 @@ use tokio::{io::BufWriter, net::TcpStream};
 use std::io::{self, Cursor};
 
 use crate::{
+    connection::Connection,
     protocol::{get_i16, Error, Framing},
     ApiKey,
 };
@@ -13,6 +14,14 @@ use crate::{
 #[derive(Debug)]
 pub enum Request {
     CreatePartitionRequest(CreatePartitionsRequest),
+}
+
+impl Request {
+    pub async fn apply(self, dst: &mut Connection) -> crate::Result<()> {
+        match self {
+            Request::CreatePartitionRequest(request) => request.apply(dst).await,
+        }
+    }
 }
 
 impl Framing for Request {
