@@ -1,6 +1,6 @@
-pub mod create_partitions_request;
+pub mod create_topics_request;
 
-use create_partitions_request::CreatePartitionsRequest;
+use create_topics_request::CreateTopicsRequest;
 use tokio::{io::BufWriter, net::TcpStream};
 
 use std::io::{self, Cursor};
@@ -13,13 +13,13 @@ use crate::{
 
 #[derive(Debug)]
 pub enum Request {
-    CreatePartitionRequest(CreatePartitionsRequest),
+    CreateTopicsRequest(CreateTopicsRequest),
 }
 
 impl Request {
     pub async fn apply(self, dst: &mut Connection) -> crate::Result<()> {
         match self {
-            Request::CreatePartitionRequest(request) => request.apply(dst).await,
+            Request::CreateTopicsRequest(request) => request.apply(dst).await,
         }
     }
 }
@@ -31,7 +31,7 @@ impl Framing for Request {
         let api_version = get_i16(src)?;
 
         match api_key {
-            ApiKey::CreatePartition => CreatePartitionsRequest::check(src, api_version),
+            ApiKey::CreateTopics => CreateTopicsRequest::check(src, api_version),
         }
     }
 
@@ -41,15 +41,16 @@ impl Framing for Request {
         let api_version = get_i16(src)?;
 
         match api_key {
-            ApiKey::CreatePartition => Ok(Request::CreatePartitionRequest(
-                CreatePartitionsRequest::parse(src, api_version)?,
-            )),
+            ApiKey::CreateTopics => Ok(Request::CreateTopicsRequest(CreateTopicsRequest::parse(
+                src,
+                api_version,
+            )?)),
         }
     }
 
     async fn write_to(&self, dst: &mut BufWriter<TcpStream>, api_version: i16) -> io::Result<()> {
         match self {
-            Request::CreatePartitionRequest(request) => request.write_to(dst, api_version),
+            Request::CreateTopicsRequest(request) => request.write_to(dst, api_version),
         }
         .await
     }

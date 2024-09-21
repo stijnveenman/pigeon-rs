@@ -7,10 +7,7 @@ use tokio::{
 };
 use tracing::{error, info};
 
-use crate::{
-    connection::Connection, request::Request,
-    response::create_partitions_response::CreateTopicResponse, shutdown::Shutdown,
-};
+use crate::{connection::Connection, request::Request, shutdown::Shutdown};
 
 const MAX_CONNECTIONS: usize = 250;
 

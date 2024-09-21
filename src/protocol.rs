@@ -24,14 +24,6 @@ pub trait Framing {
     async fn write_to(&self, dst: &mut BufWriter<TcpStream>, api_version: i16) -> io::Result<()>;
 }
 
-pub fn get_u8(src: &mut Cursor<&[u8]>) -> Result<u8, Error> {
-    if !src.has_remaining() {
-        return Err(Error::Incomplete);
-    }
-
-    Ok(src.get_u8())
-}
-
 pub fn get_i16(src: &mut Cursor<&[u8]>) -> Result<i16, Error> {
     if src.remaining() < 2 {
         return Err(Error::Incomplete);

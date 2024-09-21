@@ -1,1 +1,1 @@
-pub mod create_partitions_response;
+pub mod create_topics_response;

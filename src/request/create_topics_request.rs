@@ -5,7 +5,7 @@ use tokio::io::AsyncWriteExt;
 use crate::{
     connection::Connection,
     protocol::{get_i32, Error, Framing},
-    response::create_partitions_response::CreateTopicResponse,
+    response::create_topics_response::CreateTopicResponse,
     ApiKey,
 };
 
@@ -16,11 +16,11 @@ pub struct Topic {
 }
 
 #[derive(Debug)]
-pub struct CreatePartitionsRequest {
+pub struct CreateTopicsRequest {
     pub topics: Vec<Topic>,
 }
 
-impl CreatePartitionsRequest {
+impl CreateTopicsRequest {
     pub async fn apply(self, dst: &mut Connection) -> crate::Result<()> {
         dst.write_frame(CreateTopicResponse { topics: vec![] })
             .await?;
@@ -29,7 +29,7 @@ impl CreatePartitionsRequest {
     }
 }
 
-impl Framing for CreatePartitionsRequest {
+impl Framing for CreateTopicsRequest {
     fn check(src: &mut Cursor<&[u8]>, api_version: i16) -> Result<(), Error> {
         Vec::<Topic>::parse(src, api_version)?;
 
@@ -40,7 +40,7 @@ impl Framing for CreatePartitionsRequest {
     where
         Self: Sized,
     {
-        Ok(CreatePartitionsRequest {
+        Ok(CreateTopicsRequest {
             topics: Vec::<Topic>::parse(src, api_version)?,
         })
     }
@@ -50,7 +50,7 @@ impl Framing for CreatePartitionsRequest {
         dst: &mut tokio::io::BufWriter<tokio::net::TcpStream>,
         api_version: i16,
     ) -> std::io::Result<()> {
-        dst.write_i16(ApiKey::CreatePartition as i16).await?;
+        dst.write_i16(ApiKey::CreateTopics as i16).await?;
         dst.write_i16(api_version).await?;
 
         self.topics.write_to(dst, api_version).await?;
