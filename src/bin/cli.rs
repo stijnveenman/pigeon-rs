@@ -1,4 +1,5 @@
 use pigeon_rs::{logging::set_up_logging, Client};
+use tracing::info;
 
 #[tokio::main]
 async fn main() -> pigeon_rs::Result<()> {
@@ -8,6 +9,10 @@ async fn main() -> pigeon_rs::Result<()> {
         Ok(client) => client,
         Err(_) => panic!("failed to establish connection"),
     };
+
+    let pong = client.ping(None).await.unwrap();
+    assert_eq!(b"PONG", &pong[..]);
+    info!(?pong);
 
     Ok(())
 }

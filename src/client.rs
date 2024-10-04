@@ -1,6 +1,9 @@
+use bytes::Bytes;
+use std::io::{Error, ErrorKind};
 use tokio::net::{TcpStream, ToSocketAddrs};
+use tracing::debug;
 
-use crate::connection::Connection;
+use crate::{cmd::Ping, connection::Connection, Frame};
 
 pub struct Client {
     connection: Connection,
@@ -34,5 +37,59 @@ impl Client {
         let connection = Connection::new(socket);
 
         Ok(Client { connection })
+    }
+
+    /// Ping to the server.
+    ///
+    /// Returns PONG if no argument is provided, otherwise
+    /// return a copy of the argument as a bulk.
+    ///
+    /// This command is often used to test if a connection
+    /// is still alive, or to measure latency.
+    ///
+    /// # Examples
+    ///
+    /// Demonstrates basic usage.
+    /// ```no_run
+    /// use pigen_rs::Client;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let mut client = Client::connect("localhost:6379").await.unwrap();
+    ///
+    ///     let pong = client.ping(None).await.unwrap();
+    ///     assert_eq!(b"PONG", &pong[..]);
+    /// }
+    /// ```
+    pub async fn ping(&mut self, msg: Option<Bytes>) -> crate::Result<Bytes> {
+        let frame = Ping::new(msg).into_frame();
+        debug!(request = ?frame);
+        self.connection.write_frame(&frame).await?;
+
+        match self.read_response().await? {
+            Frame::Simple(value) => Ok(value.into()),
+            Frame::Bulk(value) => Ok(value),
+            frame => Err(frame.to_error()),
+        }
+    }
+
+    async fn read_response(&mut self) -> crate::Result<Frame> {
+        let response = self.connection.read_frame().await?;
+
+        debug!(?response);
+
+        match response {
+            // Error frames are converted to `Err`
+            Some(Frame::Error(msg)) => Err(msg.into()),
+            Some(frame) => Ok(frame),
+            None => {
+                // Receiving `None` here indicates the server has closed the
+                // connection without sending a frame. This is unexpected and is
+                // represented as a "connection reset by peer" error.
+                let err = Error::new(ErrorKind::ConnectionReset, "connection reset by server");
+
+                Err(err.into())
+            }
+        }
     }
 }

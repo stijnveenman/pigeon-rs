@@ -7,7 +7,7 @@ use tokio::{
 };
 use tracing::{error, info};
 
-use crate::{connection::Connection, shutdown::Shutdown};
+use crate::{cmd::Command, connection::Connection, shutdown::Shutdown};
 
 const MAX_CONNECTIONS: usize = 250;
 
@@ -144,9 +144,11 @@ impl Handler {
                 None => return Ok(()),
             };
 
-            info!(?frame);
+            let cmd = Command::from_frame(frame)?;
 
-            self.connection.write_frame(&frame).await?;
+            info!(?cmd);
+
+            cmd.apply(&mut self.connection).await?;
         }
 
         Ok(())

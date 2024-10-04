@@ -2,16 +2,22 @@ pub mod server;
 
 mod client;
 
-pub mod frame;
+mod cmd;
+pub mod parse;
 pub use frame::Frame;
 
 pub mod logging;
 pub use client::Client;
 
+mod frame;
+use parse::{Parse, ParseError};
+
 mod api_key;
 pub use api_key::ApiKey;
 
 mod connection;
+pub use connection::Connection;
+
 mod shutdown;
 
 pub const DEFAULT_PORT: u16 = 6394;
