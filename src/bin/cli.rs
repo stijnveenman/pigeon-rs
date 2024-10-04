@@ -1,5 +1,4 @@
 use pigeon_rs::{logging::set_up_logging, Client};
-use tracing::info;
 
 #[tokio::main]
 async fn main() -> pigeon_rs::Result<()> {
@@ -9,10 +8,6 @@ async fn main() -> pigeon_rs::Result<()> {
         Ok(client) => client,
         Err(_) => panic!("failed to establish connection"),
     };
-
-    let response = client.create_topic("hello world").await.unwrap();
-
-    info!(?response);
 
     Ok(())
 }

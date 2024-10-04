@@ -1,10 +1,6 @@
 use tokio::net::{TcpStream, ToSocketAddrs};
 
-use crate::{
-    connection::Connection,
-    request::create_topics_request::{self, CreateTopicsRequest},
-    response::create_topics_response::CreateTopicResponse,
-};
+use crate::connection::Connection;
 
 pub struct Client {
     connection: Connection,
@@ -38,23 +34,5 @@ impl Client {
         let connection = Connection::new(socket);
 
         Ok(Client { connection })
-    }
-
-    pub async fn create_topic(&mut self, name: &str) -> crate::Result<CreateTopicResponse> {
-        self.connection
-            .write_frame(CreateTopicsRequest {
-                topics: vec![create_topics_request::Topic {
-                    name: name.to_string(),
-                    num_partitions: 1,
-                }],
-            })
-            .await?;
-
-        let frame = self.connection.read_frame::<CreateTopicResponse>().await?;
-
-        match frame {
-            Some(frame) => Ok(frame),
-            None => Err("connection closed".into()),
-        }
     }
 }

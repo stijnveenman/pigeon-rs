@@ -1,8 +1,10 @@
 pub mod server;
 
-mod protocol;
-
 mod client;
+
+pub mod frame;
+pub use frame::Frame;
+
 pub mod logging;
 pub use client::Client;
 
@@ -11,9 +13,6 @@ pub use api_key::ApiKey;
 
 mod connection;
 mod shutdown;
-
-pub mod request;
-pub mod response;
 
 pub const DEFAULT_PORT: u16 = 6394;
 

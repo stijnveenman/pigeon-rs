@@ -7,7 +7,7 @@ use tokio::{
 };
 use tracing::{error, info};
 
-use crate::{connection::Connection, request::Request, shutdown::Shutdown};
+use crate::{connection::Connection, shutdown::Shutdown};
 
 const MAX_CONNECTIONS: usize = 250;
 
@@ -133,15 +133,12 @@ impl Handler {
     async fn run(&mut self) -> crate::Result<()> {
         while !self.shutdown.is_shutdown() {
             let maybe_frame = tokio::select! {
-                res = self.connection.read_frame::<Request>() => res?,
+                res = self.connection.read_frame() => res?,
                 _ = self.shutdown.recv() => {
                     return Ok(());
                 }
             };
 
-            // If `None` is returned from `read_frame()` then the peer closed
-            // the socket. There is no further work to do and the task can be
-            // terminated.
             let frame = match maybe_frame {
                 Some(frame) => frame,
                 None => return Ok(()),
@@ -149,7 +146,7 @@ impl Handler {
 
             info!(?frame);
 
-            frame.apply(&mut self.connection).await?;
+            self.connection.write_frame(&frame).await?;
         }
 
         Ok(())
