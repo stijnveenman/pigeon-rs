@@ -55,6 +55,7 @@ impl Ping {
 
         Ok(())
     }
+
     pub(crate) fn into_frame(self) -> Frame {
         let mut frame = Frame::array();
         frame.push_bulk(Bytes::from("ping".as_bytes()));
