@@ -7,12 +7,13 @@ use tokio::{
 };
 use tracing::{error, info};
 
-use crate::{cmd::Command, connection::Connection, shutdown::Shutdown};
+use crate::{cmd::Command, connection::Connection, db::Db, shutdown::Shutdown};
 
 const MAX_CONNECTIONS: usize = 250;
 
 #[derive(Debug)]
 struct Listener {
+    db: Db,
     listener: TcpListener,
     limit_connections: Arc<Semaphore>,
     notify_shutdown: broadcast::Sender<()>,
@@ -21,6 +22,7 @@ struct Listener {
 
 #[derive(Debug)]
 struct Handler {
+    db: Db,
     connection: Connection,
     shutdown: Shutdown,
     _shutdown_complete: mpsc::Sender<()>,
@@ -31,6 +33,7 @@ pub async fn run(listener: TcpListener, shutdown: impl Future) {
     let (shutdown_complete_tx, mut shutdown_complete_rx) = mpsc::channel(1);
 
     let mut server = Listener {
+        db: Db::new(),
         listener,
         limit_connections: Arc::new(Semaphore::new(MAX_CONNECTIONS)),
         notify_shutdown,
@@ -89,6 +92,7 @@ impl Listener {
             info!("Received connection from {:?}", addr);
 
             let mut handler = Handler {
+                db: self.db.clone(),
                 connection: Connection::new(socket),
                 shutdown: Shutdown::new(self.notify_shutdown.subscribe()),
                 _shutdown_complete: self.shutdown_complete_tx.clone(),
@@ -148,7 +152,7 @@ impl Handler {
 
             info!(?cmd);
 
-            cmd.apply(&mut self.connection).await?;
+            cmd.apply(&self.db, &mut self.connection).await?;
         }
 
         Ok(())

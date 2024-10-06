@@ -3,6 +3,9 @@ pub mod server;
 mod client;
 
 mod cmd;
+
+mod db;
+
 pub mod parse;
 pub use frame::Frame;
 

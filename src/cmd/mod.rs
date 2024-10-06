@@ -1,12 +1,11 @@
 mod ping;
-use std::net::Shutdown;
 
 pub use ping::Ping;
 
 mod unknown;
 pub use unknown::Unknown;
 
-use crate::{parse::Parse, Connection, Frame};
+use crate::{db::Db, parse::Parse, Connection, Frame};
 
 #[derive(Debug)]
 pub enum Command {
@@ -32,7 +31,7 @@ impl Command {
         Ok(command)
     }
 
-    pub(crate) async fn apply(self, dst: &mut Connection) -> crate::Result<()> {
+    pub(crate) async fn apply(self, _db: &Db, dst: &mut Connection) -> crate::Result<()> {
         use Command::*;
 
         match self {
