@@ -5,7 +5,7 @@ use tokio::{
     sync::{broadcast, mpsc, Semaphore},
     time,
 };
-use tracing::{error, info};
+use tracing::{debug, error, info};
 
 use crate::{cmd::Command, connection::Connection, db::Db, shutdown::Shutdown};
 
@@ -89,7 +89,7 @@ impl Listener {
 
             let addr = socket.peer_addr().unwrap();
 
-            info!("Received connection from {:?}", addr);
+            info!("{:?} connected", addr);
 
             let mut handler = Handler {
                 db: self.db.clone(),
@@ -150,7 +150,7 @@ impl Handler {
 
             let cmd = Command::from_frame(frame)?;
 
-            info!(?cmd);
+            debug!(request = ?cmd);
 
             cmd.apply(&self.db, &mut self.connection).await?;
         }
