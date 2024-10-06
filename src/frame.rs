@@ -20,7 +20,7 @@ pub enum Frame {
 }
 
 #[derive(Debug)]
-pub enum Error {
+pub enum FrameError {
     /// Not enough data is available to parse a message
     Incomplete,
 
@@ -63,7 +63,7 @@ impl Frame {
     }
 
     /// Checks if an entire message can be decoded from `src`
-    pub fn check(src: &mut Cursor<&[u8]>) -> Result<(), Error> {
+    pub fn check(src: &mut Cursor<&[u8]>) -> Result<(), FrameError> {
         match get_u8(src)? {
             b'+' => {
                 get_line(src)?;
@@ -103,7 +103,7 @@ impl Frame {
     }
 
     /// The message has already been validated with `check`.
-    pub fn parse(src: &mut Cursor<&[u8]>) -> Result<Frame, Error> {
+    pub fn parse(src: &mut Cursor<&[u8]>) -> Result<Frame, FrameError> {
         match get_u8(src)? {
             b'+' => {
                 // Read the line and convert it to `Vec<u8>`
@@ -142,7 +142,7 @@ impl Frame {
                     let n = len + 2;
 
                     if src.remaining() < n {
-                        return Err(Error::Incomplete);
+                        return Err(FrameError::Incomplete);
                     }
 
                     let data = Bytes::copy_from_slice(&src.chunk()[..len]);
@@ -212,25 +212,25 @@ impl fmt::Display for Frame {
     }
 }
 
-fn peek_u8(src: &mut Cursor<&[u8]>) -> Result<u8, Error> {
+fn peek_u8(src: &mut Cursor<&[u8]>) -> Result<u8, FrameError> {
     if !src.has_remaining() {
-        return Err(Error::Incomplete);
+        return Err(FrameError::Incomplete);
     }
 
     Ok(src.chunk()[0])
 }
 
-fn get_u8(src: &mut Cursor<&[u8]>) -> Result<u8, Error> {
+fn get_u8(src: &mut Cursor<&[u8]>) -> Result<u8, FrameError> {
     if !src.has_remaining() {
-        return Err(Error::Incomplete);
+        return Err(FrameError::Incomplete);
     }
 
     Ok(src.get_u8())
 }
 
-fn skip(src: &mut Cursor<&[u8]>, n: usize) -> Result<(), Error> {
+fn skip(src: &mut Cursor<&[u8]>, n: usize) -> Result<(), FrameError> {
     if src.remaining() < n {
-        return Err(Error::Incomplete);
+        return Err(FrameError::Incomplete);
     }
 
     src.advance(n);
@@ -238,7 +238,7 @@ fn skip(src: &mut Cursor<&[u8]>, n: usize) -> Result<(), Error> {
 }
 
 /// Read a new-line terminated decimal
-fn get_decimal(src: &mut Cursor<&[u8]>) -> Result<u64, Error> {
+fn get_decimal(src: &mut Cursor<&[u8]>) -> Result<u64, FrameError> {
     use atoi::atoi;
 
     let line = get_line(src)?;
@@ -247,7 +247,7 @@ fn get_decimal(src: &mut Cursor<&[u8]>) -> Result<u64, Error> {
 }
 
 /// Find a line
-fn get_line<'a>(src: &mut Cursor<&'a [u8]>) -> Result<&'a [u8], Error> {
+fn get_line<'a>(src: &mut Cursor<&'a [u8]>) -> Result<&'a [u8], FrameError> {
     // Scan the bytes directly
     let start = src.position() as usize;
     // Scan to the second to last byte
@@ -263,40 +263,40 @@ fn get_line<'a>(src: &mut Cursor<&'a [u8]>) -> Result<&'a [u8], Error> {
         }
     }
 
-    Err(Error::Incomplete)
+    Err(FrameError::Incomplete)
 }
 
-impl From<String> for Error {
-    fn from(src: String) -> Error {
-        Error::Other(src.into())
+impl From<String> for FrameError {
+    fn from(src: String) -> FrameError {
+        FrameError::Other(src.into())
     }
 }
 
-impl From<&str> for Error {
-    fn from(src: &str) -> Error {
+impl From<&str> for FrameError {
+    fn from(src: &str) -> FrameError {
         src.to_string().into()
     }
 }
 
-impl From<FromUtf8Error> for Error {
-    fn from(_src: FromUtf8Error) -> Error {
+impl From<FromUtf8Error> for FrameError {
+    fn from(_src: FromUtf8Error) -> FrameError {
         "protocol error; invalid frame format".into()
     }
 }
 
-impl From<TryFromIntError> for Error {
-    fn from(_src: TryFromIntError) -> Error {
+impl From<TryFromIntError> for FrameError {
+    fn from(_src: TryFromIntError) -> FrameError {
         "protocol error; invalid frame format".into()
     }
 }
 
-impl std::error::Error for Error {}
+impl std::error::Error for FrameError {}
 
-impl fmt::Display for Error {
+impl fmt::Display for FrameError {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Error::Incomplete => "stream ended early".fmt(fmt),
-            Error::Other(err) => err.fmt(fmt),
+            FrameError::Incomplete => "stream ended early".fmt(fmt),
+            FrameError::Other(err) => err.fmt(fmt),
         }
     }
 }

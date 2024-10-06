@@ -66,7 +66,7 @@ impl Connection {
     /// enough data has been buffered yet, `Ok(None)` is returned. If the
     /// buffered data does not represent a valid frame, `Err` is returned.
     fn parse_frame(&mut self) -> crate::Result<Option<Frame>> {
-        use frame::Error::Incomplete;
+        use frame::FrameError::Incomplete;
 
         let mut buf = Cursor::new(&self.buffer[..]);
 
