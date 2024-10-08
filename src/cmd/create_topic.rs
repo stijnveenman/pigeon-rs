@@ -1,7 +1,7 @@
 use bytes::Bytes;
 use tracing::{debug, instrument};
 
-use crate::{parse::Parse, Connection, Frame};
+use crate::{db::Db, parse::Parse, Connection, Frame};
 
 /// Creates a new topic
 /// returns OK if the topic was succesfully created
@@ -23,9 +23,12 @@ impl CreateTopic {
         })
     }
 
-    #[instrument(skip(self, dst))]
-    pub(crate) async fn apply(self, dst: &mut Connection) -> crate::Result<()> {
-        let response = Frame::Simple("OK".to_string());
+    #[instrument(skip(self, dst, db))]
+    pub(crate) async fn apply(self, db: &mut Db, dst: &mut Connection) -> crate::Result<()> {
+        let response = match db.create_topic(self.name, self.partitions) {
+            Ok(()) => Frame::Simple("OK".to_string()),
+            Err(e) => Frame::Error(e.to_string()),
+        };
 
         debug!(?response);
 

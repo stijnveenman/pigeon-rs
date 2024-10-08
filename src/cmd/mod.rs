@@ -35,11 +35,11 @@ impl Command {
         Ok(command)
     }
 
-    pub(crate) async fn apply(self, _db: &Db, dst: &mut Connection) -> crate::Result<()> {
+    pub(crate) async fn apply(self, db: &mut Db, dst: &mut Connection) -> crate::Result<()> {
         use Command::*;
 
         match self {
-            CreateTopic(cmd) => cmd.apply(dst).await,
+            CreateTopic(cmd) => cmd.apply(db, dst).await,
             Ping(cmd) => cmd.apply(dst).await,
             Unknown(cmd) => cmd.apply(dst).await,
         }
