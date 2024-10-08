@@ -1,6 +1,8 @@
 mod ping;
-
 pub use ping::Ping;
+
+pub use create_topic::CreateTopic;
+mod create_topic;
 
 mod unknown;
 pub use unknown::Unknown;
@@ -9,6 +11,7 @@ use crate::{db::Db, parse::Parse, Connection, Frame};
 
 #[derive(Debug)]
 pub enum Command {
+    CreateTopic(CreateTopic),
     Ping(Ping),
     Unknown(Unknown),
 }
@@ -20,6 +23,7 @@ impl Command {
         let command_name = parse.next_string()?.to_lowercase();
 
         let command = match &command_name[..] {
+            "ctopic" => Command::CreateTopic(CreateTopic::parse_frames(&mut parse)?),
             "ping" => Command::Ping(Ping::parse_frames(&mut parse)?),
             _ => {
                 return Ok(Command::Unknown(Unknown::new(command_name)));
@@ -35,6 +39,7 @@ impl Command {
         use Command::*;
 
         match self {
+            CreateTopic(cmd) => cmd.apply(dst).await,
             Ping(cmd) => cmd.apply(dst).await,
             Unknown(cmd) => cmd.apply(dst).await,
         }

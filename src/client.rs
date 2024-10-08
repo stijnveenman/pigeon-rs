@@ -3,7 +3,11 @@ use std::io::{Error, ErrorKind};
 use tokio::net::{TcpStream, ToSocketAddrs};
 use tracing::debug;
 
-use crate::{cmd::Ping, connection::Connection, Frame};
+use crate::{
+    cmd::{CreateTopic, Ping},
+    connection::Connection,
+    Frame,
+};
 
 pub struct Client {
     connection: Connection,
@@ -63,6 +67,32 @@ impl Client {
     /// ```
     pub async fn ping(&mut self, msg: Option<Bytes>) -> crate::Result<Bytes> {
         let frame = Ping::new(msg).into_frame();
+        debug!(request = ?frame);
+        self.connection.write_frame(&frame).await?;
+
+        match self.read_response().await? {
+            Frame::Simple(value) => Ok(value.into()),
+            Frame::Bulk(value) => Ok(value),
+            frame => Err(frame.to_error()),
+        }
+    }
+
+    /// Create a new topic
+    ///
+    /// Returns OK if the topic was succesfully created
+    ///
+    /// # Examples
+    /// Demonstrates basic usage.
+    /// ```no_run
+    /// async fn main() {
+    ///     let mut client = Client::connect("localhost:6379").await.unwrap();
+    ///
+    ///     let result = client.create_topic("topic", 5).await.unwrap();
+    ///     assert_eq!(b"OK", &result[..]);
+    /// }
+    /// ```
+    pub async fn create_topic(&mut self, name: String, partitions: u64) -> crate::Result<Bytes> {
+        let frame = CreateTopic::new(name, partitions).into_frame();
         debug!(request = ?frame);
         self.connection.write_frame(&frame).await?;
 

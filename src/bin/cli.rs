@@ -14,5 +14,9 @@ async fn main() -> pigeon_rs::Result<()> {
     assert_eq!(b"PONG", &pong[..]);
     info!(?pong);
 
+    let result = client.create_topic("topic".into(), 5).await.unwrap();
+    assert_eq!(b"OK", &result[..]);
+    info!(?result);
+
     Ok(())
 }
