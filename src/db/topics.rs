@@ -4,7 +4,7 @@ use std::{
 };
 
 use bytes::Bytes;
-use tracing::debug;
+use tracing::{debug, field::debug, instrument};
 
 use super::{Db, DbErr, DbResult};
 
@@ -49,6 +49,7 @@ impl Db {
     ///
     /// # Returns
     /// The offset of the message produces
+    #[instrument(skip(self))]
     pub fn produce(&mut self, topic: String, key: Bytes, data: Bytes) -> DbResult<u64> {
         let mut state = self.shared.lock().unwrap();
 
@@ -66,6 +67,8 @@ impl Db {
             .expect("partition_key failed to produce a valid partition");
 
         let offset = partition.current_offset;
+        debug!(?partition_key, ?offset);
+
         partition.current_offset += 1;
         partition.messages.insert(offset, message);
 
