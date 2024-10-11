@@ -11,14 +11,17 @@ use topics::Topic;
 #[derive(Debug, PartialEq, EnumString, strum_macros::Display)]
 pub enum DbErr {
     NameInUse,
+    NotFound,
 }
 
-#[derive(Debug, Clone)]
+pub type DbResult<T> = Result<T, DbErr>;
+
+#[derive(Clone)]
 pub(crate) struct Db {
     shared: Arc<Mutex<State>>,
 }
 
-#[derive(Debug, Default)]
+#[derive(Default)]
 struct State {
     topics: HashMap<String, Topic>,
 }

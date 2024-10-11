@@ -11,7 +11,6 @@ use crate::{cmd::Command, connection::Connection, db::Db, shutdown::Shutdown};
 
 const MAX_CONNECTIONS: usize = 250;
 
-#[derive(Debug)]
 struct Listener {
     db: Db,
     listener: TcpListener,
@@ -20,7 +19,6 @@ struct Listener {
     shutdown_complete_tx: mpsc::Sender<()>,
 }
 
-#[derive(Debug)]
 struct Handler {
     db: Db,
     connection: Connection,
