@@ -4,12 +4,17 @@ use super::{Db, DbErr};
 
 #[derive(Debug)]
 pub struct Topic {
-    partitions: u64,
+    partitions: Vec<Partition>,
 }
+
+#[derive(Debug, Default)]
+pub struct Partition {}
 
 impl Topic {
     pub(crate) fn new(partitions: u64) -> Topic {
-        Topic { partitions }
+        Topic {
+            partitions: (0..partitions).map(|_| Partition::default()).collect(),
+        }
     }
 }
 
