@@ -18,5 +18,17 @@ async fn main() -> pigeon_rs::Result<()> {
     assert_eq!(b"OK", &result[..]);
     info!(?result);
 
+    let result = client
+        .produce(
+            "topic".into(),
+            "key3".as_bytes().into(),
+            "data".as_bytes().into(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(result, (4, 0));
+    info!(?result);
+
     Ok(())
 }

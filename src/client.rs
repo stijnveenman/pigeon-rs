@@ -1,11 +1,15 @@
 use bytes::Bytes;
-use std::io::{Error, ErrorKind};
+use std::{
+    io::{Error, ErrorKind},
+    iter::Product,
+};
 use tokio::net::{TcpStream, ToSocketAddrs};
 use tracing::debug;
 
 use crate::{
-    cmd::{CreateTopic, Ping},
+    cmd::{CreateTopic, Ping, Produce},
     connection::Connection,
+    parse::Parse,
     Frame,
 };
 
@@ -101,6 +105,41 @@ impl Client {
             Frame::Bulk(value) => Ok(value),
             frame => Err(frame.to_error()),
         }
+    }
+
+    /// Produce a message on a topic
+    ///
+    /// Returns a tuple of (partition_key, offset)
+    /// # Examples
+    /// Demonstrates basic usage.
+    /// ```no_run
+    /// async fn main() {
+    ///     let mut client = Client::connect("localhost:6379").await.unwrap();
+    ///
+    ///     let result = client.create_topic("topic", 5).await.unwrap();
+    ///     assert_eq!(b"OK", &result[..]);
+    ///
+    ///     let result = client.produce("topic", "key", "message").await.unwrap();
+    ///     assert_eq!(result, (0, 0));
+    /// }
+    /// ```
+    pub async fn produce(
+        &mut self,
+        topic: String,
+        key: Bytes,
+        data: Bytes,
+    ) -> crate::Result<(u64, u64)> {
+        let frame = Produce::new(topic, key, data).into_frame();
+        debug!(request = ?frame);
+        self.connection.write_frame(&frame).await?;
+
+        let response = self.read_response().await?;
+        let mut parse = Parse::new(response)?;
+
+        let partition_key = parse.next_int()?;
+        let offset = parse.next_int()?;
+
+        Ok((partition_key, offset))
     }
 
     async fn read_response(&mut self) -> crate::Result<Frame> {

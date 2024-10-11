@@ -50,7 +50,7 @@ impl Db {
     /// # Returns
     /// The offset of the message produces
     #[instrument(skip(self))]
-    pub fn produce(&mut self, topic: String, key: Bytes, data: Bytes) -> DbResult<u64> {
+    pub fn produce(&mut self, topic: String, key: Bytes, data: Bytes) -> DbResult<(u64, u64)> {
         let mut state = self.shared.lock().unwrap();
 
         let topic = state.topics.get_mut(&topic);
@@ -72,7 +72,7 @@ impl Db {
         partition.current_offset += 1;
         partition.messages.insert(offset, message);
 
-        Ok(offset)
+        Ok((partition_key, offset))
     }
 }
 

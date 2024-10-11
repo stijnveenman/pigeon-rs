@@ -28,7 +28,7 @@ impl Command {
 
         let command = match &command_name[..] {
             "ctopic" => Command::CreateTopic(CreateTopic::parse_frames(&mut parse)?),
-            "produce" => Command::CreateTopic(CreateTopic::parse_frames(&mut parse)?),
+            "produce" => Command::Produce(Produce::parse_frames(&mut parse)?),
             "ping" => Command::Ping(Ping::parse_frames(&mut parse)?),
             _ => {
                 return Ok(Command::Unknown(Unknown::new(command_name)));

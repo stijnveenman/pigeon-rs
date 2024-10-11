@@ -1,5 +1,5 @@
 use bytes::Bytes;
-use tracing::instrument;
+use tracing::{debug, instrument};
 
 use crate::{db::Db, parse::Parse, Connection, Frame};
 
@@ -25,7 +25,21 @@ impl Produce {
 
     #[instrument(skip(self, dst, db))]
     pub(crate) async fn apply(self, db: &mut Db, dst: &mut Connection) -> crate::Result<()> {
-        todo!()
+        let response = match db.produce(self.topic, self.key, self.data) {
+            Ok((partition, offset)) => {
+                let mut frame = Frame::array();
+                frame.push_int(partition);
+                frame.push_int(offset);
+                frame
+            }
+            Err(e) => Frame::Error(e.to_string()),
+        };
+
+        debug!(?response);
+
+        dst.write_frame(&response).await?;
+
+        Ok(())
     }
 
     pub(crate) fn into_frame(self) -> Frame {
