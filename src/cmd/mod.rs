@@ -4,6 +4,9 @@ pub use ping::Ping;
 pub use create_topic::CreateTopic;
 mod create_topic;
 
+mod produce;
+pub use produce::Produce;
+
 mod unknown;
 pub use unknown::Unknown;
 
@@ -12,6 +15,7 @@ use crate::{db::Db, parse::Parse, Connection, Frame};
 #[derive(Debug)]
 pub enum Command {
     CreateTopic(CreateTopic),
+    Produce(Produce),
     Ping(Ping),
     Unknown(Unknown),
 }
@@ -24,6 +28,7 @@ impl Command {
 
         let command = match &command_name[..] {
             "ctopic" => Command::CreateTopic(CreateTopic::parse_frames(&mut parse)?),
+            "produce" => Command::CreateTopic(CreateTopic::parse_frames(&mut parse)?),
             "ping" => Command::Ping(Ping::parse_frames(&mut parse)?),
             _ => {
                 return Ok(Command::Unknown(Unknown::new(command_name)));
@@ -40,6 +45,7 @@ impl Command {
 
         match self {
             CreateTopic(cmd) => cmd.apply(db, dst).await,
+            Produce(cmd) => cmd.apply(db, dst).await,
             Ping(cmd) => cmd.apply(dst).await,
             Unknown(cmd) => cmd.apply(dst).await,
         }
