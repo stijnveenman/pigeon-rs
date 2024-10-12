@@ -1,5 +1,5 @@
 use pigeon_rs::{logging::set_up_logging, Client};
-use tracing::info;
+use tracing::{debug, info};
 
 #[tokio::main]
 async fn main() -> pigeon_rs::Result<()> {
@@ -29,6 +29,12 @@ async fn main() -> pigeon_rs::Result<()> {
 
     assert_eq!(result, (4, 0));
     info!(?result);
+
+    let result = client.fetch("topic".into(), 4, 0).await.unwrap();
+    debug!(?result);
+
+    let result = client.fetch("topic".into(), 4, 1).await.unwrap();
+    debug!(?result);
 
     Ok(())
 }

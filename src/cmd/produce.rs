@@ -25,7 +25,7 @@ impl Produce {
 
     #[instrument(skip(self, dst, db))]
     pub(crate) async fn apply(self, db: &mut Db, dst: &mut Connection) -> crate::Result<()> {
-        let response = match db.produce(self.topic, self.key, self.data) {
+        let response = match db.produce(&self.topic, self.key, self.data) {
             Ok((partition, offset)) => {
                 let mut frame = Frame::array();
                 frame.push_int(partition);

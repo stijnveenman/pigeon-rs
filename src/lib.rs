@@ -5,6 +5,7 @@ mod client;
 mod cmd;
 
 mod db;
+pub use db::Message;
 
 pub mod parse;
 pub use frame::Frame;

@@ -6,6 +6,8 @@ use std::{
 };
 
 use strum_macros::EnumString;
+
+pub use topics::Message;
 use topics::Topic;
 
 #[derive(Debug, PartialEq, EnumString, strum_macros::Display)]

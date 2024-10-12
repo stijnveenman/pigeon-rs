@@ -1,10 +1,12 @@
 use std::{
     collections::BTreeMap,
-    hash::{DefaultHasher, Hasher, SipHasher},
+    hash::{DefaultHasher, Hasher},
 };
 
 use bytes::Bytes;
-use tracing::{debug, field::debug, instrument};
+use tracing::{debug, instrument};
+
+use crate::parse::Parse;
 
 use super::{Db, DbErr, DbResult};
 
@@ -18,9 +20,11 @@ pub struct Partition {
     current_offset: u64,
 }
 
+// Becasuse data is stored using 'Bytes', a clone is a shallow clone. Data is not copied
+#[derive(Clone, Debug)]
 pub struct Message {
-    key: Bytes,
-    data: Bytes,
+    pub key: Bytes,
+    pub data: Bytes,
 }
 
 impl Topic {
@@ -47,13 +51,12 @@ impl Db {
 
     /// Produce a message on a given topic
     ///
-    /// # Returns
-    /// The offset of the message produces
+    /// Returns a tuple of (partition_key, offset)
     #[instrument(skip(self))]
-    pub fn produce(&mut self, topic: String, key: Bytes, data: Bytes) -> DbResult<(u64, u64)> {
+    pub fn produce(&mut self, topic: &str, key: Bytes, data: Bytes) -> DbResult<(u64, u64)> {
         let mut state = self.shared.lock().unwrap();
 
-        let topic = state.topics.get_mut(&topic);
+        let topic = state.topics.get_mut(topic);
         let Some(topic) = topic else {
             return Err(DbErr::NotFound);
         };
@@ -74,6 +77,23 @@ impl Db {
 
         Ok((partition_key, offset))
     }
+
+    pub fn fetch(&mut self, topic: &str, partition: u64, offset: u64) -> DbResult<Option<Message>> {
+        let state = self.shared.lock().unwrap();
+
+        let topic = state.topics.get(topic);
+        let Some(topic) = topic else {
+            return Err(DbErr::NotFound);
+        };
+
+        let partition = topic.partitions.get(partition as usize);
+        let Some(partition) = partition else {
+            return Err(DbErr::NotFound);
+        };
+
+        let message = partition.messages.get(&offset).cloned();
+        Ok(message)
+    }
 }
 
 impl Message {
@@ -85,5 +105,12 @@ impl Message {
 
     fn new(key: Bytes, data: Bytes) -> Message {
         Message { key, data }
+    }
+
+    pub(crate) fn parse_frames(parse: &mut Parse) -> crate::Result<Message> {
+        Ok(Message {
+            key: parse.next_bytes()?,
+            data: parse.next_bytes()?,
+        })
     }
 }

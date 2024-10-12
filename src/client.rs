@@ -1,16 +1,13 @@
 use bytes::Bytes;
-use std::{
-    io::{Error, ErrorKind},
-    iter::Product,
-};
+use std::io::{Error, ErrorKind};
 use tokio::net::{TcpStream, ToSocketAddrs};
 use tracing::debug;
 
 use crate::{
-    cmd::{CreateTopic, Ping, Produce},
+    cmd::{CreateTopic, Fetch, Ping, Produce},
     connection::Connection,
     parse::Parse,
-    Frame,
+    Frame, Message,
 };
 
 pub struct Client {
@@ -140,6 +137,43 @@ impl Client {
         let offset = parse.next_int()?;
 
         Ok((partition_key, offset))
+    }
+
+    /// Fetch a message from a topic
+    ///
+    /// Returns a message for a given offset.
+    /// Errors if the topic or partition does not exist
+    /// Returns Ok(None) if the offset does not exist
+    /// # Examples
+    /// Demonstrates basic usage.
+    /// ```no_run
+    /// async fn main() {
+    ///     let mut client = Client::connect("localhost:6379").await.unwrap();
+    ///
+    ///     let result = client.fetch("topic", 1, 10).await.unwrap();
+    /// }
+    /// ```
+    pub async fn fetch(
+        &mut self,
+        topic: String,
+        partition: u64,
+        offset: u64,
+    ) -> crate::Result<Option<Message>> {
+        let frame = Fetch::new(topic, partition, offset).into_frame();
+        debug!(request = ?frame);
+        self.connection.write_frame(&frame).await?;
+
+        let response = self.read_response().await?;
+
+        match response {
+            Frame::Array(v) => {
+                let mut parse = Parse::from_vec(v);
+                let message = Message::parse_frames(&mut parse)?;
+                Ok(Some(message))
+            }
+            Frame::Null => Ok(None),
+            frame => Err(frame.to_error()),
+        }
     }
 
     async fn read_response(&mut self) -> crate::Result<Frame> {

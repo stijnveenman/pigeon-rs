@@ -44,6 +44,12 @@ impl Parse {
         })
     }
 
+    pub(crate) fn from_vec(vec: Vec<Frame>) -> Parse {
+        Parse {
+            parts: vec.into_iter(),
+        }
+    }
+
     /// Return the next entry. Array frames are arrays of frames, so the next
     /// entry is a frame.
     fn next(&mut self) -> Result<Frame, ParseError> {
