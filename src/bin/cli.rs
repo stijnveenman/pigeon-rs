@@ -1,40 +1,60 @@
-use pigeon_rs::{logging::set_up_logging, Client};
-use tracing::{debug, info};
+use core::str;
 
-#[tokio::main]
+use bytes::Bytes;
+use clap::{Parser, Subcommand};
+use pigeon_rs::{logging::set_up_logging, Client, DEFAULT_PORT};
+
+#[derive(Parser, Debug)]
+#[command(
+    name = "mini-redis-cli",
+    version,
+    author,
+    about = "Issue Redis commands"
+)]
+struct Cli {
+    #[clap(subcommand)]
+    command: Command,
+
+    #[arg(id = "hostname", long, default_value = "127.0.0.1")]
+    host: String,
+
+    #[arg(long, default_value_t = DEFAULT_PORT)]
+    port: u16,
+}
+
+#[derive(Subcommand, Debug)]
+enum Command {
+    Ping {
+        /// Message to ping
+        msg: Option<Bytes>,
+    },
+}
+
+/// Entry point for CLI tool.
+///
+/// `flavor = "current_thread"` is used here to avoid spawning background
+/// threads. The CLI tool use case benefits more by being lighter instead of
+/// multi-threaded.
+#[tokio::main(flavor = "current_thread")]
 async fn main() -> pigeon_rs::Result<()> {
     set_up_logging()?;
 
-    let mut client = match Client::connect("localhost:6394").await {
-        Ok(client) => client,
-        Err(_) => panic!("failed to establish connection"),
-    };
+    let cli = Cli::parse();
 
-    let pong = client.ping(None).await.unwrap();
-    assert_eq!(b"PONG", &pong[..]);
-    info!(?pong);
+    let addr = format!("{}:{}", cli.host, cli.port);
 
-    let result = client.create_topic("topic".into(), 5).await.unwrap();
-    assert_eq!(b"OK", &result[..]);
-    info!(?result);
+    let mut client = Client::connect(&addr).await?;
 
-    let result = client
-        .produce(
-            "topic".into(),
-            "key3".as_bytes().into(),
-            "data".as_bytes().into(),
-        )
-        .await
-        .unwrap();
-
-    assert_eq!(result, (4, 0));
-    info!(?result);
-
-    let result = client.fetch("topic".into(), 4, 0).await.unwrap();
-    debug!(?result);
-
-    let result = client.fetch("topic".into(), 4, 1).await.unwrap();
-    debug!(?result);
+    match cli.command {
+        Command::Ping { msg } => {
+            let value = client.ping(msg).await?;
+            if let Ok(string) = str::from_utf8(&value) {
+                println!("\"{}\"", string);
+            } else {
+                println!("{:?}", value);
+            }
+        }
+    }
 
     Ok(())
 }
