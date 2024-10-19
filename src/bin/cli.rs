@@ -28,6 +28,20 @@ enum Command {
         /// Message to ping
         msg: Option<Bytes>,
     },
+    Topic {
+        #[clap(subcommand)]
+        subcommand: TopicCommand,
+    },
+}
+
+#[derive(Subcommand, Debug)]
+enum TopicCommand {
+    Create {
+        /// Name of topic to create
+        name: String,
+        /// Number of partitions to create
+        partitions: u64,
+    },
 }
 
 /// Entry point for CLI tool.
@@ -54,6 +68,16 @@ async fn main() -> pigeon_rs::Result<()> {
                 println!("{:?}", value);
             }
         }
+        Command::Topic { subcommand } => match subcommand {
+            TopicCommand::Create { name, partitions } => {
+                let value = client.create_topic(name, partitions).await?;
+                if let Ok(string) = str::from_utf8(&value) {
+                    println!("\"{}\"", string);
+                } else {
+                    println!("{:?}", value);
+                }
+            }
+        },
     }
 
     Ok(())
