@@ -32,6 +32,16 @@ enum Command {
         #[clap(subcommand)]
         subcommand: TopicCommand,
     },
+    Produce {
+        topic: String,
+        key: Bytes,
+        data: Bytes,
+    },
+    Fetch {
+        topic: String,
+        partition: u64,
+        offset: u64,
+    },
 }
 
 #[derive(Subcommand, Debug)]
@@ -62,23 +72,39 @@ async fn main() -> pigeon_rs::Result<()> {
     match cli.command {
         Command::Ping { msg } => {
             let value = client.ping(msg).await?;
-            if let Ok(string) = str::from_utf8(&value) {
-                println!("\"{}\"", string);
+            print_result(&value)
+        }
+        Command::Produce { topic, key, data } => {
+            let value = client.produce(topic, key, data).await?;
+            println!("partiton: {} offset {}", value.0, value.1)
+        }
+        Command::Fetch {
+            topic,
+            partition,
+            offset,
+        } => {
+            let value = client.fetch(topic, partition, offset).await?;
+            if let Some(message) = value {
+                print_result(&message.data)
             } else {
-                println!("{:?}", value);
+                println!("None")
             }
         }
         Command::Topic { subcommand } => match subcommand {
             TopicCommand::Create { name, partitions } => {
                 let value = client.create_topic(name, partitions).await?;
-                if let Ok(string) = str::from_utf8(&value) {
-                    println!("\"{}\"", string);
-                } else {
-                    println!("{:?}", value);
-                }
+                print_result(&value)
             }
         },
     }
 
     Ok(())
+}
+
+fn print_result(value: &Bytes) {
+    if let Ok(string) = str::from_utf8(value) {
+        println!("\"{}\"", string);
+    } else {
+        println!("{:?}", value);
+    }
 }
