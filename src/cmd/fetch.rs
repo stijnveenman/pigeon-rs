@@ -1,6 +1,10 @@
 use tracing::debug;
 
-use crate::{db::Db, parse::Parse, Connection, Frame, Message};
+use crate::{
+    db::{Db, DbErr, DbResult},
+    parse::Parse,
+    Connection, Frame, Message,
+};
 
 #[derive(Debug)]
 pub struct Fetch {
@@ -24,6 +28,14 @@ impl Fetch {
             partition: parse.next_int()?,
             offset: parse.next_int()?,
         })
+    }
+
+    async fn wait_for_message(self, db: &mut Db) -> DbResult<Message> {
+        let mut rx = db.fetch_subscribe(&self.topic, self.partition)?;
+
+        let message = rx.recv().await.map_err(|_| DbErr::RecvError)?;
+
+        Ok(message)
     }
 
     pub(crate) async fn apply(self, db: &mut Db, dst: &mut Connection) -> crate::Result<()> {

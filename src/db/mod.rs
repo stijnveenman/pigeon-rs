@@ -15,6 +15,7 @@ use topics::Topic;
 pub enum DbErr {
     NameInUse,
     NotFound,
+    RecvError,
 }
 
 pub type DbResult<T> = Result<T, DbErr>;
