@@ -1,6 +1,6 @@
 use tracing::debug;
 
-use crate::{db::Db, parse::Parse, Connection, Frame};
+use crate::{db::Db, parse::Parse, Connection, Frame, Message};
 
 #[derive(Debug)]
 pub struct Fetch {
@@ -28,12 +28,7 @@ impl Fetch {
 
     pub(crate) async fn apply(self, db: &mut Db, dst: &mut Connection) -> crate::Result<()> {
         let response = match db.fetch(&self.topic, self.partition, self.offset) {
-            Ok(Some(message)) => {
-                let mut frame = Frame::array();
-                frame.push_bulk(message.key);
-                frame.push_bulk(message.data);
-                frame
-            }
+            Ok(Some(message)) => make_message_frame(message),
             Ok(None) => Frame::Null,
             Err(e) => Frame::Error(e.to_string()),
         };
@@ -56,4 +51,11 @@ impl Fetch {
 
         frame
     }
+}
+
+fn make_message_frame(message: Message) -> Frame {
+    let mut frame = Frame::array();
+    frame.push_bulk(message.key);
+    frame.push_bulk(message.data);
+    frame
 }

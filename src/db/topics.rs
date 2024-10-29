@@ -1,9 +1,10 @@
 use std::{
-    collections::BTreeMap,
+    collections::{hash_map::Entry, BTreeMap},
     hash::{DefaultHasher, Hasher},
 };
 
 use bytes::Bytes;
+use tokio::sync::broadcast;
 use tracing::{debug, instrument};
 
 use crate::parse::Parse;
@@ -93,6 +94,27 @@ impl Db {
 
         let message = partition.messages.get(&offset).cloned();
         Ok(message)
+    }
+
+    pub fn fetch_subscribe(
+        &mut self,
+        topic: &str,
+        partition: u64,
+    ) -> DbResult<broadcast::Receiver<Message>> {
+        let mut state = self.shared.lock().unwrap();
+
+        let key = (topic.to_string(), partition);
+
+        let rx = match state.fetches.entry(key) {
+            Entry::Occupied(e) => e.get().subscribe(),
+            Entry::Vacant(e) => {
+                let (tx, rx) = broadcast::channel(32);
+                e.insert(tx);
+                rx
+            }
+        };
+
+        Ok(rx)
     }
 }
 

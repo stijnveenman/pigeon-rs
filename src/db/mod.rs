@@ -7,6 +7,7 @@ use std::{
 
 use strum_macros::EnumString;
 
+use tokio::sync::broadcast;
 pub use topics::Message;
 use topics::Topic;
 
@@ -26,6 +27,10 @@ pub(crate) struct Db {
 #[derive(Default)]
 struct State {
     topics: HashMap<String, Topic>,
+    /// A broadcast for fetching cosumers, if a consuming is fetching data that does not exist yet
+    /// it's added to this list. Once a matching message comes in, it is pushed to the consumer
+    /// Key is (Topic, partition)
+    fetches: HashMap<(String, u64), broadcast::Sender<Message>>,
 }
 
 impl Db {
