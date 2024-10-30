@@ -16,6 +16,7 @@ pub enum DbErr {
     NameInUse,
     NotFound,
     RecvError,
+    ShuttingDown,
 }
 
 pub type DbResult<T> = Result<T, DbErr>;

@@ -13,7 +13,7 @@ pub use unknown::Unknown;
 mod fetch;
 pub use fetch::Fetch;
 
-use crate::{db::Db, parse::Parse, Connection, Frame};
+use crate::{db::Db, parse::Parse, shutdown::Shutdown, Connection, Frame};
 
 #[derive(Debug)]
 pub enum Command {
@@ -45,13 +45,18 @@ impl Command {
         Ok(command)
     }
 
-    pub(crate) async fn apply(self, db: &mut Db, dst: &mut Connection) -> crate::Result<()> {
+    pub(crate) async fn apply(
+        self,
+        db: &mut Db,
+        dst: &mut Connection,
+        shutdown: &mut Shutdown,
+    ) -> crate::Result<()> {
         use Command::*;
 
         match self {
             CreateTopic(cmd) => cmd.apply(db, dst).await,
             Produce(cmd) => cmd.apply(db, dst).await,
-            Fetch(cmd) => cmd.apply(db, dst).await,
+            Fetch(cmd) => cmd.apply(db, dst, shutdown).await,
             Ping(cmd) => cmd.apply(dst).await,
             Unknown(cmd) => cmd.apply(dst).await,
         }

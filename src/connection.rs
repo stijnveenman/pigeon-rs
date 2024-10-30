@@ -1,5 +1,6 @@
 use bytes::Buf;
 use std::io::Cursor;
+use tracing::debug;
 
 use bytes::BytesMut;
 use tokio::{
@@ -7,7 +8,10 @@ use tokio::{
     net::TcpStream,
 };
 
-use crate::frame::{self, Frame};
+use crate::{
+    db::DbErr,
+    frame::{self, Frame},
+};
 
 #[derive(Debug)]
 pub struct Connection {

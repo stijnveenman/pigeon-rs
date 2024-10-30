@@ -150,7 +150,8 @@ impl Handler {
 
             debug!(request = ?cmd);
 
-            cmd.apply(&mut self.db, &mut self.connection).await?;
+            cmd.apply(&mut self.db, &mut self.connection, &mut self.shutdown)
+                .await?;
         }
 
         Ok(())
