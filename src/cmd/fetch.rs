@@ -1,4 +1,4 @@
-use tracing::debug;
+use tracing::{debug, info};
 
 use crate::{
     db::{Db, DbErr, DbResult},
@@ -30,18 +30,22 @@ impl Fetch {
         })
     }
 
-    async fn wait_for_message(self, db: &mut Db) -> DbResult<Message> {
-        let mut rx = db.fetch_subscribe(&self.topic, self.partition)?;
+    async fn wait_for_message(self, db: &mut Db) -> Frame {
+        let mut rx = match db.fetch_subscribe(&self.topic, self.partition) {
+            Ok(rx) => rx,
+            Err(e) => return Frame::Error(e.to_string()),
+        };
 
-        let message = rx.recv().await.map_err(|_| DbErr::RecvError)?;
-
-        Ok(message)
+        match rx.recv().await {
+            Ok(message) => make_message_frame(message),
+            Err(_) => Frame::Error(DbErr::RecvError.to_string()),
+        }
     }
 
     pub(crate) async fn apply(self, db: &mut Db, dst: &mut Connection) -> crate::Result<()> {
         let response = match db.fetch(&self.topic, self.partition, self.offset) {
             Ok(Some(message)) => make_message_frame(message),
-            Ok(None) => Frame::Null,
+            Ok(None) => self.wait_for_message(db).await,
             Err(e) => Frame::Error(e.to_string()),
         };
 
