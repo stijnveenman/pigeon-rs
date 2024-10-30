@@ -5,7 +5,7 @@ use std::{
 
 use bytes::Bytes;
 use tokio::sync::broadcast;
-use tracing::{debug, instrument};
+use tracing::{debug, field::debug, instrument};
 
 use crate::parse::Parse;
 
@@ -54,10 +54,10 @@ impl Db {
     ///
     /// Returns a tuple of (partition_key, offset)
     #[instrument(skip(self))]
-    pub fn produce(&mut self, topic: &str, key: Bytes, data: Bytes) -> DbResult<(u64, u64)> {
+    pub fn produce(&mut self, topic_name: &str, key: Bytes, data: Bytes) -> DbResult<(u64, u64)> {
         let mut state = self.shared.lock().unwrap();
 
-        let topic = state.topics.get_mut(topic);
+        let topic = state.topics.get_mut(topic_name);
         let Some(topic) = topic else {
             return Err(DbErr::NotFound);
         };
@@ -74,7 +74,15 @@ impl Db {
         debug!(?partition_key, ?offset);
 
         partition.current_offset += 1;
-        partition.messages.insert(offset, message);
+        partition.messages.insert(offset, message.clone());
+
+        let count = state
+            .fetches
+            .get(&(topic_name.into(), partition_key))
+            .map(|tx| tx.send(message).unwrap_or(0))
+            .unwrap_or(0);
+
+        debug!("notified {} fetch of a new message", count);
 
         Ok((partition_key, offset))
     }
