@@ -78,6 +78,16 @@ impl Parse {
         }
     }
 
+    /// Returns the next entry as a Vec<Frame>
+    ///
+    /// If the next entry is not an Frame::Array, then an error is returned
+    pub(crate) fn next_vec(&mut self) -> Result<Vec<Frame>, ParseError> {
+        match self.next()? {
+            Frame::Array(vec) => Ok(vec),
+            frame => Err(format!("protocol error; expected int frame but got {:?}", frame).into()),
+        }
+    }
+
     /// Return the next entry as raw bytes.
     ///
     /// If the next entry cannot be represented as raw bytes, an error is
