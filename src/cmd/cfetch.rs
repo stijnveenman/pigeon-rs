@@ -1,4 +1,12 @@
-use crate::{parse::Parse, Frame};
+use tracing::debug;
+
+use crate::{
+    cmd::fetch::make_message_frame,
+    db::{Db, DbResult},
+    parse::Parse,
+    shutdown::Shutdown,
+    Connection, Frame, Message,
+};
 
 #[derive(Debug)]
 pub struct FetchConfig {
@@ -19,6 +27,36 @@ pub struct FetchPartitionConfig {
 }
 
 impl FetchConfig {
+    pub(crate) async fn apply(
+        self,
+        db: &mut Db,
+        dst: &mut Connection,
+        shutdown: &mut Shutdown,
+    ) -> crate::Result<()> {
+        let response = match self.fetch(db).await {
+            Ok(Some(message)) => make_message_frame(message),
+            Ok(None) => Frame::Null,
+            Err(e) => Frame::Error(e.to_string()),
+        };
+
+        debug!(?response);
+
+        dst.write_frame(&response).await?;
+
+        Ok(())
+    }
+
+    async fn fetch(&self, db: &mut Db) -> DbResult<Option<Message>> {
+        for topic in &self.topics {
+            match topic.fetch(db).await? {
+                Some(message) => return Ok(Some(message)),
+                None => continue,
+            }
+        }
+
+        Ok(None)
+    }
+
     pub(crate) fn parse_frames(parse: &mut Parse) -> crate::Result<Self> {
         let timeout_ms = parse.next_int()?;
 
@@ -50,6 +88,16 @@ impl FetchConfig {
 }
 
 impl FetchTopicConfig {
+    async fn fetch(&self, db: &mut Db) -> DbResult<Option<Message>> {
+        for partition in &self.partitions {
+            if let Some(message) = db.fetch(&self.topic, partition.partition, partition.offset)? {
+                return Ok(Some(message));
+            }
+        }
+
+        Ok(None)
+    }
+
     pub(crate) fn parse_frames(parse: &mut Parse) -> crate::Result<Self> {
         let topic = parse.next_string()?;
 

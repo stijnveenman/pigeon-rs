@@ -84,7 +84,7 @@ impl Fetch {
     }
 }
 
-fn make_message_frame(message: Message) -> Frame {
+pub fn make_message_frame(message: Message) -> Frame {
     let mut frame = Frame::array();
     frame.push_bulk(message.key);
     frame.push_bulk(message.data);

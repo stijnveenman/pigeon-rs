@@ -9,6 +9,8 @@ use std::io::Cursor;
 use std::num::TryFromIntError;
 use std::string::FromUtf8Error;
 
+use crate::db::DbErr;
+
 /// A frame in the Redis protocol.
 #[derive(Clone, Debug)]
 pub enum Frame {

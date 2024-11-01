@@ -64,7 +64,7 @@ impl Command {
             Fetch(cmd) => cmd.apply(db, dst, shutdown).await,
             Ping(cmd) => cmd.apply(dst).await,
             Unknown(cmd) => cmd.apply(dst).await,
-            CFetch(_) => todo!(),
+            CFetch(cmd) => cmd.apply(db, dst, shutdown).await,
         }
     }
 }
