@@ -60,15 +60,10 @@ impl FetchConfig {
 
         let mut map = StreamMap::new();
         for topic in &self.topics {
-            // TODO partition and handle error
-            let mut rx = db.fetch_subscribe(&topic.topic, 2).expect("test");
-            let rx = Box::pin(async_stream::stream! {
-                  while let Ok(item) = rx.recv().await {
-                      yield item;
-                  }
-            }) as Pin<Box<dyn Stream<Item = Message> + Send>>;
-
-            map.insert(&topic.topic, rx);
+            for partition in &topic.partitions {
+                let rx = partition.fetch(db, &topic.topic)?;
+                map.insert((&topic.topic, partition.partition), rx);
+            }
         }
 
         let message = map.next().await.map(|m| m.1);
@@ -151,6 +146,22 @@ impl FetchTopicConfig {
 }
 
 impl FetchPartitionConfig {
+    fn fetch(
+        &self,
+        db: &mut Db,
+        topic: &str,
+    ) -> DbResult<Pin<Box<dyn Stream<Item = Message> + Send>>> {
+        let mut rx = db.fetch_subscribe(topic, self.partition)?;
+
+        let rx = Box::pin(async_stream::stream! {
+              while let Ok(item) = rx.recv().await {
+                  yield item;
+              }
+        }) as Pin<Box<dyn Stream<Item = Message> + Send>>;
+
+        Ok(rx)
+    }
+
     pub(crate) fn parse_frames(parse: &mut Parse) -> crate::Result<Self> {
         Ok(Self {
             partition: parse.next_int()?,
