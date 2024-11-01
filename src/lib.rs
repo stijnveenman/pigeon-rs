@@ -5,6 +5,7 @@ mod client;
 mod cmd;
 
 mod db;
+mod example;
 pub use db::Message;
 
 pub mod parse;
