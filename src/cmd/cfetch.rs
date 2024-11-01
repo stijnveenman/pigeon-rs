@@ -1,4 +1,8 @@
-use tracing::debug;
+use std::pin::Pin;
+
+use tokio::select;
+use tokio_stream::{Stream, StreamExt, StreamMap};
+use tracing::{debug, info};
 
 use crate::{
     cmd::fetch::make_message_frame,
@@ -54,7 +58,22 @@ impl FetchConfig {
             }
         }
 
-        Ok(None)
+        let mut map = StreamMap::new();
+        for topic in &self.topics {
+            // TODO partition and handle error
+            let mut rx = db.fetch_subscribe(&topic.topic, 2).expect("test");
+            let rx = Box::pin(async_stream::stream! {
+                  while let Ok(item) = rx.recv().await {
+                      yield item;
+                  }
+            }) as Pin<Box<dyn Stream<Item = Message> + Send>>;
+
+            map.insert(&topic.topic, rx);
+        }
+
+        let message = map.next().await.map(|m| m.1);
+        info!("used streammap");
+        Ok(message)
     }
 
     pub(crate) fn parse_frames(parse: &mut Parse) -> crate::Result<Self> {

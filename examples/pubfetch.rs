@@ -52,6 +52,9 @@ async fn main() -> pigeon_rs::Result<()> {
         }
     });
 
+    let mut interval = tokio::time::interval(Duration::from_secs(1));
+    interval.tick().await;
+
     client
         .produce("test".into(), "hello".into(), "world".into())
         .await
