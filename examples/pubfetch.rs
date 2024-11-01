@@ -1,7 +1,10 @@
 use std::time::Duration;
 use tracing::{error, info, warn};
 
-use pigeon_rs::{logging::set_up_logging, Client, DEFAULT_PORT};
+use pigeon_rs::{
+    logging::set_up_logging, Client, FetchConfig, FetchPartitionConfig, FetchTopicConfig,
+    DEFAULT_PORT,
+};
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> pigeon_rs::Result<()> {
@@ -15,11 +18,32 @@ async fn main() -> pigeon_rs::Result<()> {
     }
 
     let task = tokio::spawn(async {
+        info!("starting fetch");
         let mut client = Client::connect(format!("{}:{}", "127.0.0.1", DEFAULT_PORT))
             .await
             .expect("failed to create client");
 
-        let fetch = client.fetch("test".into(), 2, 0).await;
+        let config = FetchConfig {
+            timeout_ms: 1000,
+            topics: vec![FetchTopicConfig {
+                topic: "test".into(),
+                partitions: vec![
+                    FetchPartitionConfig {
+                        partition: 0,
+                        offset: 0,
+                    },
+                    FetchPartitionConfig {
+                        partition: 1,
+                        offset: 0,
+                    },
+                    FetchPartitionConfig {
+                        partition: 2,
+                        offset: 0,
+                    },
+                ],
+            }],
+        };
+        let fetch = client.cfetch(config).await;
 
         match fetch {
             Ok(Some(message)) => info!("Received message {:?}", message),
@@ -27,9 +51,6 @@ async fn main() -> pigeon_rs::Result<()> {
             Err(e) => error!("Error receiving message {}", e),
         }
     });
-
-    let mut interval = tokio::time::interval(Duration::from_secs(1));
-    interval.tick().await;
 
     client
         .produce("test".into(), "hello".into(), "world".into())

@@ -5,7 +5,11 @@ use std::time::Duration;
 
 use tracing::{error, info, warn};
 
-use crate::{logging::set_up_logging, Client, DEFAULT_PORT};
+use crate::{
+    cmd::{FetchConfig, FetchPartitionConfig, FetchTopicConfig},
+    logging::set_up_logging,
+    Client, DEFAULT_PORT,
+};
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> crate::Result<()> {
@@ -23,7 +27,27 @@ async fn main() -> crate::Result<()> {
             .await
             .expect("failed to create client");
 
-        let fetch = client.fetch("hello".into(), 0, 0).await;
+        let config = FetchConfig {
+            timeout_ms: 1000,
+            topics: vec![FetchTopicConfig {
+                topic: "test".into(),
+                partitions: vec![
+                    FetchPartitionConfig {
+                        partition: 0,
+                        offset: 0,
+                    },
+                    FetchPartitionConfig {
+                        partition: 1,
+                        offset: 0,
+                    },
+                    FetchPartitionConfig {
+                        partition: 2,
+                        offset: 0,
+                    },
+                ],
+            }],
+        };
+        let fetch = client.cfetch(config).await;
 
         match fetch {
             Ok(Some(message)) => info!("Received message {:?}", message),

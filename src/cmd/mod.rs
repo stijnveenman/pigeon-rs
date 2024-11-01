@@ -14,7 +14,7 @@ mod fetch;
 pub use fetch::Fetch;
 
 mod cfetch;
-pub use cfetch::FetchConfig;
+pub use cfetch::{FetchConfig, FetchPartitionConfig, FetchTopicConfig};
 
 use crate::{db::Db, parse::Parse, shutdown::Shutdown, Connection, Frame};
 

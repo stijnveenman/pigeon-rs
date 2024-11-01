@@ -107,17 +107,7 @@ impl Connection {
     }
 
     pub async fn write_frame(&mut self, frame: &Frame) -> io::Result<()> {
-        match frame {
-            Frame::Array(val) => {
-                self.stream.write_u8(b'*').await?;
-                self.write_decimal(val.len() as u64).await?;
-                for entry in &**val {
-                    self.write_value(entry).await?;
-                }
-            }
-            _ => self.write_value(frame).await?,
-        }
-
+        self.write_value(frame).await?;
         self.stream.flush().await
     }
 
@@ -148,7 +138,13 @@ impl Connection {
                 self.stream.write_all(val).await?;
                 self.stream.write_all(b"\r\n").await?;
             }
-            Frame::Array(_val) => unreachable!(),
+            Frame::Array(val) => {
+                self.stream.write_u8(b'*').await?;
+                self.write_decimal(val.len() as u64).await?;
+                for entry in &**val {
+                    Box::pin(self.write_value(entry)).await?;
+                }
+            }
         }
 
         Ok(())

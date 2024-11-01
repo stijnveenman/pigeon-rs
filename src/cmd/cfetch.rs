@@ -2,24 +2,24 @@ use crate::{parse::Parse, Frame};
 
 #[derive(Debug)]
 pub struct FetchConfig {
-    timeout_ms: u64,
-    topics: Vec<FetchTopicConfig>,
+    pub timeout_ms: u64,
+    pub topics: Vec<FetchTopicConfig>,
 }
 
 #[derive(Debug)]
 pub struct FetchTopicConfig {
-    topic: String,
-    partitions: Vec<FetchPartitionConfig>,
+    pub topic: String,
+    pub partitions: Vec<FetchPartitionConfig>,
 }
 
 #[derive(Debug)]
 pub struct FetchPartitionConfig {
-    partition: u64,
-    offset: u64,
+    pub partition: u64,
+    pub offset: u64,
 }
 
 impl FetchConfig {
-    pub fn parse_frames(parse: &mut Parse) -> crate::Result<Self> {
+    pub(crate) fn parse_frames(parse: &mut Parse) -> crate::Result<Self> {
         let timeout_ms = parse.next_int()?;
 
         let topics = parse
@@ -38,6 +38,8 @@ impl FetchConfig {
     pub(crate) fn into_frame(self) -> Frame {
         let mut frame = Frame::array();
 
+        frame.push_bulk("cfetch".as_bytes().into());
+
         frame.push_int(self.timeout_ms);
 
         let v = self.topics.into_iter().map(|t| t.into_frame()).collect();
@@ -48,7 +50,7 @@ impl FetchConfig {
 }
 
 impl FetchTopicConfig {
-    pub fn parse_frames(parse: &mut Parse) -> crate::Result<Self> {
+    pub(crate) fn parse_frames(parse: &mut Parse) -> crate::Result<Self> {
         let topic = parse.next_string()?;
 
         let partitions = parse
@@ -65,18 +67,24 @@ impl FetchTopicConfig {
     }
 
     pub(crate) fn into_frame(self) -> Frame {
+        let mut frame = Frame::array();
+
+        frame.push_string(self.topic);
+
         let v = self
             .partitions
             .into_iter()
             .map(|p| p.into_frame())
             .collect();
 
-        Frame::from_vec(v)
+        frame.push_frame(Frame::from_vec(v));
+
+        frame
     }
 }
 
 impl FetchPartitionConfig {
-    pub fn parse_frames(parse: &mut Parse) -> crate::Result<Self> {
+    pub(crate) fn parse_frames(parse: &mut Parse) -> crate::Result<Self> {
         Ok(Self {
             partition: parse.next_int()?,
             offset: parse.next_int()?,

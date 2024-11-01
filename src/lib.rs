@@ -3,6 +3,7 @@ pub mod server;
 mod client;
 
 mod cmd;
+pub use cmd::{FetchConfig, FetchPartitionConfig, FetchTopicConfig};
 
 mod db;
 mod example;
