@@ -13,6 +13,9 @@ pub use unknown::Unknown;
 mod fetch;
 pub use fetch::Fetch;
 
+mod cfetch;
+pub use cfetch::FetchConfig;
+
 use crate::{db::Db, parse::Parse, shutdown::Shutdown, Connection, Frame};
 
 #[derive(Debug)]
@@ -20,6 +23,7 @@ pub enum Command {
     CreateTopic(CreateTopic),
     Produce(Produce),
     Fetch(Fetch),
+    CFetch(FetchConfig),
     Ping(Ping),
     Unknown(Unknown),
 }
@@ -34,6 +38,7 @@ impl Command {
             "ctopic" => Command::CreateTopic(CreateTopic::parse_frames(&mut parse)?),
             "produce" => Command::Produce(Produce::parse_frames(&mut parse)?),
             "fetch" => Command::Fetch(Fetch::parse_frames(&mut parse)?),
+            "cfetch" => Command::CFetch(FetchConfig::parse_frames(&mut parse)?),
             "ping" => Command::Ping(Ping::parse_frames(&mut parse)?),
             _ => {
                 return Ok(Command::Unknown(Unknown::new(command_name)));
@@ -59,6 +64,7 @@ impl Command {
             Fetch(cmd) => cmd.apply(db, dst, shutdown).await,
             Ping(cmd) => cmd.apply(dst).await,
             Unknown(cmd) => cmd.apply(dst).await,
+            CFetch(_) => todo!(),
         }
     }
 }
