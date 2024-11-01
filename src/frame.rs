@@ -2,6 +2,7 @@
 //! parsing frames from a byte array.
 
 use bytes::{Buf, Bytes};
+use core::panic;
 use std::convert::TryInto;
 use std::fmt;
 use std::io::Cursor;
@@ -32,6 +33,11 @@ impl Frame {
     /// Returns an empty array
     pub(crate) fn array() -> Frame {
         Frame::Array(vec![])
+    }
+
+    /// Rurns an array frame with vec
+    pub(crate) fn from_vec(vec: Vec<Frame>) -> Frame {
+        Frame::Array(vec)
     }
 
     /// Push a "bulk" frame into the array. `self` must be an Array frame.
@@ -72,6 +78,18 @@ impl Frame {
             Frame::Array(vec) => {
                 vec.push(Frame::Simple(string));
             }
+            _ => panic!("not an array frame"),
+        }
+    }
+
+    /// Push a frame directly into an array. 'Self' must be an Array frame
+    ///
+    /// # Panics
+    ///
+    /// panics if 'self' is not an array
+    pub(crate) fn push_frame(&mut self, frame: Frame) {
+        match self {
+            Frame::Array(vec) => vec.push(frame),
             _ => panic!("not an array frame"),
         }
     }

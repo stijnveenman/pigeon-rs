@@ -49,6 +49,17 @@ impl FetchConfig {
 
         Ok(Self { timeout_ms, topics })
     }
+
+    pub(crate) fn into_frame(self) -> Frame {
+        let mut frame = Frame::array();
+
+        frame.push_int(self.timeout_ms);
+
+        let v = self.topics.into_iter().map(|t| t.into_frame()).collect();
+        frame.push_frame(Frame::from_vec(v));
+
+        frame
+    }
 }
 
 impl FetchTopicConfig {
@@ -67,6 +78,16 @@ impl FetchTopicConfig {
 
         Ok(Self { topic, partitions })
     }
+
+    pub(crate) fn into_frame(self) -> Frame {
+        let v = self
+            .partitions
+            .into_iter()
+            .map(|p| p.into_frame())
+            .collect();
+
+        Frame::from_vec(v)
+    }
 }
 
 impl FetchPartitionConfig {
@@ -75,6 +96,15 @@ impl FetchPartitionConfig {
             partition: parse.next_int()?,
             offset: parse.next_int()?,
         })
+    }
+
+    pub(crate) fn into_frame(self) -> Frame {
+        let mut frame = Frame::array();
+
+        frame.push_int(self.partition);
+        frame.push_int(self.offset);
+
+        frame
     }
 }
 
