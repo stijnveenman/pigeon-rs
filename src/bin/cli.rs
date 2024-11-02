@@ -111,7 +111,7 @@ async fn main() -> pigeon_rs::Result<()> {
                 }],
             };
 
-            let value = client.cfetch(config).await?;
+            let value = client.fetch(config).await?;
             println!("fetched: {:?}", value)
         }
         Command::Topic { subcommand } => match subcommand {

@@ -79,7 +79,7 @@ impl Db {
         let count = state
             .fetches
             .get(&(topic_name.into(), partition_key))
-            .map(|tx| tx.send(message).unwrap_or(0))
+            .map(|tx| tx.send((offset, message)).unwrap_or(0))
             .unwrap_or(0);
 
         debug!("notified {} fetch of a new message", count);
@@ -108,7 +108,7 @@ impl Db {
         &mut self,
         topic: &str,
         partition: u64,
-    ) -> DbResult<broadcast::Receiver<Message>> {
+    ) -> DbResult<broadcast::Receiver<(u64, Message)>> {
         let mut state = self.shared.lock().unwrap();
 
         let key = (topic.to_string(), partition);

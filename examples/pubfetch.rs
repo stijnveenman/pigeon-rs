@@ -44,7 +44,7 @@ async fn main() -> pigeon_rs::Result<()> {
                 ],
             }],
         };
-        let fetch = client.cfetch(config).await;
+        let fetch = client.fetch(config).await;
 
         match fetch {
             Ok(Some(message)) => info!("Received message {:?}", message),

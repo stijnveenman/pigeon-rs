@@ -4,7 +4,7 @@ use tokio::net::{TcpStream, ToSocketAddrs};
 use tracing::debug;
 
 use crate::{
-    cmd::{CreateTopic, Fetch, FetchConfig, Ping, Produce},
+    cmd::{CreateTopic, FetchConfig, Ping, Produce},
     connection::Connection,
     parse::Parse,
     Frame, Message,
@@ -150,33 +150,11 @@ impl Client {
     /// async fn main() {
     ///     let mut client = Client::connect("localhost:6379").await.unwrap();
     ///
-    ///     let result = client.fetch("topic", 1, 10).await.unwrap();
+    ///     let config = FetchConfig{...}
+    ///     let result = client.fetch(config).await.unwrap();
     /// }
     /// ```
-    pub async fn fetch(
-        &mut self,
-        topic: String,
-        partition: u64,
-        offset: u64,
-    ) -> crate::Result<Option<Message>> {
-        let frame = Fetch::new(topic, partition, offset).into_frame();
-        debug!(request = ?frame);
-        self.connection.write_frame(&frame).await?;
-
-        let response = self.read_response().await?;
-
-        match response {
-            Frame::Array(v) => {
-                let mut parse = Parse::from_vec(v);
-                let message = Message::parse_frames(&mut parse)?;
-                Ok(Some(message))
-            }
-            Frame::Null => Ok(None),
-            frame => Err(frame.to_error()),
-        }
-    }
-
-    pub async fn cfetch(&mut self, config: FetchConfig) -> crate::Result<Option<Message>> {
+    pub async fn fetch(&mut self, config: FetchConfig) -> crate::Result<Option<Message>> {
         let frame = config.into_frame();
         debug!(request = ?frame);
         self.connection.write_frame(&frame).await?;

@@ -32,7 +32,7 @@ struct State {
     /// A broadcast for fetching cosumers, if a consuming is fetching data that does not exist yet
     /// it's added to this list. Once a matching message comes in, it is pushed to the consumer
     /// Key is (Topic, partition)
-    fetches: HashMap<(String, u64), broadcast::Sender<Message>>,
+    fetches: HashMap<(String, u64), broadcast::Sender<(u64, Message)>>,
 }
 
 impl Db {
