@@ -70,7 +70,7 @@ impl FetchConfig {
             message = map.next() => {
                 Ok(message.map(|m| m.1))
             }
-            _ = time::sleep(Duration::from_secs(2)) => {
+            _ = time::sleep(Duration::from_millis(self.timeout_ms)) => {
                 Ok(None)
             }
             _ = shutdown.recv() => {

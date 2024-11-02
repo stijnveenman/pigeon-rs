@@ -1,8 +1,11 @@
 use core::str;
 
 use bytes::Bytes;
-use clap::{Parser, Subcommand};
-use pigeon_rs::{logging::set_up_logging, Client, DEFAULT_PORT};
+use clap::{Args, Parser, Subcommand};
+use pigeon_rs::{
+    logging::set_up_logging, Client, FetchConfig, FetchPartitionConfig, FetchTopicConfig,
+    DEFAULT_PORT,
+};
 
 #[derive(Parser, Debug)]
 #[command(
@@ -38,10 +41,21 @@ enum Command {
         data: Bytes,
     },
     Fetch {
+        #[arg(long, default_value_t = 1000)]
+        timeout_ms: u64,
+
+        #[arg(long, short = 't')]
         topic: String,
-        partition: u64,
-        offset: u64,
+
+        #[arg(id = "partition", long, short='p', num_args(1..),required=true)]
+        partitions: Vec<u64>,
     },
+}
+
+#[derive(Debug, Args, Clone)]
+struct TopicParameters {
+    name: String,
+    partition: u64,
 }
 
 #[derive(Subcommand, Debug)]
@@ -79,16 +93,26 @@ async fn main() -> pigeon_rs::Result<()> {
             println!("partiton: {} offset {}", value.0, value.1)
         }
         Command::Fetch {
+            timeout_ms,
             topic,
-            partition,
-            offset,
+            partitions,
         } => {
-            let value = client.fetch(topic, partition, offset).await?;
-            if let Some(message) = value {
-                print_result(&message.data)
-            } else {
-                println!("None")
-            }
+            let config = FetchConfig {
+                timeout_ms,
+                topics: vec![FetchTopicConfig {
+                    topic,
+                    partitions: partitions
+                        .into_iter()
+                        .map(|p| FetchPartitionConfig {
+                            partition: p,
+                            offset: 3,
+                        })
+                        .collect(),
+                }],
+            };
+
+            let value = client.cfetch(config).await?;
+            println!("fetched: {:?}", value)
         }
         Command::Topic { subcommand } => match subcommand {
             TopicCommand::Create { name, partitions } => {
