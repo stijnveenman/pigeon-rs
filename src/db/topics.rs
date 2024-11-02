@@ -5,7 +5,7 @@ use std::{
 
 use bytes::Bytes;
 use tokio::sync::broadcast;
-use tracing::{debug, field::debug, instrument};
+use tracing::{debug, instrument};
 
 use crate::parse::Parse;
 
@@ -21,7 +21,7 @@ pub struct Partition {
     current_offset: u64,
 }
 
-// Becasuse data is stored using 'Bytes', a clone is a shallow clone. Data is not copied
+/// Becasuse data is stored using 'Bytes', a clone is a shallow clone. Data is not copied
 #[derive(Clone, Debug)]
 pub struct Message {
     pub key: Bytes,
