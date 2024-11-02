@@ -1,4 +1,5 @@
 use std::time::Duration;
+use tokio::time;
 use tracing::{error, info, warn};
 
 use pigeon_rs::{
@@ -52,9 +53,7 @@ async fn main() -> pigeon_rs::Result<()> {
         }
     });
 
-    let mut interval = tokio::time::interval(Duration::from_secs(5));
-    interval.tick().await;
-    interval.tick().await;
+    time::sleep(Duration::from_secs(5)).await;
 
     client
         .produce("test".into(), "hello".into(), "world".into())
