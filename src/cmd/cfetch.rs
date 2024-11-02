@@ -6,7 +6,7 @@ use tracing::{debug, info};
 
 use crate::{
     cmd::fetch::make_message_frame,
-    db::{Db, DbResult},
+    db::{Db, DbErr, DbResult},
     parse::Parse,
     shutdown::Shutdown,
     Connection, Frame, Message,
@@ -37,7 +37,7 @@ impl FetchConfig {
         dst: &mut Connection,
         shutdown: &mut Shutdown,
     ) -> crate::Result<()> {
-        let response = match self.fetch(db).await {
+        let response = match self.fetch(db, shutdown).await {
             Ok(Some(message)) => make_message_frame(message),
             Ok(None) => Frame::Null,
             Err(e) => Frame::Error(e.to_string()),
@@ -50,7 +50,7 @@ impl FetchConfig {
         Ok(())
     }
 
-    async fn fetch(&self, db: &mut Db) -> DbResult<Option<Message>> {
+    async fn fetch(&self, db: &mut Db, shutdown: &mut Shutdown) -> DbResult<Option<Message>> {
         for topic in &self.topics {
             match topic.fetch(db).await? {
                 Some(message) => return Ok(Some(message)),
@@ -66,9 +66,15 @@ impl FetchConfig {
             }
         }
 
-        let message = map.next().await.map(|m| m.1);
-        info!("used streammap");
-        Ok(message)
+        select! {
+            message = map.next() => {
+                Ok(message.map(|m| m.1))
+            }
+            _ = shutdown.recv() => {
+                debug!("received shutdown signal waiting for fetch");
+                Err(DbErr::ShuttingDown)
+            }
+        }
     }
 
     pub(crate) fn parse_frames(parse: &mut Parse) -> crate::Result<Self> {

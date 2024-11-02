@@ -52,7 +52,8 @@ async fn main() -> pigeon_rs::Result<()> {
         }
     });
 
-    let mut interval = tokio::time::interval(Duration::from_secs(1));
+    let mut interval = tokio::time::interval(Duration::from_secs(5));
+    interval.tick().await;
     interval.tick().await;
 
     client

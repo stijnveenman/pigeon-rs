@@ -56,7 +56,7 @@ async fn main() -> crate::Result<()> {
         }
     });
 
-    let mut interval = tokio::time::interval(Duration::from_secs(1));
+    let mut interval = tokio::time::interval(Duration::from_secs(3));
     interval.tick().await;
 
     client
