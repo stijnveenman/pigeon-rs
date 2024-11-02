@@ -6,7 +6,6 @@ mod cmd;
 pub use cmd::{FetchConfig, FetchPartitionConfig, FetchTopicConfig};
 
 mod db;
-mod example;
 pub use db::Message;
 
 pub mod parse;

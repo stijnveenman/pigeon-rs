@@ -1,6 +1,6 @@
-use std::pin::Pin;
+use std::{pin::Pin, time::Duration};
 
-use tokio::select;
+use tokio::{select, time};
 use tokio_stream::{Stream, StreamExt, StreamMap};
 use tracing::{debug, info};
 
@@ -69,6 +69,9 @@ impl FetchConfig {
         select! {
             message = map.next() => {
                 Ok(message.map(|m| m.1))
+            }
+            _ = time::sleep(Duration::from_secs(2)) => {
+                Ok(None)
             }
             _ = shutdown.recv() => {
                 debug!("received shutdown signal waiting for fetch");
