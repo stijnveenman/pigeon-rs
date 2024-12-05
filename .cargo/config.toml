@@ -1,0 +1,3 @@
+[alias]
+cli = "run --bin pigeon-cli"
+server = "run --bin pigeon"
