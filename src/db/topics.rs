@@ -7,8 +7,6 @@ use bytes::Bytes;
 use tokio::sync::broadcast;
 use tracing::{debug, instrument};
 
-use crate::parse::Parse;
-
 use super::{Db, DbErr, DbResult};
 
 pub struct Topic {
@@ -135,12 +133,5 @@ impl Message {
 
     fn new(key: Bytes, data: Bytes) -> Message {
         Message { key, data }
-    }
-
-    pub(crate) fn parse_frames(parse: &mut Parse) -> crate::Result<Message> {
-        Ok(Message {
-            key: parse.next_bytes()?,
-            data: parse.next_bytes()?,
-        })
     }
 }

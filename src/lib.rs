@@ -3,22 +3,12 @@ pub mod server;
 mod client;
 
 mod cmd;
-pub use cmd::{FetchConfig, FetchPartitionConfig, FetchTopicConfig};
 
 mod db;
 pub use db::Message;
 
-pub mod parse;
-pub use frame::Frame;
-
 pub mod logging;
 pub use client::Client;
-
-mod frame;
-use parse::{Parse, ParseError};
-
-mod api_key;
-pub use api_key::ApiKey;
 
 mod connection;
 pub use connection::Connection;

@@ -1,6 +1,8 @@
-use crate::{Connection, Frame, Parse, ParseError};
+use crate::Connection;
 use bytes::Bytes;
 use tracing::{debug, instrument};
+
+use super::Response;
 
 /// Returns PONG if no argument is provided, otherwise
 /// return a copy of the argument as a bulk.
@@ -19,49 +21,12 @@ impl Ping {
         Ping { msg }
     }
 
-    /// The `PING` string has already been consumed.
-    ///
-    /// # Returns
-    ///
-    /// Returns the `Ping` value on success. If the frame is malformed, `Err` is
-    /// returned.
-    ///
-    /// # Format
-    ///
-    /// Expects an array frame containing `PING` and an optional message.
-    ///
-    /// ```text
-    /// PING [message]
-    /// ```
-    pub(crate) fn parse_frames(parse: &mut Parse) -> crate::Result<Ping> {
-        match parse.next_bytes() {
-            Ok(msg) => Ok(Ping::new(Some(msg))),
-            Err(ParseError::EndOfStream) => Ok(Ping::default()),
-            Err(e) => Err(e.into()),
-        }
-    }
-
     #[instrument(skip(self, dst))]
     pub(crate) async fn apply(self, dst: &mut Connection) -> crate::Result<()> {
-        let response = match self.msg {
-            None => Frame::Simple("PONG".to_string()),
-            Some(msg) => Frame::Bulk(msg),
-        };
+        let response = Response::Success;
 
         debug!(?response);
 
-        // Write the response back to the client
-        dst.write_frame(&response).await?;
-
         Ok(())
-    }
-
-    pub(crate) fn into_frame(self) -> Frame {
-        let mut frame = Frame::array();
-        frame.push_bulk(Bytes::from("ping".as_bytes()));
-        if let Some(msg) = self.msg {
-            frame.push_bulk(msg);
-        }
-        frame
     }
 }

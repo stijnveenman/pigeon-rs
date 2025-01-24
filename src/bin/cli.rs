@@ -2,10 +2,7 @@ use core::str;
 
 use bytes::Bytes;
 use clap::{Args, Parser, Subcommand};
-use pigeon_rs::{
-    logging::set_up_logging, Client, FetchConfig, FetchPartitionConfig, FetchTopicConfig,
-    DEFAULT_PORT,
-};
+use pigeon_rs::{logging::set_up_logging, Client, DEFAULT_PORT};
 
 #[derive(Parser, Debug)]
 #[command(
@@ -84,41 +81,15 @@ async fn main() -> pigeon_rs::Result<()> {
     let mut client = Client::connect(&addr).await?;
 
     match cli.command {
-        Command::Ping { msg } => {
-            let value = client.ping(msg).await?;
-            print_result(&value)
-        }
-        Command::Produce { topic, key, data } => {
-            let value = client.produce(topic, key, data).await?;
-            println!("partiton: {} offset {}", value.0, value.1)
-        }
+        Command::Ping { msg } => {}
+        Command::Produce { topic, key, data } => {}
         Command::Fetch {
             timeout_ms,
             topic,
             partitions,
-        } => {
-            let config = FetchConfig {
-                timeout_ms,
-                topics: vec![FetchTopicConfig {
-                    topic,
-                    partitions: partitions
-                        .into_iter()
-                        .map(|p| FetchPartitionConfig {
-                            partition: p,
-                            offset: 3,
-                        })
-                        .collect(),
-                }],
-            };
-
-            let value = client.fetch(config).await?;
-            println!("fetched: {:?}", value)
-        }
+        } => {}
         Command::Topic { subcommand } => match subcommand {
-            TopicCommand::Create { name, partitions } => {
-                let value = client.create_topic(name, partitions).await?;
-                print_result(&value)
-            }
+            TopicCommand::Create { name, partitions } => todo!(),
         },
     }
 
