@@ -2,7 +2,7 @@ use bson::{doc, Document};
 use serde::Serialize;
 use tokio::net::{TcpStream, ToSocketAddrs};
 
-use crate::connection::Connection;
+use crate::{cmd::Ping, connection::Connection};
 
 pub struct Client {
     connection: Connection,
@@ -39,11 +39,9 @@ impl Client {
     }
 
     pub async fn test(&mut self) -> crate::Result<()> {
-        self.connection
-            .write_frame(&doc! {
-                "hello": "world"
-            })
-            .await?;
+        let ping = Ping::new(None);
+
+        self.connection.write_frame(&ping).await?;
 
         Ok(())
     }
