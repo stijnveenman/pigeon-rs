@@ -1,6 +1,6 @@
 use bson::Document;
 use bytes::Buf;
-use serde::Serialize;
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use std::io::Cursor;
 
 use bytes::BytesMut;
@@ -36,12 +36,12 @@ impl Connection {
     /// On success, the received frame is returned. If the `TcpStream`
     /// is closed in a way that doesn't break a frame in half, it returns
     /// `None`. Otherwise, an error is returned.
-    pub async fn read_frame(&mut self) -> crate::Result<Option<Document>> {
+    pub async fn read_frame<T: DeserializeOwned>(&mut self) -> crate::Result<Option<T>> {
         loop {
             // Attempt to parse a frame from the buffered data. If enough data
             // has been buffered, the frame is returned.
             if let Some(frame) = self.parse_frame()? {
-                return Ok(Some(frame));
+                return Ok(Some(bson::from_document(frame)?));
             }
 
             // There is not enough buffered data to read a frame. Attempt to

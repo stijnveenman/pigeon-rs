@@ -141,7 +141,7 @@ impl Handler {
                 }
             };
 
-            let frame = match maybe_frame {
+            let frame: Command = match maybe_frame {
                 Some(frame) => frame,
                 None => return Ok(()),
             };
