@@ -1,3 +1,4 @@
+use bson::Document;
 use bytes::Buf;
 use std::io::Cursor;
 
@@ -34,7 +35,7 @@ impl Connection {
     /// On success, the received frame is returned. If the `TcpStream`
     /// is closed in a way that doesn't break a frame in half, it returns
     /// `None`. Otherwise, an error is returned.
-    pub async fn read_frame(&mut self) -> crate::Result<Option<Command>> {
+    pub async fn read_frame(&mut self) -> crate::Result<Option<Document>> {
         loop {
             // Attempt to parse a frame from the buffered data. If enough data
             // has been buffered, the frame is returned.
@@ -65,44 +66,28 @@ impl Connection {
     /// data, the frame is returned and the data removed from the buffer. If not
     /// enough data has been buffered yet, `Ok(None)` is returned. If the
     /// buffered data does not represent a valid frame, `Err` is returned.
-    fn parse_frame(&mut self) -> crate::Result<Option<Command>> {
+    fn parse_frame(&mut self) -> crate::Result<Option<Document>> {
         let mut buf = Cursor::new(&self.buffer[..]);
 
-        Ok(None)
-        // // received.
-        // match Frame::check(&mut buf) {
-        //     Ok(_) => {
-        //         // The `check` function will have advanced the cursor until the
-        //         // end of the frame. Since the cursor had position set to zero
-        //         // before `Frame::check` was called, we obtain the length of the
-        //         // frame by checking the cursor position.
-        //         let len = buf.position() as usize;
-        //
-        //         buf.set_position(0);
-        //
-        //         let frame = Frame::parse(&mut buf)?;
-        //
-        //         self.buffer.advance(len);
-        //
-        //         Ok(Some(frame))
-        //     }
-        //     // There is not enough data present in the read buffer to parse a
-        //     // single frame. We must wait for more data to be received from the
-        //     // socket. Reading from the socket will be done in the statement
-        //     // after this `match`.
-        //     //
-        //     // We do not want to return `Err` from here as this "error" is an
-        //     // expected runtime condition.
-        //     Err(Incomplete) => Ok(None),
-        //     // An error was encountered while parsing the frame. The connection
-        //     // is now in an invalid state. Returning `Err` from here will result
-        //     // in the connection being closed.
-        //     Err(e) => Err(e.into()),
-        // }
+        let doc = Document::from_reader(&mut buf);
+
+        match doc {
+            Err(bson::de::Error::EndOfStream) => Ok(None),
+            Err(bson::de::Error::Io(inner))
+                if inner.kind() == std::io::ErrorKind::UnexpectedEof =>
+            {
+                Ok(None)
+            }
+            Err(e) => Err(e.into()),
+            Ok(document) => {
+                self.buffer.advance(buf.position() as usize);
+                Ok(Some(document))
+            }
+        }
     }
 
-    pub async fn write_response(&mut self, frame: &Response) -> io::Result<()> {
-        // self.write_value(frame).await?;
+    pub async fn write_frame(&mut self, frame: &[u8]) -> io::Result<()> {
+        self.stream.write_all(frame).await?;
         self.stream.flush().await
     }
 }

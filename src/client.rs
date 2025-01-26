@@ -1,3 +1,5 @@
+use bson::{doc, Document};
+use serde::Serialize;
 use tokio::net::{TcpStream, ToSocketAddrs};
 
 use crate::connection::Connection;
@@ -34,5 +36,18 @@ impl Client {
         let connection = Connection::new(socket);
 
         Ok(Client { connection })
+    }
+
+    pub async fn test(&mut self) -> crate::Result<()> {
+        let frame = doc! {
+            "hello": "world"
+        };
+
+        let bytes = bson::to_vec(&frame)?;
+
+        dbg!(&bytes);
+        self.connection.write_frame(&bytes).await?;
+
+        Ok(())
     }
 }

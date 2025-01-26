@@ -93,6 +93,8 @@ async fn main() -> pigeon_rs::Result<()> {
         },
     }
 
+    client.test().await?;
+
     Ok(())
 }
 

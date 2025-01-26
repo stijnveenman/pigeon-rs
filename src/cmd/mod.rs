@@ -1,5 +1,6 @@
 mod ping;
 pub use ping::Ping;
+use serde::{Deserialize, Serialize};
 
 use crate::{db::Db, shutdown::Shutdown, Connection};
 
@@ -8,7 +9,7 @@ pub enum Response {
     Success,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub enum Command {
     Ping(Ping),
 }

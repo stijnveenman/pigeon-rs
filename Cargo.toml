@@ -25,3 +25,5 @@ tracing = "0.1.40"
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
 strum_macros = { version = "0.26.3", features = [] }
 strum = "0.26"
+serde = "1.0.217"
+bson = "2.13.0"
