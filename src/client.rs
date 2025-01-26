@@ -39,14 +39,11 @@ impl Client {
     }
 
     pub async fn test(&mut self) -> crate::Result<()> {
-        let frame = doc! {
-            "hello": "world"
-        };
-
-        let bytes = bson::to_vec(&frame)?;
-
-        dbg!(&bytes);
-        self.connection.write_frame(&bytes).await?;
+        self.connection
+            .write_frame(&doc! {
+                "hello": "world"
+            })
+            .await?;
 
         Ok(())
     }

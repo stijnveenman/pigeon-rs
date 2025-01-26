@@ -1,5 +1,6 @@
 use bson::Document;
 use bytes::Buf;
+use serde::Serialize;
 use std::io::Cursor;
 
 use bytes::BytesMut;
@@ -86,8 +87,12 @@ impl Connection {
         }
     }
 
-    pub async fn write_frame(&mut self, frame: &[u8]) -> io::Result<()> {
-        self.stream.write_all(frame).await?;
-        self.stream.flush().await
+    pub async fn write_frame<T: Serialize>(&mut self, frame: &T) -> crate::Result<()> {
+        let bytes = bson::to_vec(frame)?;
+
+        self.stream.write_all(&bytes).await?;
+        self.stream.flush().await?;
+
+        Ok(())
     }
 }
