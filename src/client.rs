@@ -1,4 +1,5 @@
 use bson::{doc, Document};
+use bytes::Bytes;
 use serde::Serialize;
 use tokio::net::{TcpStream, ToSocketAddrs};
 
@@ -42,7 +43,7 @@ impl Client {
     }
 
     pub async fn test(&mut self) -> crate::Result<()> {
-        let ping = Command::Ping(Ping::new(None));
+        let ping = Command::Ping(Ping::new(Some(Bytes::from(vec![2, 3]))));
 
         self.connection.write_frame(&ping).await?;
 
