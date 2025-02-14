@@ -1,5 +1,6 @@
 use core::str;
 
+use anyhow::Result;
 use bytes::Bytes;
 use clap::{Args, Parser, Subcommand};
 use pigeon_rs::{logging::set_up_logging, Client, DEFAULT_PORT};
@@ -71,7 +72,7 @@ enum TopicCommand {
 /// threads. The CLI tool use case benefits more by being lighter instead of
 /// multi-threaded.
 #[tokio::main(flavor = "current_thread")]
-async fn main() -> pigeon_rs::Result<()> {
+async fn main() -> Result<()> {
     set_up_logging()?;
 
     let cli = Cli::parse();

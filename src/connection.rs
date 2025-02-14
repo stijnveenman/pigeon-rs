@@ -1,7 +1,8 @@
 use bson::Document;
 use bytes::Buf;
 use serde::{de::DeserializeOwned, Serialize};
-use std::io::Cursor;
+use std::io::{self, Cursor};
+use thiserror::Error;
 
 use bytes::BytesMut;
 use tokio::{
@@ -13,6 +14,18 @@ use tokio::{
 pub struct Connection {
     stream: BufWriter<TcpStream>,
     buffer: BytesMut,
+}
+
+#[derive(Error, Debug)]
+pub enum ConnectionError {
+    #[error("Failed to Deserialize object")]
+    DeserializsEror(#[from] bson::de::Error),
+    #[error("Failed to Serialize object")]
+    SerializeError(#[from] bson::ser::Error),
+    #[error("IO Error")]
+    IoError(#[from] io::Error),
+    #[error("Connection reset by peer")]
+    PeerConnectionReset,
 }
 
 impl Connection {
@@ -34,7 +47,7 @@ impl Connection {
     /// On success, the received frame is returned. If the `TcpStream`
     /// is closed in a way that doesn't break a frame in half, it returns
     /// `None`. Otherwise, an error is returned.
-    pub async fn read_frame<T: DeserializeOwned>(&mut self) -> crate::Result<Option<T>> {
+    pub async fn read_frame<T: DeserializeOwned>(&mut self) -> Result<Option<T>, ConnectionError> {
         loop {
             // Attempt to parse a frame from the buffered data. If enough data
             // has been buffered, the frame is returned.
@@ -55,7 +68,7 @@ impl Connection {
                 if self.buffer.is_empty() {
                     return Ok(None);
                 } else {
-                    return Err("connection reset by peer".into());
+                    return Err(ConnectionError::PeerConnectionReset);
                 }
             }
         }
@@ -65,7 +78,7 @@ impl Connection {
     /// data, the frame is returned and the data removed from the buffer. If not
     /// enough data has been buffered yet, `Ok(None)` is returned. If the
     /// buffered data does not represent a valid frame, `Err` is returned.
-    fn parse_frame(&mut self) -> crate::Result<Option<Document>> {
+    fn parse_frame(&mut self) -> Result<Option<Document>, ConnectionError> {
         let mut buf = Cursor::new(&self.buffer[..]);
 
         let doc = Document::from_reader(&mut buf);
@@ -85,7 +98,7 @@ impl Connection {
         }
     }
 
-    pub async fn write_frame<T: Serialize>(&mut self, frame: &T) -> crate::Result<()> {
+    pub async fn write_frame<T: Serialize>(&mut self, frame: &T) -> Result<(), ConnectionError> {
         let bytes = bson::to_vec(frame)?;
 
         self.stream.write_all(&bytes).await?;

@@ -1,19 +1,20 @@
 mod ping;
 pub use ping::Ping;
 use serde::{Deserialize, Serialize};
+use thiserror::Error;
 
-use crate::{
-    db::{Db, DbErr},
-    shutdown::Shutdown,
-    Connection,
-};
+use crate::{connection::ConnectionError, db::Db, shutdown::Shutdown, Connection};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum Command {
     Ping(Ping),
 }
 
-pub type ServerResponse<T> = Result<T, DbErr>;
+#[derive(Error, Debug)]
+pub enum CommandError {
+    #[error("Error in underlying connection")]
+    ConnectionError(#[from] ConnectionError),
+}
 
 impl Command {
     pub(crate) async fn apply(
@@ -21,7 +22,7 @@ impl Command {
         _db: &mut Db,
         dst: &mut Connection,
         _shutdown: &mut Shutdown,
-    ) -> crate::Result<()> {
+    ) -> Result<(), CommandError> {
         use Command::*;
 
         match self {

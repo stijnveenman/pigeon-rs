@@ -1,4 +1,4 @@
-use std::{future::Future, sync::Arc, time::Duration};
+use std::{future::Future, io, sync::Arc, time::Duration};
 
 use tokio::{
     net::{TcpListener, TcpStream},
@@ -7,7 +7,12 @@ use tokio::{
 };
 use tracing::{debug, error, info};
 
-use crate::{cmd::Command, connection::Connection, db::Db, shutdown::Shutdown};
+use crate::{
+    cmd::{Command, CommandError},
+    connection::Connection,
+    db::Db,
+    shutdown::Shutdown,
+};
 
 const MAX_CONNECTIONS: usize = 250;
 
@@ -72,7 +77,7 @@ pub async fn run(listener: TcpListener, shutdown: impl Future) {
 }
 
 impl Listener {
-    async fn run(&mut self) -> crate::Result<()> {
+    async fn run(&mut self) -> Result<(), io::Error> {
         info!("accepting inbound connections");
 
         loop {
@@ -111,7 +116,7 @@ impl Listener {
         }
     }
 
-    async fn accept(&mut self) -> crate::Result<TcpStream> {
+    async fn accept(&mut self) -> Result<TcpStream, io::Error> {
         let mut backoff = 1;
 
         loop {
@@ -132,7 +137,7 @@ impl Listener {
 }
 
 impl Handler {
-    async fn run(&mut self) -> crate::Result<()> {
+    async fn run(&mut self) -> Result<(), CommandError> {
         while !self.shutdown.is_shutdown() {
             let maybe_frame = tokio::select! {
                 res = self.connection.read_frame() => res?,

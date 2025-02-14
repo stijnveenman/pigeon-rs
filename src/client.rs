@@ -1,13 +1,29 @@
+use std::io;
+
+use thiserror::Error;
 use tokio::net::{TcpStream, ToSocketAddrs};
 use tracing::debug;
 
 use crate::{
-    cmd::{Command, Ping, ServerResponse},
-    connection::Connection,
+    cmd::{Command, Ping},
+    connection::{Connection, ConnectionError},
+    db::DbErr,
 };
 
 pub struct Client {
     connection: Connection,
+}
+
+#[derive(Debug, Error)]
+pub enum ClientError {
+    #[error("Error in underlying IO stream")]
+    IoError(#[from] io::Error),
+    #[error("Client Error")]
+    ConnectionError(#[from] ConnectionError),
+    #[error("Server did not respond")]
+    NoResponse,
+    #[error("Server side database error")]
+    DbErr(#[from] DbErr),
 }
 
 impl Client {
@@ -32,7 +48,7 @@ impl Client {
     /// }
     /// ```
     ///
-    pub async fn connect<T: ToSocketAddrs>(addr: T) -> crate::Result<Client> {
+    pub async fn connect<T: ToSocketAddrs>(addr: T) -> Result<Client, ClientError> {
         let socket = TcpStream::connect(addr).await?;
 
         let connection = Connection::new(socket);
@@ -40,12 +56,12 @@ impl Client {
         Ok(Client { connection })
     }
 
-    async fn read_response(&mut self) -> crate::Result<Option<ServerResponse<Ping>>> {
-        let response = self.connection.read_frame().await;
+    async fn read_response(&mut self) -> Result<Option<Result<Ping, DbErr>>, ClientError> {
+        let response = self.connection.read_frame().await?;
 
         debug!(?response);
 
-        response
+        Ok(response)
     }
 
     /// Ping to the server.
@@ -70,7 +86,7 @@ impl Client {
     ///     assert_eq!(b"PONG", &pong[..]);
     /// }
     /// ```
-    pub async fn ping(&mut self, msg: Option<Vec<u8>>) -> crate::Result<Vec<u8>> {
+    pub async fn ping(&mut self, msg: Option<Vec<u8>>) -> Result<Vec<u8>, ClientError> {
         let frame = Command::Ping(Ping::new(msg));
         debug!(request = ?frame);
         self.connection.write_frame(&frame).await?;
@@ -78,7 +94,7 @@ impl Client {
         match self.read_response().await? {
             Some(Ok(ping)) => Ok(ping.msg().unwrap()),
             Some(Err(e)) => Err(e.into()),
-            None => Err("No Response from server`".into()),
+            None => Err(ClientError::NoResponse),
         }
     }
 }
