@@ -40,15 +40,45 @@ impl Client {
         Ok(Client { connection })
     }
 
-    pub async fn test(&mut self) -> crate::Result<()> {
-        let ping = Command::Ping(Ping::new(Some(vec![2, 3])));
-
-        self.connection.write_frame(&ping).await?;
-
-        let response: Option<ServerResponse<Ping>> = self.connection.read_frame().await?;
+    async fn read_response(&mut self) -> crate::Result<Option<ServerResponse<Ping>>> {
+        let response = self.connection.read_frame().await;
 
         debug!(?response);
 
-        Ok(())
+        response
+    }
+
+    /// Ping to the server.
+    ///
+    /// Returns PONG if no argument is provided, otherwise
+    /// return a copy of the argument as a bulk.
+    ///
+    /// This command is often used to test if a connection
+    /// is still alive, or to measure latency.
+    ///
+    /// # Examples
+    ///
+    /// Demonstrates basic usage.
+    /// ```no_run
+    /// use pigen_rs::Client;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let mut client = Client::connect("localhost:6379").await.unwrap();
+    ///
+    ///     let pong = client.ping(None).await.unwrap();
+    ///     assert_eq!(b"PONG", &pong[..]);
+    /// }
+    /// ```
+    pub async fn ping(&mut self, msg: Option<Vec<u8>>) -> crate::Result<Vec<u8>> {
+        let frame = Command::Ping(Ping::new(msg));
+        debug!(request = ?frame);
+        self.connection.write_frame(&frame).await?;
+
+        match self.read_response().await? {
+            Some(Ok(ping)) => Ok(ping.msg().unwrap()),
+            Some(Err(e)) => Err(e.into()),
+            None => Err("No Response from server`".into()),
+        }
     }
 }

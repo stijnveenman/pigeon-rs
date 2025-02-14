@@ -21,9 +21,14 @@ impl Ping {
         Ping { msg }
     }
 
+    // TODO make ping response
+    pub fn msg(self) -> Option<Vec<u8>> {
+        self.msg
+    }
+
     #[instrument(skip(self, dst))]
     pub(crate) async fn apply(self, dst: &mut Connection) -> crate::Result<()> {
-        let response: ServerResponse<_> = Ok(self);
+        let response: ServerResponse<_> = Ok(Ping::new(self.msg.or(Some(b"PONG".to_vec()))));
 
         dst.write_frame(&response).await?;
 
