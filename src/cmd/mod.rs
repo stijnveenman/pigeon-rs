@@ -2,17 +2,18 @@ mod ping;
 pub use ping::Ping;
 use serde::{Deserialize, Serialize};
 
-use crate::{db::Db, shutdown::Shutdown, Connection};
-
-#[derive(Debug)]
-pub enum Response {
-    Success,
-}
+use crate::{
+    db::{Db, DbErr},
+    shutdown::Shutdown,
+    Connection,
+};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum Command {
     Ping(Ping),
 }
+
+pub type ServerResponse<T> = Result<T, DbErr>;
 
 impl Command {
     pub(crate) async fn apply(

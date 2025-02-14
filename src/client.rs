@@ -1,10 +1,9 @@
-use bson::{doc, Document};
 use bytes::Bytes;
-use serde::Serialize;
 use tokio::net::{TcpStream, ToSocketAddrs};
+use tracing::debug;
 
 use crate::{
-    cmd::{Command, Ping},
+    cmd::{Command, Ping, ServerResponse},
     connection::Connection,
 };
 
@@ -46,6 +45,10 @@ impl Client {
         let ping = Command::Ping(Ping::new(Some(Bytes::from(vec![2, 3]))));
 
         self.connection.write_frame(&ping).await?;
+
+        let response: Option<ServerResponse<Ping>> = self.connection.read_frame().await?;
+
+        debug!(?response);
 
         Ok(())
     }

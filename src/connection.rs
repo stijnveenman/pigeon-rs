@@ -1,15 +1,13 @@
 use bson::Document;
 use bytes::Buf;
-use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use serde::{de::DeserializeOwned, Serialize};
 use std::io::Cursor;
 
 use bytes::BytesMut;
 use tokio::{
-    io::{self, AsyncReadExt, AsyncWriteExt, BufWriter},
+    io::{AsyncReadExt, AsyncWriteExt, BufWriter},
     net::TcpStream,
 };
-
-use crate::cmd::{Command, Response};
 
 #[derive(Debug)]
 pub struct Connection {

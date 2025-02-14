@@ -141,12 +141,15 @@ impl Handler {
                 }
             };
 
-            let frame: Command = match maybe_frame {
+            let cmd: Command = match maybe_frame {
                 Some(frame) => frame,
                 None => return Ok(()),
             };
 
-            debug!(?frame);
+            debug!(?cmd);
+
+            cmd.apply(&mut self.db, &mut self.connection, &mut self.shutdown)
+                .await?;
         }
 
         Ok(())

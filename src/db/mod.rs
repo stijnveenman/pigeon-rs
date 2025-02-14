@@ -5,17 +5,21 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-use strum_macros::EnumString;
-
+use serde::{Deserialize, Serialize};
+use thiserror::Error;
 use tokio::sync::broadcast;
 pub use topics::Message;
 use topics::Topic;
 
-#[derive(Debug, PartialEq, EnumString, strum_macros::Display)]
+#[derive(Debug, PartialEq, Error, Serialize, Deserialize)]
 pub enum DbErr {
+    #[error("Name already in use")]
     NameInUse,
+    #[error("Item not found")]
     NotFound,
+    #[error("Failed to receive a valid frame")]
     RecvError,
+    #[error("Server is shutting down")]
     ShuttingDown,
 }
 

@@ -1,9 +1,9 @@
 use crate::Connection;
 use bytes::Bytes;
 use serde::{Deserialize, Serialize};
-use tracing::{debug, instrument};
+use tracing::instrument;
 
-use super::Response;
+use super::ServerResponse;
 
 /// Returns PONG if no argument is provided, otherwise
 /// return a copy of the argument as a bulk.
@@ -49,9 +49,9 @@ impl Ping {
 
     #[instrument(skip(self, dst))]
     pub(crate) async fn apply(self, dst: &mut Connection) -> crate::Result<()> {
-        let response = Response::Success;
+        let response: ServerResponse<_> = Ok(self);
 
-        debug!(?response);
+        dst.write_frame(&response).await?;
 
         Ok(())
     }
