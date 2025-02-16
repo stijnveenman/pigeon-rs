@@ -1,8 +1,8 @@
-use crate::{db::DbErr, Connection};
+use crate::{db, Connection};
 use serde::{Deserialize, Serialize};
 use tracing::instrument;
 
-use super::CommandError;
+use super::Error;
 
 /// Returns PONG if no argument is provided, otherwise
 /// return a copy of the argument as a bulk.
@@ -27,8 +27,8 @@ impl Ping {
     }
 
     #[instrument(skip(self, dst))]
-    pub(crate) async fn apply(self, dst: &mut Connection) -> Result<(), CommandError> {
-        let response: Result<_, DbErr> = Ok(Ping::new(self.msg.or(Some(b"PONG".to_vec()))));
+    pub(crate) async fn apply(self, dst: &mut Connection) -> Result<(), Error> {
+        let response: Result<_, db::Error> = Ok(Ping::new(self.msg.or(Some(b"PONG".to_vec()))));
 
         dst.write_frame(&response).await?;
 

@@ -17,13 +17,13 @@ pub struct Connection {
 }
 
 #[derive(Error, Debug)]
-pub enum ConnectionError {
+pub enum Error {
     #[error("Failed to Deserialize object")]
-    DeserializsEror(#[from] bson::de::Error),
+    Deserialize(#[from] bson::de::Error),
     #[error("Failed to Serialize object")]
-    SerializeError(#[from] bson::ser::Error),
+    Serialize(#[from] bson::ser::Error),
     #[error("IO Error")]
-    IoError(#[from] io::Error),
+    Io(#[from] io::Error),
     #[error("Connection reset by peer")]
     PeerConnectionReset,
 }
@@ -47,7 +47,7 @@ impl Connection {
     /// On success, the received frame is returned. If the `TcpStream`
     /// is closed in a way that doesn't break a frame in half, it returns
     /// `None`. Otherwise, an error is returned.
-    pub async fn read_frame<T: DeserializeOwned>(&mut self) -> Result<Option<T>, ConnectionError> {
+    pub async fn read_frame<T: DeserializeOwned>(&mut self) -> Result<Option<T>, Error> {
         loop {
             // Attempt to parse a frame from the buffered data. If enough data
             // has been buffered, the frame is returned.
@@ -68,7 +68,7 @@ impl Connection {
                 if self.buffer.is_empty() {
                     return Ok(None);
                 } else {
-                    return Err(ConnectionError::PeerConnectionReset);
+                    return Err(Error::PeerConnectionReset);
                 }
             }
         }
@@ -78,7 +78,7 @@ impl Connection {
     /// data, the frame is returned and the data removed from the buffer. If not
     /// enough data has been buffered yet, `Ok(None)` is returned. If the
     /// buffered data does not represent a valid frame, `Err` is returned.
-    fn parse_frame(&mut self) -> Result<Option<Document>, ConnectionError> {
+    fn parse_frame(&mut self) -> Result<Option<Document>, Error> {
         let mut buf = Cursor::new(&self.buffer[..]);
 
         let doc = Document::from_reader(&mut buf);
@@ -98,7 +98,7 @@ impl Connection {
         }
     }
 
-    pub async fn write_frame<T: Serialize>(&mut self, frame: &T) -> Result<(), ConnectionError> {
+    pub async fn write_frame<T: Serialize>(&mut self, frame: &T) -> Result<(), Error> {
         let bytes = bson::to_vec(frame)?;
 
         self.stream.write_all(&bytes).await?;

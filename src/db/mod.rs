@@ -12,7 +12,7 @@ pub use topics::Message;
 use topics::Topic;
 
 #[derive(Debug, PartialEq, Error, Serialize, Deserialize)]
-pub enum DbErr {
+pub enum Error {
     #[error("Name already in use")]
     NameInUse,
     #[error("Item not found")]
@@ -23,7 +23,7 @@ pub enum DbErr {
     ShuttingDown,
 }
 
-pub type DbResult<T> = Result<T, DbErr>;
+pub type DbResult<T> = Result<T, Error>;
 
 #[derive(Clone)]
 pub(crate) struct Db {

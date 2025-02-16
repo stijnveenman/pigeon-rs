@@ -7,7 +7,9 @@ use bytes::Bytes;
 use tokio::sync::broadcast;
 use tracing::{debug, instrument};
 
-use super::{Db, DbErr, DbResult};
+use crate::db;
+
+use super::{Db, DbResult};
 
 pub struct Topic {
     partitions: Vec<Partition>,
@@ -39,7 +41,7 @@ impl Db {
         let mut state = self.shared.lock().unwrap();
 
         if state.topics.contains_key(&name) {
-            return Err(DbErr::NameInUse);
+            return Err(db::Error::NameInUse);
         }
 
         debug!("creating topic with name {}", &name);
@@ -57,7 +59,7 @@ impl Db {
 
         let topic = state.topics.get_mut(topic_name);
         let Some(topic) = topic else {
-            return Err(DbErr::NotFound);
+            return Err(db::Error::NotFound);
         };
 
         let message = Message::new(key, data);
@@ -90,12 +92,12 @@ impl Db {
 
         let topic = state.topics.get(topic);
         let Some(topic) = topic else {
-            return Err(DbErr::NotFound);
+            return Err(db::Error::NotFound);
         };
 
         let partition = topic.partitions.get(partition as usize);
         let Some(partition) = partition else {
-            return Err(DbErr::NotFound);
+            return Err(db::Error::NotFound);
         };
 
         let message = partition.messages.get(&offset).cloned();

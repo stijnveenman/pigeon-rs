@@ -3,7 +3,12 @@ pub use ping::Ping;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
-use crate::{connection::ConnectionError, db::Db, shutdown::Shutdown, Connection};
+use crate::{
+    connection::{self},
+    db::Db,
+    shutdown::Shutdown,
+    Connection,
+};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum Command {
@@ -11,9 +16,9 @@ pub enum Command {
 }
 
 #[derive(Error, Debug)]
-pub enum CommandError {
+pub enum Error {
     #[error("Error in underlying connection")]
-    ConnectionError(#[from] ConnectionError),
+    Connection(#[from] connection::Error),
 }
 
 impl Command {
@@ -22,7 +27,7 @@ impl Command {
         _db: &mut Db,
         dst: &mut Connection,
         _shutdown: &mut Shutdown,
-    ) -> Result<(), CommandError> {
+    ) -> Result<(), Error> {
         use Command::*;
 
         match self {

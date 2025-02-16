@@ -8,7 +8,7 @@ use tokio::{
 use tracing::{debug, error, info};
 
 use crate::{
-    cmd::{Command, CommandError},
+    cmd::{Command, Error},
     connection::Connection,
     db::Db,
     shutdown::Shutdown,
@@ -137,7 +137,7 @@ impl Listener {
 }
 
 impl Handler {
-    async fn run(&mut self) -> Result<(), CommandError> {
+    async fn run(&mut self) -> Result<(), Error> {
         while !self.shutdown.is_shutdown() {
             let maybe_frame = tokio::select! {
                 res = self.connection.read_frame() => res?,

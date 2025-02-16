@@ -6,8 +6,8 @@ use tracing::debug;
 
 use crate::{
     cmd::{Command, Ping},
-    connection::{Connection, ConnectionError},
-    db::DbErr,
+    connection::{self, Connection},
+    db,
 };
 
 pub struct Client {
@@ -15,15 +15,15 @@ pub struct Client {
 }
 
 #[derive(Debug, Error)]
-pub enum ClientError {
+pub enum Error {
     #[error("Error in underlying IO stream")]
-    IoError(#[from] io::Error),
+    Io(#[from] io::Error),
     #[error("Client Error")]
-    ConnectionError(#[from] ConnectionError),
+    Connection(#[from] connection::Error),
     #[error("Server did not respond")]
     NoResponse,
     #[error("Server side database error")]
-    DbErr(#[from] DbErr),
+    Db(#[from] db::Error),
 }
 
 impl Client {
@@ -48,7 +48,7 @@ impl Client {
     /// }
     /// ```
     ///
-    pub async fn connect<T: ToSocketAddrs>(addr: T) -> Result<Client, ClientError> {
+    pub async fn connect<T: ToSocketAddrs>(addr: T) -> Result<Client, Error> {
         let socket = TcpStream::connect(addr).await?;
 
         let connection = Connection::new(socket);
@@ -56,7 +56,7 @@ impl Client {
         Ok(Client { connection })
     }
 
-    async fn read_response(&mut self) -> Result<Option<Result<Ping, DbErr>>, ClientError> {
+    async fn read_response(&mut self) -> Result<Option<Result<Ping, db::Error>>, Error> {
         let response = self.connection.read_frame().await?;
 
         debug!(?response);
@@ -86,7 +86,7 @@ impl Client {
     ///     assert_eq!(b"PONG", &pong[..]);
     /// }
     /// ```
-    pub async fn ping(&mut self, msg: Option<Vec<u8>>) -> Result<Vec<u8>, ClientError> {
+    pub async fn ping(&mut self, msg: Option<Vec<u8>>) -> Result<Vec<u8>, Error> {
         let frame = Command::Ping(Ping::new(msg));
         debug!(request = ?frame);
         self.connection.write_frame(&frame).await?;
@@ -94,7 +94,7 @@ impl Client {
         match self.read_response().await? {
             Some(Ok(ping)) => Ok(ping.msg().unwrap()),
             Some(Err(e)) => Err(e.into()),
-            None => Err(ClientError::NoResponse),
+            None => Err(Error::NoResponse),
         }
     }
 }
