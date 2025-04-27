@@ -10,25 +10,26 @@ use super::Error;
 /// This command is often used to test if a connection
 /// is still alive, or to measure latency.
 #[derive(Debug, Default, Serialize, Deserialize)]
-pub struct Ping {
+pub struct Request {
     /// optional message to be returned
     msg: Option<Vec<u8>>,
 }
 
-impl Ping {
-    /// Create a new `Ping` command with optional `msg`.
-    pub fn new(msg: Option<Vec<u8>>) -> Ping {
-        Ping { msg }
-    }
+#[derive(Debug, Default, Serialize, Deserialize)]
+pub struct Response {
+    /// Either PONG or a copy of the message provided
+    pub msg: Vec<u8>,
+}
 
-    // TODO make ping response
-    pub fn msg(self) -> Option<Vec<u8>> {
-        self.msg
+impl Request {
+    /// Create a new `Ping` command with optional `msg`.
+    pub fn new(msg: Option<Vec<u8>>) -> Request {
+        Request { msg }
     }
 
     #[instrument(skip(self, dst))]
     pub(crate) async fn apply(self, dst: &mut Connection) -> Result<(), Error> {
-        let response: Result<_, db::Error> = Ok(Ping::new(self.msg.or(Some(b"PONG".to_vec()))));
+        let response: Result<_, db::Error> = Ok(Request::new(self.msg.or(Some(b"PONG".to_vec()))));
 
         dst.write_frame(&response).await?;
 

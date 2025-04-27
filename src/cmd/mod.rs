@@ -1,5 +1,4 @@
-mod ping;
-pub use ping::Ping;
+pub mod ping;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
@@ -12,7 +11,7 @@ use crate::{
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum Command {
-    Ping(Ping),
+    Ping(ping::Request),
 }
 
 #[derive(Error, Debug)]

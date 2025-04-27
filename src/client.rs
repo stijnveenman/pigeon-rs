@@ -1,11 +1,12 @@
 use std::io;
 
+use serde::de::DeserializeOwned;
 use thiserror::Error;
 use tokio::net::{TcpStream, ToSocketAddrs};
 use tracing::debug;
 
 use crate::{
-    cmd::{Command, Ping},
+    cmd::{ping, Command},
     connection::{self, Connection},
     db,
 };
@@ -56,12 +57,15 @@ impl Client {
         Ok(Client { connection })
     }
 
-    async fn read_response(&mut self) -> Result<Option<Result<Ping, db::Error>>, Error> {
-        let response = self.connection.read_frame().await?;
+    async fn read_response<T: DeserializeOwned + std::fmt::Debug>(&mut self) -> Result<T, Error> {
+        let response = self.connection.read_frame::<T>().await?;
 
         debug!(?response);
 
-        Ok(response)
+        match response {
+            Some(response) => Ok(response),
+            None => Err(Error::NoResponse),
+        }
     }
 
     /// Ping to the server.
@@ -87,14 +91,12 @@ impl Client {
     /// }
     /// ```
     pub async fn ping(&mut self, msg: Option<Vec<u8>>) -> Result<Vec<u8>, Error> {
-        let frame = Command::Ping(Ping::new(msg));
+        let frame = Command::Ping(ping::Request::new(msg));
         debug!(request = ?frame);
         self.connection.write_frame(&frame).await?;
 
-        match self.read_response().await? {
-            Some(Ok(ping)) => Ok(ping.msg().unwrap()),
-            Some(Err(e)) => Err(e.into()),
-            None => Err(Error::NoResponse),
-        }
+        self.read_response::<ping::Response>()
+            .await
+            .map(|response| response.msg)
     }
 }
