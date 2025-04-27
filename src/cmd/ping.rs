@@ -1,6 +1,6 @@
 use crate::{db, Connection};
 use serde::{Deserialize, Serialize};
-use tracing::instrument;
+use tracing::{debug, instrument};
 
 use super::Error;
 
@@ -29,7 +29,11 @@ impl Request {
 
     #[instrument(skip(self, dst))]
     pub(crate) async fn apply(self, dst: &mut Connection) -> Result<(), Error> {
-        let response: Result<_, db::Error> = Ok(Request::new(self.msg.or(Some(b"PONG".to_vec()))));
+        let response: Result<_, db::Error> = Ok(Response {
+            msg: self.msg.unwrap_or(b"PONG".to_vec()),
+        });
+
+        debug!(?response);
 
         dst.write_frame(&response).await?;
 

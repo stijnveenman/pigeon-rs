@@ -58,12 +58,13 @@ impl Client {
     }
 
     async fn read_response<T: DeserializeOwned + std::fmt::Debug>(&mut self) -> Result<T, Error> {
-        let response = self.connection.read_frame::<T>().await?;
+        let response = self.connection.read_frame::<Result<T, db::Error>>().await?;
 
         debug!(?response);
 
         match response {
-            Some(response) => Ok(response),
+            Some(Ok(response)) => Ok(response),
+            Some(Err(e)) => Err(e.into()),
             None => Err(Error::NoResponse),
         }
     }

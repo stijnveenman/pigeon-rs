@@ -4,6 +4,7 @@ use anyhow::Result;
 use bytes::Bytes;
 use clap::{Args, Parser, Subcommand};
 use pigeon_rs::{logging::set_up_logging, Client, DEFAULT_PORT};
+use tracing::debug;
 
 #[derive(Parser, Debug)]
 #[command(
@@ -82,7 +83,10 @@ async fn main() -> Result<()> {
     let mut client = Client::connect(&addr).await?;
 
     match cli.command {
-        Command::Ping { msg } => {}
+        Command::Ping { msg } => {
+            let response = client.ping(msg.map(|msg| msg.to_vec())).await?;
+            print_result(&response);
+        }
         Command::Produce { topic, key, data } => {}
         Command::Fetch {
             timeout_ms,
@@ -94,12 +98,10 @@ async fn main() -> Result<()> {
         },
     }
 
-    client.ping(None).await?;
-
     Ok(())
 }
 
-fn print_result(value: &Bytes) {
+fn print_result(value: &[u8]) {
     if let Ok(string) = str::from_utf8(value) {
         println!("\"{}\"", string);
     } else {
