@@ -1,17 +1,30 @@
-use bytes::Bytes;
-use std::io::{Error, ErrorKind};
+use std::io;
+
+use serde::de::DeserializeOwned;
+use thiserror::Error;
 use tokio::net::{TcpStream, ToSocketAddrs};
 use tracing::debug;
 
 use crate::{
-    cmd::{CreateTopic, FetchConfig, Ping, Produce},
-    connection::Connection,
-    parse::Parse,
-    Frame, Message,
+    cmd::{create_topic, fetch, ping, produce, Rpc},
+    connection::{self, Connection},
+    db, Message,
 };
 
 pub struct Client {
     connection: Connection,
+}
+
+#[derive(Debug, Error)]
+pub enum Error {
+    #[error("Error in underlying IO stream")]
+    Io(#[from] io::Error),
+    #[error("Client Error")]
+    Connection(#[from] connection::Error),
+    #[error("Server did not respond")]
+    NoResponse,
+    #[error("Server side database error")]
+    Db(#[from] db::Error),
 }
 
 impl Client {
@@ -36,12 +49,37 @@ impl Client {
     /// }
     /// ```
     ///
-    pub async fn connect<T: ToSocketAddrs>(addr: T) -> crate::Result<Client> {
+    pub async fn connect<T: ToSocketAddrs>(addr: T) -> Result<Client, Error> {
         let socket = TcpStream::connect(addr).await?;
 
         let connection = Connection::new(socket);
 
         Ok(Client { connection })
+    }
+
+    async fn read_response<T: DeserializeOwned + std::fmt::Debug>(&mut self) -> Result<T, Error> {
+        let response = self.connection.read_frame::<Result<T, db::Error>>().await?;
+
+        match response {
+            Some(Ok(response)) => Ok(response),
+            Some(Err(e)) => Err(e.into()),
+            None => Err(Error::NoResponse),
+        }
+    }
+
+    async fn rpc<T>(&mut self, transaction: T) -> Result<T::Response, Error>
+    where
+        T: Rpc,
+        T::Response: DeserializeOwned + std::fmt::Debug,
+    {
+        let frame = transaction.to_request();
+        debug!(request = ?frame);
+
+        self.connection.write_frame(&frame).await?;
+
+        let response = self.read_response().await;
+        debug!(?response);
+        response
     }
 
     /// Ping to the server.
@@ -66,16 +104,10 @@ impl Client {
     ///     assert_eq!(b"PONG", &pong[..]);
     /// }
     /// ```
-    pub async fn ping(&mut self, msg: Option<Bytes>) -> crate::Result<Bytes> {
-        let frame = Ping::new(msg).into_frame();
-        debug!(request = ?frame);
-        self.connection.write_frame(&frame).await?;
-
-        match self.read_response().await? {
-            Frame::Simple(value) => Ok(value.into()),
-            Frame::Bulk(value) => Ok(value),
-            frame => Err(frame.to_error()),
-        }
+    pub async fn ping(&mut self, msg: Option<Vec<u8>>) -> Result<Vec<u8>, Error> {
+        self.rpc(ping::Request::new(msg))
+            .await
+            .map(|response| response.msg)
     }
 
     /// Create a new topic
@@ -92,16 +124,8 @@ impl Client {
     ///     assert_eq!(b"OK", &result[..]);
     /// }
     /// ```
-    pub async fn create_topic(&mut self, name: String, partitions: u64) -> crate::Result<Bytes> {
-        let frame = CreateTopic::new(name, partitions).into_frame();
-        debug!(request = ?frame);
-        self.connection.write_frame(&frame).await?;
-
-        match self.read_response().await? {
-            Frame::Simple(value) => Ok(value.into()),
-            Frame::Bulk(value) => Ok(value),
-            frame => Err(frame.to_error()),
-        }
+    pub async fn create_topic(&mut self, name: String, partitions: u64) -> Result<(), Error> {
+        self.rpc(create_topic::Request::new(name, partitions)).await
     }
 
     /// Produce a message on a topic
@@ -123,72 +147,32 @@ impl Client {
     pub async fn produce(
         &mut self,
         topic: String,
-        key: Bytes,
-        data: Bytes,
-    ) -> crate::Result<(u64, u64)> {
-        let frame = Produce::new(topic, key, data).into_frame();
-        debug!(request = ?frame);
-        self.connection.write_frame(&frame).await?;
-
-        let response = self.read_response().await?;
-        let mut parse = Parse::new(response)?;
-
-        let partition_key = parse.next_int()?;
-        let offset = parse.next_int()?;
-
-        Ok((partition_key, offset))
+        key: Vec<u8>,
+        data: Vec<u8>,
+    ) -> Result<(u64, u64), Error> {
+        self.rpc(produce::Request { topic, key, data }).await
     }
 
-    /// Fetch a message from a topic
-    ///
-    /// Returns a message for a given offset.
-    /// Errors if the topic or partition does not exist
-    /// Returns Ok(None) if the offset does not exist
-    /// # Examples
-    /// Demonstrates basic usage.
-    /// ```no_run
-    /// async fn main() {
-    ///     let mut client = Client::connect("localhost:6379").await.unwrap();
-    ///
-    ///     let config = FetchConfig{...}
-    ///     let result = client.fetch(config).await.unwrap();
-    /// }
-    /// ```
-    pub async fn fetch(&mut self, config: FetchConfig) -> crate::Result<Option<Message>> {
-        let frame = config.into_frame();
-        debug!(request = ?frame);
-        self.connection.write_frame(&frame).await?;
+    pub async fn fetch(
+        &mut self,
+        timeout_ms: u64,
+        topic: String,
+        partitions: Vec<(u64, u64)>,
+    ) -> Result<Option<Message>, Error> {
+        let request = fetch::Request {
+            timeout_ms,
+            topics: vec![fetch::TopicsRequest {
+                topic,
+                partitions: partitions
+                    .into_iter()
+                    .map(|partition| fetch::PartitionRequest {
+                        offset: partition.1,
+                        partition: partition.0,
+                    })
+                    .collect(),
+            }],
+        };
 
-        let response = self.read_response().await?;
-
-        match response {
-            Frame::Array(v) => {
-                let mut parse = Parse::from_vec(v);
-                let message = Message::parse_frames(&mut parse)?;
-                Ok(Some(message))
-            }
-            Frame::Null => Ok(None),
-            frame => Err(frame.to_error()),
-        }
-    }
-
-    async fn read_response(&mut self) -> crate::Result<Frame> {
-        let response = self.connection.read_frame().await?;
-
-        debug!(?response);
-
-        match response {
-            // Error frames are converted to `Err`
-            Some(Frame::Error(msg)) => Err(msg.into()),
-            Some(frame) => Ok(frame),
-            None => {
-                // Receiving `None` here indicates the server has closed the
-                // connection without sending a frame. This is unexpected and is
-                // represented as a "connection reset by peer" error.
-                let err = Error::new(ErrorKind::ConnectionReset, "connection reset by server");
-
-                Err(err.into())
-            }
-        }
+        self.rpc(request).await
     }
 }

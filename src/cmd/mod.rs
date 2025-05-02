@@ -1,64 +1,52 @@
-mod ping;
-pub use ping::Ping;
+pub mod create_topic;
+pub mod fetch;
+pub mod ping;
+pub mod produce;
+use serde::{Deserialize, Serialize};
+use thiserror::Error;
 
-pub use create_topic::CreateTopic;
-mod create_topic;
+use crate::{
+    connection::{self},
+    db::{self, Db},
+    shutdown::Shutdown,
+    Connection,
+};
 
-mod produce;
-pub use produce::Produce;
-
-mod unknown;
-pub use unknown::Unknown;
-
-mod fetch;
-pub use fetch::{FetchConfig, FetchPartitionConfig, FetchTopicConfig};
-
-use crate::{db::Db, parse::Parse, shutdown::Shutdown, Connection, Frame};
-
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub enum Command {
-    CreateTopic(CreateTopic),
-    Produce(Produce),
-    Fetch(FetchConfig),
-    Ping(Ping),
-    Unknown(Unknown),
+    Ping(ping::Request),
+    CreateTopic(create_topic::Request),
+    Produce(produce::Request),
+    Fetch(fetch::Request),
+}
+
+#[derive(Error, Debug)]
+pub enum Error {
+    #[error("Error in underlying connection")]
+    Connection(#[from] connection::Error),
+}
+
+pub trait Rpc {
+    type Response;
+    fn to_request(self) -> Command;
+    async fn apply(self, db: &mut Db, shutdown: &mut Shutdown)
+        -> Result<Self::Response, db::Error>;
 }
 
 impl Command {
-    pub fn from_frame(frame: Frame) -> crate::Result<Command> {
-        let mut parse = Parse::new(frame)?;
-
-        let command_name = parse.next_string()?.to_lowercase();
-
-        let command = match &command_name[..] {
-            "ctopic" => Command::CreateTopic(CreateTopic::parse_frames(&mut parse)?),
-            "produce" => Command::Produce(Produce::parse_frames(&mut parse)?),
-            "fetch" => Command::Fetch(FetchConfig::parse_frames(&mut parse)?),
-            "ping" => Command::Ping(Ping::parse_frames(&mut parse)?),
-            _ => {
-                return Ok(Command::Unknown(Unknown::new(command_name)));
-            }
-        };
-
-        parse.finish()?;
-
-        Ok(command)
-    }
-
     pub(crate) async fn apply(
         self,
         db: &mut Db,
         dst: &mut Connection,
         shutdown: &mut Shutdown,
-    ) -> crate::Result<()> {
+    ) -> Result<(), connection::Error> {
         use Command::*;
 
         match self {
-            CreateTopic(cmd) => cmd.apply(db, dst).await,
-            Produce(cmd) => cmd.apply(db, dst).await,
-            Fetch(cmd) => cmd.apply(db, dst, shutdown).await,
-            Ping(cmd) => cmd.apply(dst).await,
-            Unknown(cmd) => cmd.apply(dst).await,
+            Ping(request) => dst.write_response(&request.apply(db, shutdown).await).await,
+            CreateTopic(request) => dst.write_response(&request.apply(db, shutdown).await).await,
+            Produce(request) => dst.write_response(&request.apply(db, shutdown).await).await,
+            Fetch(request) => dst.write_response(&request.apply(db, shutdown).await).await,
         }
     }
 }

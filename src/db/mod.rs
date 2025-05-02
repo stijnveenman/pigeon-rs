@@ -5,21 +5,25 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-use strum_macros::EnumString;
-
+use serde::{Deserialize, Serialize};
+use thiserror::Error;
 use tokio::sync::broadcast;
 pub use topics::Message;
 use topics::Topic;
 
-#[derive(Debug, PartialEq, EnumString, strum_macros::Display)]
-pub enum DbErr {
+#[derive(Debug, PartialEq, Error, Serialize, Deserialize)]
+pub enum Error {
+    #[error("Name already in use")]
     NameInUse,
+    #[error("Item not found")]
     NotFound,
+    #[error("Failed to receive a valid frame")]
     RecvError,
+    #[error("Server is shutting down")]
     ShuttingDown,
 }
 
-pub type DbResult<T> = Result<T, DbErr>;
+pub type DbResult<T> = Result<T, Error>;
 
 #[derive(Clone)]
 pub(crate) struct Db {
@@ -38,7 +42,10 @@ struct State {
 impl Db {
     pub(crate) fn new() -> Db {
         Db {
-            shared: Arc::new(Mutex::new(State::default())),
+            shared: Arc::new(Mutex::new(State {
+                topics: HashMap::from([("hello".to_string(), Topic::new(1))]),
+                fetches: HashMap::default(),
+            })),
         }
     }
 }

@@ -1,11 +1,9 @@
 use core::str;
 
+use anyhow::Result;
 use bytes::Bytes;
 use clap::{Args, Parser, Subcommand};
-use pigeon_rs::{
-    logging::set_up_logging, Client, FetchConfig, FetchPartitionConfig, FetchTopicConfig,
-    DEFAULT_PORT,
-};
+use pigeon_rs::{logging::set_up_logging, Client, DEFAULT_PORT};
 
 #[derive(Parser, Debug)]
 #[command(
@@ -49,6 +47,9 @@ enum Command {
 
         #[arg(id = "partition", long, short='p', num_args(1..),required=true)]
         partitions: Vec<u64>,
+
+        #[arg(long, short = 'o', default_value_t = 0)]
+        starting_offset: u64,
     },
 }
 
@@ -74,7 +75,7 @@ enum TopicCommand {
 /// threads. The CLI tool use case benefits more by being lighter instead of
 /// multi-threaded.
 #[tokio::main(flavor = "current_thread")]
-async fn main() -> pigeon_rs::Result<()> {
+async fn main() -> Result<()> {
     set_up_logging()?;
 
     let cli = Cli::parse();
@@ -85,39 +86,34 @@ async fn main() -> pigeon_rs::Result<()> {
 
     match cli.command {
         Command::Ping { msg } => {
-            let value = client.ping(msg).await?;
-            print_result(&value)
+            let response = client.ping(msg.map(|msg| msg.to_vec())).await?;
+            print_result(&response);
         }
         Command::Produce { topic, key, data } => {
-            let value = client.produce(topic, key, data).await?;
-            println!("partiton: {} offset {}", value.0, value.1)
+            let value = client.produce(topic, key.to_vec(), data.to_vec()).await?;
+            println!("produced {}:{}", value.0, value.1);
         }
         Command::Fetch {
             timeout_ms,
             topic,
             partitions,
+            starting_offset,
         } => {
-            let config = FetchConfig {
-                timeout_ms,
-                topics: vec![FetchTopicConfig {
+            let value = client
+                .fetch(
+                    timeout_ms,
                     topic,
-                    partitions: partitions
+                    partitions
                         .into_iter()
-                        .map(|p| FetchPartitionConfig {
-                            partition: p,
-                            offset: 3,
-                        })
+                        .map(|p| (p, starting_offset))
                         .collect(),
-                }],
-            };
-
-            let value = client.fetch(config).await?;
-            println!("fetched: {:?}", value)
+                )
+                .await;
+            println!("fetched {:?}", value)
         }
         Command::Topic { subcommand } => match subcommand {
             TopicCommand::Create { name, partitions } => {
-                let value = client.create_topic(name, partitions).await?;
-                print_result(&value)
+                client.create_topic(name, partitions).await?;
             }
         },
     }
@@ -125,7 +121,7 @@ async fn main() -> pigeon_rs::Result<()> {
     Ok(())
 }
 
-fn print_result(value: &Bytes) {
+fn print_result(value: &[u8]) {
     if let Ok(string) = str::from_utf8(value) {
         println!("\"{}\"", string);
     } else {

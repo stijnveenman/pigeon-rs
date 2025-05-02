@@ -1,3 +1,4 @@
+use anyhow::Result;
 use clap::Parser;
 use pigeon_rs::{logging::set_up_logging, server, DEFAULT_PORT};
 use tokio::{net::TcpListener, signal};
@@ -11,7 +12,7 @@ struct Cli {
 }
 
 #[tokio::main]
-pub async fn main() -> pigeon_rs::Result<()> {
+pub async fn main() -> Result<()> {
     set_up_logging()?;
 
     let cli = Cli::parse();

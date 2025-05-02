@@ -1,67 +1,50 @@
-use crate::{Connection, Frame, Parse, ParseError};
-use bytes::Bytes;
-use tracing::{debug, instrument};
+use crate::db;
+use serde::{Deserialize, Serialize};
+use tracing::instrument;
+
+use super::{Rpc, Shutdown};
 
 /// Returns PONG if no argument is provided, otherwise
 /// return a copy of the argument as a bulk.
 ///
 /// This command is often used to test if a connection
 /// is still alive, or to measure latency.
-#[derive(Debug, Default)]
-pub struct Ping {
+#[derive(Debug, Default, Serialize, Deserialize)]
+pub struct Request {
     /// optional message to be returned
-    msg: Option<Bytes>,
+    msg: Option<Vec<u8>>,
 }
 
-impl Ping {
-    /// Create a new `Ping` command with optional `msg`.
-    pub fn new(msg: Option<Bytes>) -> Ping {
-        Ping { msg }
+#[derive(Debug, Default, Serialize, Deserialize)]
+pub struct Response {
+    /// Either PONG or a copy of the message provided
+    pub msg: Vec<u8>,
+}
+
+impl Rpc for Request {
+    type Response = Response;
+
+    fn to_request(self) -> super::Command {
+        super::Command::Ping(self)
     }
 
-    /// The `PING` string has already been consumed.
-    ///
-    /// # Returns
-    ///
-    /// Returns the `Ping` value on success. If the frame is malformed, `Err` is
-    /// returned.
-    ///
-    /// # Format
-    ///
-    /// Expects an array frame containing `PING` and an optional message.
-    ///
-    /// ```text
-    /// PING [message]
-    /// ```
-    pub(crate) fn parse_frames(parse: &mut Parse) -> crate::Result<Ping> {
-        match parse.next_bytes() {
-            Ok(msg) => Ok(Ping::new(Some(msg))),
-            Err(ParseError::EndOfStream) => Ok(Ping::default()),
-            Err(e) => Err(e.into()),
-        }
-    }
-
-    #[instrument(skip(self, dst))]
-    pub(crate) async fn apply(self, dst: &mut Connection) -> crate::Result<()> {
-        let response = match self.msg {
-            None => Frame::Simple("PONG".to_string()),
-            Some(msg) => Frame::Bulk(msg),
+    #[instrument(skip(self, _db))]
+    async fn apply(
+        self,
+        _db: &mut db::Db,
+        shutdown: &mut Shutdown,
+    ) -> Result<Self::Response, db::Error> {
+        let response = Response {
+            msg: self.msg.unwrap_or(b"PONG".to_vec()),
         };
 
-        debug!(?response);
-
-        // Write the response back to the client
-        dst.write_frame(&response).await?;
-
-        Ok(())
+        Ok(response)
     }
+}
 
-    pub(crate) fn into_frame(self) -> Frame {
-        let mut frame = Frame::array();
-        frame.push_bulk(Bytes::from("ping".as_bytes()));
-        if let Some(msg) = self.msg {
-            frame.push_bulk(msg);
-        }
-        frame
+impl Request {
+    /// Create a new `Ping` command with optional `msg`.
+    pub fn new(msg: Option<Vec<u8>>) -> Request {
+        Request { msg }
     }
 }

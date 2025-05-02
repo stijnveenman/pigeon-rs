@@ -3,13 +3,13 @@ use std::{
     hash::{DefaultHasher, Hasher},
 };
 
-use bytes::Bytes;
+use serde::{Deserialize, Serialize};
 use tokio::sync::broadcast;
 use tracing::{debug, instrument};
 
-use crate::parse::Parse;
+use crate::db;
 
-use super::{Db, DbErr, DbResult};
+use super::{Db, DbResult};
 
 pub struct Topic {
     partitions: Vec<Partition>,
@@ -22,10 +22,10 @@ pub struct Partition {
 }
 
 /// Becasuse data is stored using 'Bytes', a clone is a shallow clone. Data is not copied
-#[derive(Clone, Debug)]
+#[derive(Debug, Default, Serialize, Deserialize, Clone)]
 pub struct Message {
-    pub key: Bytes,
-    pub data: Bytes,
+    pub key: Vec<u8>,
+    pub data: Vec<u8>,
 }
 
 impl Topic {
@@ -41,7 +41,7 @@ impl Db {
         let mut state = self.shared.lock().unwrap();
 
         if state.topics.contains_key(&name) {
-            return Err(DbErr::NameInUse);
+            return Err(db::Error::NameInUse);
         }
 
         debug!("creating topic with name {}", &name);
@@ -54,12 +54,17 @@ impl Db {
     ///
     /// Returns a tuple of (partition_key, offset)
     #[instrument(skip(self))]
-    pub fn produce(&mut self, topic_name: &str, key: Bytes, data: Bytes) -> DbResult<(u64, u64)> {
+    pub fn produce(
+        &mut self,
+        topic_name: &str,
+        key: Vec<u8>,
+        data: Vec<u8>,
+    ) -> DbResult<(u64, u64)> {
         let mut state = self.shared.lock().unwrap();
 
         let topic = state.topics.get_mut(topic_name);
         let Some(topic) = topic else {
-            return Err(DbErr::NotFound);
+            return Err(db::Error::NotFound);
         };
 
         let message = Message::new(key, data);
@@ -92,12 +97,12 @@ impl Db {
 
         let topic = state.topics.get(topic);
         let Some(topic) = topic else {
-            return Err(DbErr::NotFound);
+            return Err(db::Error::NotFound);
         };
 
         let partition = topic.partitions.get(partition as usize);
         let Some(partition) = partition else {
-            return Err(DbErr::NotFound);
+            return Err(db::Error::NotFound);
         };
 
         let message = partition.messages.get(&offset).cloned();
@@ -133,14 +138,7 @@ impl Message {
         hasher.finish()
     }
 
-    fn new(key: Bytes, data: Bytes) -> Message {
+    fn new(key: Vec<u8>, data: Vec<u8>) -> Message {
         Message { key, data }
-    }
-
-    pub(crate) fn parse_frames(parse: &mut Parse) -> crate::Result<Message> {
-        Ok(Message {
-            key: parse.next_bytes()?,
-            data: parse.next_bytes()?,
-        })
     }
 }
