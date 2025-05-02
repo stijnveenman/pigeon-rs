@@ -2,13 +2,10 @@ use std::time::Duration;
 use tokio::time;
 use tracing::{error, info, warn};
 
-use pigeon_rs::{
-    logging::set_up_logging, Client, FetchConfig, FetchPartitionConfig, FetchTopicConfig,
-    DEFAULT_PORT,
-};
+use pigeon_rs::{fetch, logging::set_up_logging, Client, DEFAULT_PORT};
 
 #[tokio::main(flavor = "current_thread")]
-async fn main() -> pigeon_rs::Result<()> {
+async fn main() -> Result<(), anyhow::Error> {
     set_up_logging()?;
 
     let mut client = Client::connect(format!("{}:{}", "127.0.0.1", DEFAULT_PORT)).await?;
@@ -24,20 +21,20 @@ async fn main() -> pigeon_rs::Result<()> {
             .await
             .expect("failed to create client");
 
-        let config = FetchConfig {
+        let config = fetch::Request {
             timeout_ms: 1000,
-            topics: vec![FetchTopicConfig {
+            topics: vec![fetch::TopicsRequest {
                 topic: "test".into(),
                 partitions: vec![
-                    FetchPartitionConfig {
+                    fetch::PartitionRequest {
                         partition: 0,
                         offset: 0,
                     },
-                    FetchPartitionConfig {
+                    fetch::PartitionRequest {
                         partition: 1,
                         offset: 0,
                     },
-                    FetchPartitionConfig {
+                    fetch::PartitionRequest {
                         partition: 2,
                         offset: 0,
                     },
