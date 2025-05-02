@@ -3,7 +3,12 @@ use core::str;
 use anyhow::Result;
 use bytes::Bytes;
 use clap::{Args, Parser, Subcommand};
-use pigeon_rs::{fetch, logging::set_up_logging, Client, DEFAULT_PORT};
+use pigeon_rs::{
+    client::{self},
+    fetch,
+    logging::set_up_logging,
+    DEFAULT_PORT,
+};
 
 #[derive(Parser, Debug)]
 #[command(
@@ -86,7 +91,7 @@ async fn main() -> Result<()> {
 
     let addr = format!("{}:{}", cli.host, cli.port);
 
-    let mut client = Client::connect(&addr).await?;
+    let mut client = client::connect(&addr).await?;
 
     match cli.command {
         Command::Ping { msg } => {

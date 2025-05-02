@@ -1,6 +1,6 @@
 pub mod server;
 
-mod client;
+pub mod client;
 
 mod cmd;
 pub use cmd::describe_topic;
@@ -10,7 +10,6 @@ mod db;
 pub use db::Message;
 
 pub mod logging;
-pub use client::Client;
 
 mod connection;
 pub use connection::Connection;

@@ -2,13 +2,13 @@ use std::time::Duration;
 use tokio::time;
 use tracing::{error, info, warn};
 
-use pigeon_rs::{fetch, logging::set_up_logging, Client, DEFAULT_PORT};
+use pigeon_rs::{client, fetch, logging::set_up_logging, DEFAULT_PORT};
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> Result<(), anyhow::Error> {
     set_up_logging()?;
 
-    let mut client = Client::connect(format!("{}:{}", "127.0.0.1", DEFAULT_PORT)).await?;
+    let mut client = client::connect(format!("{}:{}", "127.0.0.1", DEFAULT_PORT)).await?;
 
     match client.create_topic("test".into(), 3).await {
         Ok(_) => info!("Created topic 'test'"),
@@ -17,7 +17,7 @@ async fn main() -> Result<(), anyhow::Error> {
 
     let task = tokio::spawn(async {
         info!("starting fetch");
-        let mut client = Client::connect(format!("{}:{}", "127.0.0.1", DEFAULT_PORT))
+        let mut client = client::connect(format!("{}:{}", "127.0.0.1", DEFAULT_PORT))
             .await
             .expect("failed to create client");
 
