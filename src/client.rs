@@ -93,7 +93,7 @@ impl Client {
     /// # Examples
     /// Demonstrates basic usage.
     /// ```no_run
-    /// use pigen_rs::Client;
+    /// use pigeon_rs::Client;
     ///
     /// #[tokio::main]
     /// async fn main() {
@@ -116,11 +116,14 @@ impl Client {
     /// # Examples
     /// Demonstrates basic usage.
     /// ```no_run
+    /// use pigeon_rs::Client;
+    ///
+    /// #[tokio::main]
     /// async fn main() {
     ///     let mut client = Client::connect("localhost:6379").await.unwrap();
     ///
-    ///     let result = client.create_topic("topic", 5).await.unwrap();
-    ///     assert_eq!(b"OK", &result[..]);
+    ///     let result = client.create_topic("topic".into(), 5).await.unwrap();
+    ///     assert_eq!((), result);
     /// }
     /// ```
     pub async fn create_topic(&mut self, name: String, partitions: u64) -> Result<(), Error> {
@@ -133,13 +136,16 @@ impl Client {
     /// # Examples
     /// Demonstrates basic usage.
     /// ```no_run
+    /// use pigeon_rs::Client;
+    ///
+    /// #[tokio::main]
     /// async fn main() {
     ///     let mut client = Client::connect("localhost:6379").await.unwrap();
     ///
-    ///     let result = client.create_topic("topic", 5).await.unwrap();
-    ///     assert_eq!(b"OK", &result[..]);
+    ///     let result = client.create_topic("topic".into(), 5).await.unwrap();
+    ///     assert_eq!((), result);
     ///
-    ///     let result = client.produce("topic", "key", "message").await.unwrap();
+    ///     let result = client.produce("topic".into(), "key".into(), "message".into()).await.unwrap();
     ///     assert_eq!(result, (0, 0));
     /// }
     /// ```
@@ -158,11 +164,14 @@ impl Client {
     ///
     /// # Examples
     /// demonstrate basic usage
-    /// ```
+    /// ```no_run
+    /// use pigeon_rs::{Client, fetch};
+    ///
+    /// #[tokio::main]
     /// async fn main() {
     ///     let mut client = Client::connect("localhost:6379").await.unwrap();
     ///
-    ///     let config = fetc::Request {
+    ///     let config = fetch::Request {
     ///         timeout_ms: 1000,
     ///         topics: vec![fetch::TopicsRequest {
     ///             topic: "test".into(),
@@ -193,12 +202,15 @@ impl Client {
     ///
     /// # Examples
     /// demonstrate basic usage
-    /// ```
+    /// ```no_run
+    /// use pigeon_rs::Client;
+    ///
+    /// #[tokio::main]
     /// async fn main() {
     ///     let mut client = Client::connect("localhost:6379").await.unwrap();
     ///
-    ///     let result = client.describe("topic").await.unwrap();
-    ///     println!("{:#?}", reuslt);
+    ///     let result = client.describe_topic("topic".into()).await.unwrap();
+    ///     println!("{:#?}", result);
     /// }
     /// ```
     pub async fn describe_topic(
