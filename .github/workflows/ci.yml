@@ -11,11 +11,11 @@ jobs:
         name: Continuous Integration
         steps:
             - uses: actions/checkout@v4
-            - uses: nixbuild/nix-quick-install-action@v30
             - uses: actions/cache/restore@v4
               with:
                 path: /nix/store
                 key: nix-cache-${{ hashFiles('**.nix') }}
+            - uses: nixbuild/nix-quick-install-action@v30
             - name: setup devShell
               run: nix develop 
             - uses: actions/cache/save@v4
