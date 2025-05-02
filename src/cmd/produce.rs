@@ -23,6 +23,6 @@ impl Rpc for Request {
         db: &mut super::Db,
         _shutdown: &mut Shutdown,
     ) -> Result<Self::Response, crate::db::Error> {
-        db.produce(&self.topic, self.key.into(), self.data.into())
+        db.produce(&self.topic, self.key, self.data)
     }
 }

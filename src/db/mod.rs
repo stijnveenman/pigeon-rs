@@ -18,7 +18,7 @@ pub enum Error {
     #[error("Item not found")]
     NotFound,
     #[error("Failed to receive a valid frame")]
-    RecvError,
+    Recv,
     #[error("Server is shutting down")]
     ShuttingDown,
 }
