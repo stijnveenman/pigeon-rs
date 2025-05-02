@@ -12,12 +12,16 @@ jobs:
         steps:
             - uses: actions/checkout@v4
             - uses: nixbuild/nix-quick-install-action@v30
-            - uses: actions/cache@v4
+            - uses: actions/cache/restore@v4
               with:
                 path: /nix/store
                 key: nix-cache-${{ hashFiles('**.nix') }}
             - name: setup devShell
               run: nix develop 
+            - uses: actions/cache/save@v4
+              with:
+                path: /nix/store
+                key: nix-cache-${{ hashFiles('**.nix') }}
             - name: cargo test
               run: cargo test
             - name: cargo clippy
