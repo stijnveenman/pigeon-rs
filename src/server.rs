@@ -124,7 +124,7 @@ impl Listener {
                 Ok((socket, _)) => return Ok(socket),
                 Err(err) => {
                     if backoff > 64 {
-                        return Err(err.into());
+                        return Err(err);
                     }
                 }
             }
