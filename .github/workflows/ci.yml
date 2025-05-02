@@ -11,17 +11,17 @@ jobs:
         name: Continuous Integration
         steps:
             - uses: actions/checkout@v4
-            - uses: actions/cache/restore@v4
-              with:
-                path: /nix/store
-                key: nix-cache-${{ hashFiles('**.nix') }}
             - uses: nixbuild/nix-quick-install-action@v30
+            - name: Restore and save Nix store
+              uses: nix-community/cache-nix-action@v6
+              with:
+                primary-key: nix-${{ runner.os }}-${{ hashFiles('**/*.nix', '**/flake.lock') }}
+                restore-prefixes-first-match: nix-${{ runner.os }}-
+                gc-max-store-size-linux: 1G
+                purge: true
+                purge-prefixes: nix-${{ runner.os }}-
             - name: setup devShell
               run: nix develop 
-            - uses: actions/cache/save@v4
-              with:
-                path: /nix/store
-                key: nix-cache-${{ hashFiles('**.nix') }}
             - name: cargo test
               run: cargo test
             - name: cargo clippy
