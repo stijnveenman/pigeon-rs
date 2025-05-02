@@ -8,7 +8,7 @@ use tracing::debug;
 use crate::{
     cmd::{create_topic, fetch, ping, produce, Rpc},
     connection::{self, Connection},
-    db, Message,
+    db, describe_topic, Message,
 };
 
 pub struct Client {
@@ -91,7 +91,6 @@ impl Client {
     /// is still alive, or to measure latency.
     ///
     /// # Examples
-    ///
     /// Demonstrates basic usage.
     /// ```no_run
     /// use pigen_rs::Client;
@@ -157,32 +156,55 @@ impl Client {
     /// Can be used to fetch from multiple topics and partitions, will wait at most `timeout_ms`
     /// before returning if no message with the given offset exists yet.
     ///
-    /// # Example
+    /// # Examples
     /// demonstrate basic usage
-    /// ```no_run
-    /// let config = fetch::Request {
-    ///     timeout_ms: 1000,
-    ///     topics: vec![fetch::TopicsRequest {
-    ///         topic: "test".into(),
-    ///         partitions: vec![
-    ///             fetch::PartitionRequest {
-    ///                 partition: 0,
-    ///                 offset: 0,
-    ///             },
-    ///             fetch::PartitionRequest {
-    ///                 partition: 1,
-    ///                 offset: 0,
-    ///             },
-    ///             fetch::PartitionRequest {
-    ///                 partition: 2,
-    ///                 offset: 0,
-    ///             },
-    ///         ],
-    ///     }],
-    /// };
-    /// let result = client.fetch(config).await;
+    /// ```
+    /// async fn main() {
+    ///     let mut client = Client::connect("localhost:6379").await.unwrap();
+    ///
+    ///     let config = fetc::Request {
+    ///         timeout_ms: 1000,
+    ///         topics: vec![fetch::TopicsRequest {
+    ///             topic: "test".into(),
+    ///             partitions: vec![
+    ///                 fetch::PartitionRequest {
+    ///                     partition: 0,
+    ///                     offset: 0,
+    ///                 },
+    ///                 fetch::PartitionRequest {
+    ///                     partition: 1,
+    ///                     offset: 0,
+    ///                 },
+    ///                 fetch::PartitionRequest {
+    ///                     partition: 2,
+    ///                     offset: 0,
+    ///                 },
+    ///             ],
+    ///         }],
+    ///     };
+    ///     let result = client.fetch(config).await;
+    /// }
     /// ```
     pub async fn fetch(&mut self, request: fetch::Request) -> Result<Option<Message>, Error> {
         self.rpc(request).await
+    }
+
+    /// Describe a topic and its partition
+    ///
+    /// # Examples
+    /// demonstrate basic usage
+    /// ```
+    /// async fn main() {
+    ///     let mut client = Client::connect("localhost:6379").await.unwrap();
+    ///
+    ///     let result = client.describe("topic").await.unwrap();
+    ///     println!("{:#?}", reuslt);
+    /// }
+    /// ```
+    pub async fn describe_topic(
+        &mut self,
+        topic: String,
+    ) -> Result<describe_topic::TopicDescription, Error> {
+        self.rpc(describe_topic::Request { topic }).await
     }
 }

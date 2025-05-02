@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use tracing::instrument;
 
 use super::{Rpc, Shutdown};
 
@@ -16,6 +17,7 @@ impl Rpc for Request {
         super::Command::Produce(self)
     }
 
+    #[instrument(skip(self, db, _shutdown))]
     async fn apply(
         self,
         db: &mut super::Db,
@@ -24,4 +26,3 @@ impl Rpc for Request {
         db.produce(&self.topic, self.key.into(), self.data.into())
     }
 }
-

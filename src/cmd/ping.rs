@@ -28,11 +28,11 @@ impl Rpc for Request {
         super::Command::Ping(self)
     }
 
-    #[instrument(skip(self, _db))]
+    #[instrument(skip(self, _db, _shutdown))]
     async fn apply(
         self,
         _db: &mut db::Db,
-        shutdown: &mut Shutdown,
+        _shutdown: &mut Shutdown,
     ) -> Result<Self::Response, db::Error> {
         let response = Response {
             msg: self.msg.unwrap_or(b"PONG".to_vec()),

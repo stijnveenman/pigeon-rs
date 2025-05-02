@@ -12,13 +12,13 @@ use crate::db;
 use super::{Db, DbResult};
 
 pub struct Topic {
-    partitions: Vec<Partition>,
+    pub partitions: Vec<Partition>,
 }
 
 #[derive(Default)]
 pub struct Partition {
-    messages: BTreeMap<u64, Message>,
-    current_offset: u64,
+    pub messages: BTreeMap<u64, Message>,
+    pub current_offset: u64,
 }
 
 /// Becasuse data is stored using 'Bytes', a clone is a shallow clone. Data is not copied
@@ -109,6 +109,13 @@ impl Db {
         Ok(message)
     }
 
+    pub fn with_data_for_topic<T>(&self, topic: &str, f: impl FnOnce(&Topic) -> T) -> DbResult<T> {
+        let state = &self.shared.lock().unwrap();
+
+        let topic = state.topics.get(topic).ok_or(db::Error::NotFound)?;
+
+        Ok(f(topic))
+    }
     pub fn fetch_subscribe(
         &mut self,
         topic: &str,
