@@ -12,6 +12,10 @@ jobs:
         steps:
             - uses: actions/checkout@v4
             - uses: nixbuild/nix-quick-install-action@v30
+            - uses: actions/cache@v4
+              with:
+                path: /nix/store
+                key: nix-cache-${{ hashFiles('**.nix') }}
             - name: setup devShell
               run: nix develop 
             - name: cargo test
