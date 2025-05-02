@@ -1,0 +1,22 @@
+name: Continuous Integration
+
+on: push
+
+env:
+    CARGO_TERM_COLOR: always
+
+jobs:
+    ci:
+        runs-on: ubuntu-latest
+        name: Continuous Integration
+        steps:
+            - uses: actions/checkout@v4
+            - uses: nixbuild/nix-quick-install-action@v30
+            - name: setup devShell
+              run: nix develop 
+            - name: cargo test
+              run: cargo test
+            - name: cargo clippy
+              run: cargo clippy -- -D warnings
+            - name: cargo fmt
+              run: cargo fmt --check
