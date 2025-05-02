@@ -45,4 +45,3 @@ impl Rpc for Request {
         })
     }
 }
-
