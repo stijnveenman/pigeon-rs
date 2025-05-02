@@ -56,6 +56,10 @@ enum Command {
         #[arg(long, short = 'o', default_value_t = 0)]
         offset: u64,
     },
+    Consume {
+        #[arg(long, short = 't')]
+        topic: String,
+    },
 }
 
 #[derive(Debug, Args, Clone)]
@@ -129,6 +133,13 @@ async fn main() -> Result<()> {
                 println!("{:#?}", result);
             }
         },
+        Command::Consume { topic } => {
+            let mut consumer = client::consumer(client, topic).await?;
+
+            while let Ok(message) = consumer.next_message().await {
+                println!("fetched {:?}", message)
+            }
+        }
     }
 
     Ok(())

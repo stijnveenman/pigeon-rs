@@ -17,6 +17,7 @@ pub struct TopicDescription {
 
 #[derive(Debug, Default, Serialize, Deserialize)]
 pub struct PartitionDescription {
+    pub partition_number: u64,
     pub current_offset: u64,
 }
 
@@ -40,6 +41,7 @@ impl Rpc for Request {
                 .iter()
                 .map(|partition| PartitionDescription {
                     current_offset: partition.current_offset,
+                    partition_number: partition.partition_number,
                 })
                 .collect(),
         })

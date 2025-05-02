@@ -1,5 +1,8 @@
+mod consumer;
+
 use std::io;
 
+use consumer::Consumer;
 use serde::de::DeserializeOwned;
 use thiserror::Error;
 use tokio::net::{TcpStream, ToSocketAddrs};
@@ -44,7 +47,7 @@ pub enum Error {
 ///         Ok(client) => client,
 ///         Err(_) => panic!("failed to establish connection"),
 ///     };
-/// # drop(client);
+///     // drop(client);
 /// }
 /// ```
 ///
@@ -54,6 +57,10 @@ pub async fn connect<T: ToSocketAddrs>(addr: T) -> Result<Client, Error> {
     let connection = Connection::new(socket);
 
     Ok(Client { connection })
+}
+
+pub async fn consumer(client: Client, topic: String) -> Result<Consumer, Error> {
+    Consumer::consume(client, topic).await
 }
 
 impl Client {

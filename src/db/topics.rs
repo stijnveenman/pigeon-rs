@@ -15,8 +15,8 @@ pub struct Topic {
     pub partitions: Vec<Partition>,
 }
 
-#[derive(Default)]
 pub struct Partition {
+    pub partition_number: u64,
     pub messages: BTreeMap<u64, Message>,
     pub current_offset: u64,
 }
@@ -31,7 +31,13 @@ pub struct Message {
 impl Topic {
     pub(crate) fn new(partitions: u64) -> Topic {
         Topic {
-            partitions: (0..partitions).map(|_| Partition::default()).collect(),
+            partitions: (0..partitions)
+                .map(|number| Partition {
+                    current_offset: 0,
+                    messages: BTreeMap::default(),
+                    partition_number: number,
+                })
+                .collect(),
         }
     }
 }
