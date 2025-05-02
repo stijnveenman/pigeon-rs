@@ -105,7 +105,7 @@ impl Client {
     /// }
     /// ```
     pub async fn ping(&mut self, msg: Option<Vec<u8>>) -> Result<Vec<u8>, Error> {
-        self.rpc(ping::Request::new(msg))
+        self.rpc(ping::Request { msg })
             .await
             .map(|response| response.msg)
     }
@@ -125,7 +125,7 @@ impl Client {
     /// }
     /// ```
     pub async fn create_topic(&mut self, name: String, partitions: u64) -> Result<(), Error> {
-        self.rpc(create_topic::Request::new(name, partitions)).await
+        self.rpc(create_topic::Request { name, partitions }).await
     }
 
     /// Produce a message on a topic
@@ -153,26 +153,7 @@ impl Client {
         self.rpc(produce::Request { topic, key, data }).await
     }
 
-    pub async fn fetch(
-        &mut self,
-        timeout_ms: u64,
-        topic: String,
-        partitions: Vec<(u64, u64)>,
-    ) -> Result<Option<Message>, Error> {
-        let request = fetch::Request {
-            timeout_ms,
-            topics: vec![fetch::TopicsRequest {
-                topic,
-                partitions: partitions
-                    .into_iter()
-                    .map(|partition| fetch::PartitionRequest {
-                        offset: partition.1,
-                        partition: partition.0,
-                    })
-                    .collect(),
-            }],
-        };
-
+    pub async fn fetch(&mut self, request: fetch::Request) -> Result<Option<Message>, Error> {
         self.rpc(request).await
     }
 }

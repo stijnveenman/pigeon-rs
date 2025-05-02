@@ -12,7 +12,7 @@ use super::{Rpc, Shutdown};
 #[derive(Debug, Default, Serialize, Deserialize)]
 pub struct Request {
     /// optional message to be returned
-    msg: Option<Vec<u8>>,
+    pub msg: Option<Vec<u8>>,
 }
 
 #[derive(Debug, Default, Serialize, Deserialize)]
@@ -39,12 +39,5 @@ impl Rpc for Request {
         };
 
         Ok(response)
-    }
-}
-
-impl Request {
-    /// Create a new `Ping` command with optional `msg`.
-    pub fn new(msg: Option<Vec<u8>>) -> Request {
-        Request { msg }
     }
 }

@@ -6,8 +6,8 @@ use super::{Db, Rpc, Shutdown};
 
 #[derive(Debug, Default, Serialize, Deserialize)]
 pub struct Request {
-    name: String,
-    partitions: u64,
+    pub name: String,
+    pub partitions: u64,
 }
 
 impl Rpc for Request {
@@ -23,11 +23,5 @@ impl Rpc for Request {
 
     fn to_request(self) -> super::Command {
         super::Command::CreateTopic(self)
-    }
-}
-
-impl Request {
-    pub fn new(name: String, partitions: u64) -> Request {
-        Request { name, partitions }
     }
 }

@@ -3,7 +3,7 @@ use core::str;
 use anyhow::Result;
 use bytes::Bytes;
 use clap::{Args, Parser, Subcommand};
-use pigeon_rs::{logging::set_up_logging, Client, DEFAULT_PORT};
+use pigeon_rs::{fetch, logging::set_up_logging, Client, DEFAULT_PORT};
 
 #[derive(Parser, Debug)]
 #[command(
@@ -45,11 +45,11 @@ enum Command {
         #[arg(long, short = 't')]
         topic: String,
 
-        #[arg(id = "partition", long, short='p', num_args(1..),required=true)]
-        partitions: Vec<u64>,
+        #[arg(long, short = 'p')]
+        partition: u64,
 
         #[arg(long, short = 'o', default_value_t = 0)]
-        starting_offset: u64,
+        offset: u64,
     },
 }
 
@@ -96,19 +96,18 @@ async fn main() -> Result<()> {
         Command::Fetch {
             timeout_ms,
             topic,
-            partitions,
-            starting_offset,
+            partition,
+            offset,
         } => {
-            let value = client
-                .fetch(
-                    timeout_ms,
+            let request = fetch::Request {
+                timeout_ms,
+                topics: vec![fetch::TopicsRequest {
                     topic,
-                    partitions
-                        .into_iter()
-                        .map(|p| (p, starting_offset))
-                        .collect(),
-                )
-                .await;
+                    partitions: vec![fetch::PartitionRequest { partition, offset }],
+                }],
+            };
+
+            let value = client.fetch(request).await;
             println!("fetched {:?}", value)
         }
         Command::Topic { subcommand } => match subcommand {
