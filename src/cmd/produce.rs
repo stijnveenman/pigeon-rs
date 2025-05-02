@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use super::Rpc;
+use super::{Rpc, Shutdown};
 
 #[derive(Debug, Default, Serialize, Deserialize)]
 pub struct Request {
@@ -16,7 +16,12 @@ impl Rpc for Request {
         super::Command::Produce(self)
     }
 
-    async fn apply(self, db: &mut super::Db) -> Result<Self::Response, crate::db::Error> {
+    async fn apply(
+        self,
+        db: &mut super::Db,
+        _shutdown: &mut Shutdown,
+    ) -> Result<Self::Response, crate::db::Error> {
         db.produce(&self.topic, self.key.into(), self.data.into())
     }
 }
+

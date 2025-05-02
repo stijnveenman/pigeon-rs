@@ -4,7 +4,6 @@ use anyhow::Result;
 use bytes::Bytes;
 use clap::{Args, Parser, Subcommand};
 use pigeon_rs::{logging::set_up_logging, Client, DEFAULT_PORT};
-use tracing::debug;
 
 #[derive(Parser, Debug)]
 #[command(
@@ -48,6 +47,9 @@ enum Command {
 
         #[arg(id = "partition", long, short='p', num_args(1..),required=true)]
         partitions: Vec<u64>,
+
+        #[arg(long, short = 'o', default_value_t = 0)]
+        starting_offset: u64,
     },
 }
 
@@ -95,7 +97,20 @@ async fn main() -> Result<()> {
             timeout_ms,
             topic,
             partitions,
-        } => {}
+            starting_offset,
+        } => {
+            let value = client
+                .fetch(
+                    timeout_ms,
+                    topic,
+                    partitions
+                        .into_iter()
+                        .map(|p| (p, starting_offset))
+                        .collect(),
+                )
+                .await;
+            println!("fetched {:?}", value)
+        }
         Command::Topic { subcommand } => match subcommand {
             TopicCommand::Create { name, partitions } => {
                 client.create_topic(name, partitions).await?;

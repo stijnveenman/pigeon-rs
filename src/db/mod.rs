@@ -42,7 +42,10 @@ struct State {
 impl Db {
     pub(crate) fn new() -> Db {
         Db {
-            shared: Arc::new(Mutex::new(State::default())),
+            shared: Arc::new(Mutex::new(State {
+                topics: HashMap::from([("hello".to_string(), Topic::new(1))]),
+                fetches: HashMap::default(),
+            })),
         }
     }
 }

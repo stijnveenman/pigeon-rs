@@ -1,4 +1,5 @@
 pub mod create_topic;
+pub mod fetch;
 pub mod ping;
 pub mod produce;
 use serde::{Deserialize, Serialize};
@@ -16,6 +17,7 @@ pub enum Command {
     Ping(ping::Request),
     CreateTopic(create_topic::Request),
     Produce(produce::Request),
+    Fetch(fetch::Request),
 }
 
 #[derive(Error, Debug)]
@@ -27,7 +29,8 @@ pub enum Error {
 pub trait Rpc {
     type Response;
     fn to_request(self) -> Command;
-    async fn apply(self, db: &mut Db) -> Result<Self::Response, db::Error>;
+    async fn apply(self, db: &mut Db, shutdown: &mut Shutdown)
+        -> Result<Self::Response, db::Error>;
 }
 
 impl Command {
@@ -35,14 +38,15 @@ impl Command {
         self,
         db: &mut Db,
         dst: &mut Connection,
-        _shutdown: &mut Shutdown,
+        shutdown: &mut Shutdown,
     ) -> Result<(), connection::Error> {
         use Command::*;
 
         match self {
-            Ping(request) => dst.write_response(&request.apply(db).await).await,
-            CreateTopic(request) => dst.write_response(&request.apply(db).await).await,
-            Produce(request) => dst.write_response(&request.apply(db).await).await,
+            Ping(request) => dst.write_response(&request.apply(db, shutdown).await).await,
+            CreateTopic(request) => dst.write_response(&request.apply(db, shutdown).await).await,
+            Produce(request) => dst.write_response(&request.apply(db, shutdown).await).await,
+            Fetch(request) => dst.write_response(&request.apply(db, shutdown).await).await,
         }
     }
 }

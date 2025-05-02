@@ -3,7 +3,7 @@ use std::{
     hash::{DefaultHasher, Hasher},
 };
 
-use bytes::Bytes;
+use serde::{Deserialize, Serialize};
 use tokio::sync::broadcast;
 use tracing::{debug, instrument};
 
@@ -22,10 +22,10 @@ pub struct Partition {
 }
 
 /// Becasuse data is stored using 'Bytes', a clone is a shallow clone. Data is not copied
-#[derive(Clone, Debug)]
+#[derive(Debug, Default, Serialize, Deserialize, Clone)]
 pub struct Message {
-    pub key: Bytes,
-    pub data: Bytes,
+    pub key: Vec<u8>,
+    pub data: Vec<u8>,
 }
 
 impl Topic {
@@ -54,7 +54,12 @@ impl Db {
     ///
     /// Returns a tuple of (partition_key, offset)
     #[instrument(skip(self))]
-    pub fn produce(&mut self, topic_name: &str, key: Bytes, data: Bytes) -> DbResult<(u64, u64)> {
+    pub fn produce(
+        &mut self,
+        topic_name: &str,
+        key: Vec<u8>,
+        data: Vec<u8>,
+    ) -> DbResult<(u64, u64)> {
         let mut state = self.shared.lock().unwrap();
 
         let topic = state.topics.get_mut(topic_name);
@@ -133,7 +138,7 @@ impl Message {
         hasher.finish()
     }
 
-    fn new(key: Bytes, data: Bytes) -> Message {
+    fn new(key: Vec<u8>, data: Vec<u8>) -> Message {
         Message { key, data }
     }
 }

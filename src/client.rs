@@ -6,9 +6,9 @@ use tokio::net::{TcpStream, ToSocketAddrs};
 use tracing::debug;
 
 use crate::{
-    cmd::{create_topic, ping, produce, Command, Rpc},
+    cmd::{create_topic, fetch, ping, produce, Rpc},
     connection::{self, Connection},
-    db,
+    db, Message,
 };
 
 pub struct Client {
@@ -151,5 +151,28 @@ impl Client {
         data: Vec<u8>,
     ) -> Result<(u64, u64), Error> {
         self.rpc(produce::Request { topic, key, data }).await
+    }
+
+    pub async fn fetch(
+        &mut self,
+        timeout_ms: u64,
+        topic: String,
+        partitions: Vec<(u64, u64)>,
+    ) -> Result<Option<Message>, Error> {
+        let request = fetch::Request {
+            timeout_ms,
+            topics: vec![fetch::TopicsRequest {
+                topic,
+                partitions: partitions
+                    .into_iter()
+                    .map(|partition| fetch::PartitionRequest {
+                        offset: partition.1,
+                        partition: partition.0,
+                    })
+                    .collect(),
+            }],
+        };
+
+        self.rpc(request).await
     }
 }
