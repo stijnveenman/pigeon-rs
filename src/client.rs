@@ -6,7 +6,7 @@ use tokio::net::{TcpStream, ToSocketAddrs};
 use tracing::debug;
 
 use crate::{
-    cmd::{ping, Command},
+    cmd::{create_topic, ping, Command, Transaction},
     connection::{self, Connection},
     db,
 };
@@ -60,13 +60,26 @@ impl Client {
     async fn read_response<T: DeserializeOwned + std::fmt::Debug>(&mut self) -> Result<T, Error> {
         let response = self.connection.read_frame::<Result<T, db::Error>>().await?;
 
-        debug!(?response);
-
         match response {
             Some(Ok(response)) => Ok(response),
             Some(Err(e)) => Err(e.into()),
             None => Err(Error::NoResponse),
         }
+    }
+
+    async fn transact<T>(&mut self, transaction: T) -> Result<T::Response, Error>
+    where
+        T: Transaction,
+        T::Response: DeserializeOwned + std::fmt::Debug,
+    {
+        let frame = transaction.to_request();
+        debug!(request = ?frame);
+
+        self.connection.write_frame(&frame).await?;
+
+        let response = self.read_response().await;
+        debug!(?response);
+        response
     }
 
     /// Ping to the server.
@@ -92,12 +105,27 @@ impl Client {
     /// }
     /// ```
     pub async fn ping(&mut self, msg: Option<Vec<u8>>) -> Result<Vec<u8>, Error> {
-        let frame = Command::Ping(ping::Request::new(msg));
-        debug!(request = ?frame);
-        self.connection.write_frame(&frame).await?;
-
-        self.read_response::<ping::Response>()
+        self.transact(ping::Request::new(msg))
             .await
             .map(|response| response.msg)
+    }
+
+    /// Create a new topic
+    ///
+    /// Returns OK if the topic was succesfully created
+    ///
+    /// # Examples
+    /// Demonstrates basic usage.
+    /// ```no_run
+    /// async fn main() {
+    ///     let mut client = Client::connect("localhost:6379").await.unwrap();
+    ///
+    ///     let result = client.create_topic("topic", 5).await.unwrap();
+    ///     assert_eq!(b"OK", &result[..]);
+    /// }
+    /// ```
+    pub async fn create_topic(&mut self, name: String, partitions: u64) -> Result<(), Error> {
+        self.transact(create_topic::Request::new(name, partitions))
+            .await
     }
 }

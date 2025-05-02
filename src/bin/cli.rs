@@ -94,7 +94,9 @@ async fn main() -> Result<()> {
             partitions,
         } => {}
         Command::Topic { subcommand } => match subcommand {
-            TopicCommand::Create { name, partitions } => todo!(),
+            TopicCommand::Create { name, partitions } => {
+                client.create_topic(name, partitions).await?;
+            }
         },
     }
 

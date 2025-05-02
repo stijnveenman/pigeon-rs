@@ -1,10 +1,11 @@
+pub mod create_topic;
 pub mod ping;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
 use crate::{
     connection::{self},
-    db::Db,
+    db::{self, Db},
     shutdown::Shutdown,
     Connection,
 };
@@ -12,6 +13,7 @@ use crate::{
 #[derive(Debug, Serialize, Deserialize)]
 pub enum Command {
     Ping(ping::Request),
+    CreateTopic(create_topic::Request),
 }
 
 #[derive(Error, Debug)]
@@ -20,17 +22,24 @@ pub enum Error {
     Connection(#[from] connection::Error),
 }
 
+pub trait Transaction {
+    type Response;
+    fn to_request(self) -> Command;
+    async fn apply(self, db: &mut Db) -> Result<Self::Response, db::Error>;
+}
+
 impl Command {
     pub(crate) async fn apply(
         self,
-        _db: &mut Db,
+        db: &mut Db,
         dst: &mut Connection,
         _shutdown: &mut Shutdown,
-    ) -> Result<(), Error> {
+    ) -> Result<(), connection::Error> {
         use Command::*;
 
         match self {
-            Ping(cmd) => cmd.apply(dst).await,
+            Ping(request) => dst.write_response(&request.apply(db).await).await,
+            CreateTopic(request) => dst.write_response(&request.apply(db).await).await,
         }
     }
 }

@@ -3,7 +3,6 @@ use bytes::Buf;
 use serde::{de::DeserializeOwned, Serialize};
 use std::io::{self, Cursor};
 use thiserror::Error;
-use tracing::debug;
 
 use bytes::BytesMut;
 use tokio::{
@@ -97,6 +96,13 @@ impl Connection {
                 Ok(Some(document))
             }
         }
+    }
+
+    pub async fn write_response<T: Serialize>(
+        &mut self,
+        response: &Result<T, crate::db::Error>,
+    ) -> Result<(), Error> {
+        self.write_frame(&response).await
     }
 
     pub async fn write_frame<T: Serialize>(&mut self, frame: &T) -> Result<(), Error> {

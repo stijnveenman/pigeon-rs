@@ -1,8 +1,8 @@
-use crate::{db, Connection};
+use crate::db;
 use serde::{Deserialize, Serialize};
 use tracing::{debug, instrument};
 
-use super::Error;
+use super::Transaction;
 
 /// Returns PONG if no argument is provided, otherwise
 /// return a copy of the argument as a bulk.
@@ -21,22 +21,26 @@ pub struct Response {
     pub msg: Vec<u8>,
 }
 
+impl Transaction for Request {
+    type Response = Response;
+
+    fn to_request(self) -> super::Command {
+        super::Command::Ping(self)
+    }
+
+    #[instrument(skip(self, db))]
+    async fn apply(self, db: &mut db::Db) -> Result<Self::Response, db::Error> {
+        let response = Response {
+            msg: self.msg.unwrap_or(b"PONG".to_vec()),
+        };
+
+        Ok(response)
+    }
+}
+
 impl Request {
     /// Create a new `Ping` command with optional `msg`.
     pub fn new(msg: Option<Vec<u8>>) -> Request {
         Request { msg }
-    }
-
-    #[instrument(skip(self, dst))]
-    pub(crate) async fn apply(self, dst: &mut Connection) -> Result<(), Error> {
-        let response: Result<_, db::Error> = Ok(Response {
-            msg: self.msg.unwrap_or(b"PONG".to_vec()),
-        });
-
-        debug!(?response);
-
-        dst.write_frame(&response).await?;
-
-        Ok(())
     }
 }
