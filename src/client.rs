@@ -8,7 +8,7 @@ use tracing::debug;
 use crate::{
     cmd::{create_topic, fetch, ping, produce, Rpc},
     connection::{self, Connection},
-    db, Message,
+    db, describe_topic, Message,
 };
 
 pub struct Client {
@@ -184,5 +184,12 @@ impl Client {
     /// ```
     pub async fn fetch(&mut self, request: fetch::Request) -> Result<Option<Message>, Error> {
         self.rpc(request).await
+    }
+
+    pub async fn describe_topic(
+        &mut self,
+        topic: String,
+    ) -> Result<describe_topic::TopicDescription, Error> {
+        self.rpc(describe_topic::Request { topic }).await
     }
 }

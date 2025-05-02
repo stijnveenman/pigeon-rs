@@ -3,6 +3,7 @@ pub mod server;
 mod client;
 
 mod cmd;
+pub use cmd::describe_topic;
 pub use cmd::fetch;
 
 mod db;

@@ -1,4 +1,5 @@
 pub mod create_topic;
+pub mod describe_topic;
 pub mod fetch;
 pub mod ping;
 pub mod produce;
@@ -18,6 +19,7 @@ pub enum Command {
     CreateTopic(create_topic::Request),
     Produce(produce::Request),
     Fetch(fetch::Request),
+    DescribeTopic(describe_topic::Request),
 }
 
 #[derive(Error, Debug)]
@@ -47,6 +49,7 @@ impl Command {
             CreateTopic(request) => dst.write_response(&request.apply(db, shutdown).await).await,
             Produce(request) => dst.write_response(&request.apply(db, shutdown).await).await,
             Fetch(request) => dst.write_response(&request.apply(db, shutdown).await).await,
+            DescribeTopic(request) => dst.write_response(&request.apply(db, shutdown).await).await,
         }
     }
 }

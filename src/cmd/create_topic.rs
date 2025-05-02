@@ -1,8 +1,8 @@
 use serde::{Deserialize, Serialize};
-
-use crate::db;
+use tracing::instrument;
 
 use super::{Db, Rpc, Shutdown};
+use crate::db;
 
 #[derive(Debug, Default, Serialize, Deserialize)]
 pub struct Request {
@@ -13,6 +13,7 @@ pub struct Request {
 impl Rpc for Request {
     type Response = ();
 
+    #[instrument(skip(self, db, _shutdown))]
     async fn apply(
         self,
         db: &mut Db,

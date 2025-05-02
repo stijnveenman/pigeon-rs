@@ -67,6 +67,10 @@ enum TopicCommand {
         /// Number of partitions to create
         partitions: u64,
     },
+    Describe {
+        /// Name of the topic to describe
+        name: String,
+    },
 }
 
 /// Entry point for CLI tool.
@@ -113,6 +117,11 @@ async fn main() -> Result<()> {
         Command::Topic { subcommand } => match subcommand {
             TopicCommand::Create { name, partitions } => {
                 client.create_topic(name, partitions).await?;
+            }
+            TopicCommand::Describe { name } => {
+                let result = client.describe_topic(name).await?;
+
+                println!("{:#?}", result);
             }
         },
     }

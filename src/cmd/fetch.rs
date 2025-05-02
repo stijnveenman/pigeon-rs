@@ -3,7 +3,7 @@ use std::{pin::Pin, time::Duration};
 use serde::{Deserialize, Serialize};
 use tokio::{select, time};
 use tokio_stream::{Stream, StreamExt, StreamMap};
-use tracing::debug;
+use tracing::{debug, instrument};
 
 use crate::{db, Message};
 
@@ -34,6 +34,7 @@ impl Rpc for Request {
         super::Command::Fetch(self)
     }
 
+    #[instrument(skip(self, db, shutdown))]
     async fn apply(
         self,
         db: &mut super::Db,
