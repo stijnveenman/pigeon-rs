@@ -1,5 +1,6 @@
 pub mod create_topic;
 pub mod ping;
+pub mod produce;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
@@ -14,6 +15,7 @@ use crate::{
 pub enum Command {
     Ping(ping::Request),
     CreateTopic(create_topic::Request),
+    Produce(produce::Request),
 }
 
 #[derive(Error, Debug)]
@@ -40,6 +42,7 @@ impl Command {
         match self {
             Ping(request) => dst.write_response(&request.apply(db).await).await,
             CreateTopic(request) => dst.write_response(&request.apply(db).await).await,
+            Produce(request) => dst.write_response(&request.apply(db).await).await,
         }
     }
 }

@@ -6,7 +6,7 @@ use tokio::net::{TcpStream, ToSocketAddrs};
 use tracing::debug;
 
 use crate::{
-    cmd::{create_topic, ping, Command, Rpc},
+    cmd::{create_topic, ping, produce, Command, Rpc},
     connection::{self, Connection},
     db,
 };
@@ -126,5 +126,30 @@ impl Client {
     /// ```
     pub async fn create_topic(&mut self, name: String, partitions: u64) -> Result<(), Error> {
         self.rpc(create_topic::Request::new(name, partitions)).await
+    }
+
+    /// Produce a message on a topic
+    ///
+    /// Returns a tuple of (partition_key, offset)
+    /// # Examples
+    /// Demonstrates basic usage.
+    /// ```no_run
+    /// async fn main() {
+    ///     let mut client = Client::connect("localhost:6379").await.unwrap();
+    ///
+    ///     let result = client.create_topic("topic", 5).await.unwrap();
+    ///     assert_eq!(b"OK", &result[..]);
+    ///
+    ///     let result = client.produce("topic", "key", "message").await.unwrap();
+    ///     assert_eq!(result, (0, 0));
+    /// }
+    /// ```
+    pub async fn produce(
+        &mut self,
+        topic: String,
+        key: Vec<u8>,
+        data: Vec<u8>,
+    ) -> Result<(u64, u64), Error> {
+        self.rpc(produce::Request { topic, key, data }).await
     }
 }

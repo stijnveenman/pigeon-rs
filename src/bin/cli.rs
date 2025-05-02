@@ -87,7 +87,10 @@ async fn main() -> Result<()> {
             let response = client.ping(msg.map(|msg| msg.to_vec())).await?;
             print_result(&response);
         }
-        Command::Produce { topic, key, data } => {}
+        Command::Produce { topic, key, data } => {
+            let value = client.produce(topic, key.to_vec(), data.to_vec()).await?;
+            println!("produced {}:{}", value.0, value.1);
+        }
         Command::Fetch {
             timeout_ms,
             topic,

@@ -28,8 +28,8 @@ impl Rpc for Request {
         super::Command::Ping(self)
     }
 
-    #[instrument(skip(self, db))]
-    async fn apply(self, db: &mut db::Db) -> Result<Self::Response, db::Error> {
+    #[instrument(skip(self, _db))]
+    async fn apply(self, _db: &mut db::Db) -> Result<Self::Response, db::Error> {
         let response = Response {
             msg: self.msg.unwrap_or(b"PONG".to_vec()),
         };
