@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::db;
 
-use super::{Db, Transaction};
+use super::{Db, Rpc};
 
 #[derive(Debug, Default, Serialize, Deserialize)]
 pub struct Request {
@@ -10,7 +10,7 @@ pub struct Request {
     partitions: u64,
 }
 
-impl Transaction for Request {
+impl Rpc for Request {
     type Response = ();
 
     async fn apply(self, db: &mut Db) -> Result<Self::Response, db::Error> {

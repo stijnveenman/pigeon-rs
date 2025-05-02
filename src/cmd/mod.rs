@@ -22,7 +22,7 @@ pub enum Error {
     Connection(#[from] connection::Error),
 }
 
-pub trait Transaction {
+pub trait Rpc {
     type Response;
     fn to_request(self) -> Command;
     async fn apply(self, db: &mut Db) -> Result<Self::Response, db::Error>;

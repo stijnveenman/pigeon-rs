@@ -6,7 +6,7 @@ use tokio::net::{TcpStream, ToSocketAddrs};
 use tracing::debug;
 
 use crate::{
-    cmd::{create_topic, ping, Command, Transaction},
+    cmd::{create_topic, ping, Command, Rpc},
     connection::{self, Connection},
     db,
 };
@@ -67,9 +67,9 @@ impl Client {
         }
     }
 
-    async fn transact<T>(&mut self, transaction: T) -> Result<T::Response, Error>
+    async fn rpc<T>(&mut self, transaction: T) -> Result<T::Response, Error>
     where
-        T: Transaction,
+        T: Rpc,
         T::Response: DeserializeOwned + std::fmt::Debug,
     {
         let frame = transaction.to_request();
@@ -105,7 +105,7 @@ impl Client {
     /// }
     /// ```
     pub async fn ping(&mut self, msg: Option<Vec<u8>>) -> Result<Vec<u8>, Error> {
-        self.transact(ping::Request::new(msg))
+        self.rpc(ping::Request::new(msg))
             .await
             .map(|response| response.msg)
     }
@@ -125,7 +125,6 @@ impl Client {
     /// }
     /// ```
     pub async fn create_topic(&mut self, name: String, partitions: u64) -> Result<(), Error> {
-        self.transact(create_topic::Request::new(name, partitions))
-            .await
+        self.rpc(create_topic::Request::new(name, partitions)).await
     }
 }

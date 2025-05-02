@@ -2,7 +2,7 @@ use crate::db;
 use serde::{Deserialize, Serialize};
 use tracing::{debug, instrument};
 
-use super::Transaction;
+use super::Rpc;
 
 /// Returns PONG if no argument is provided, otherwise
 /// return a copy of the argument as a bulk.
@@ -21,7 +21,7 @@ pub struct Response {
     pub msg: Vec<u8>,
 }
 
-impl Transaction for Request {
+impl Rpc for Request {
     type Response = Response;
 
     fn to_request(self) -> super::Command {
