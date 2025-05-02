@@ -189,6 +189,18 @@ impl Client {
         self.rpc(request).await
     }
 
+    /// Describe a topic and its partition
+    ///
+    /// # Examples
+    /// demonstrate basic usage
+    /// ```
+    /// async fn main() {
+    ///     let mut client = Client::connect("localhost:6379").await.unwrap();
+    ///
+    ///     let result = client.describe("topic").await.unwrap();
+    ///     println!("{:#?}", reuslt);
+    /// }
+    /// ```
     pub async fn describe_topic(
         &mut self,
         topic: String,
