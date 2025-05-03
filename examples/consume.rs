@@ -11,7 +11,7 @@ async fn main() -> Result<(), anyhow::Error> {
 
     let mut client = client::connect(format!("{}:{}", "127.0.0.1", DEFAULT_PORT)).await?;
 
-    match client.create_topic("test".into(), 1).await {
+    match client.create_topic("test".into(), 5).await {
         Ok(_) => info!("Created topic 'test'"),
         Err(_) => warn!("Topic 'test' already exists"),
     }
@@ -40,7 +40,7 @@ async fn main() -> Result<(), anyhow::Error> {
 
     time::sleep(Duration::from_secs(2)).await;
 
-    for i in 0..5 {
+    for i in 0..50 {
         client
             .produce(
                 "test".into(),

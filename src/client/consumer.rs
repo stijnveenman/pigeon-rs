@@ -20,12 +20,6 @@ impl Consumer {
     pub async fn consume(mut client: Client, topic: String) -> Result<Consumer, super::Error> {
         let topic_description = client.describe_topic(topic).await?;
 
-        assert_eq!(
-            topic_description.partitions.len(),
-            1,
-            "Only single partitions topics are supported yet"
-        );
-
         let consumer = Consumer {
             client,
             topic: topic_description.topic,
@@ -60,7 +54,10 @@ impl Consumer {
             };
 
             if let Some(message) = self.client.fetch(request).await? {
-                let partition = self.partitions.iter_mut().next().unwrap();
+                let partition = self
+                    .partitions
+                    .get_mut(message.partition as usize)
+                    .expect("received partition out of bounds");
                 partition.current_offset += 1;
 
                 return Ok(message.message);
