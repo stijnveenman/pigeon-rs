@@ -1,4 +1,4 @@
-use async_stream::{stream, try_stream};
+use async_stream::stream;
 use tokio_stream::Stream;
 
 use crate::{fetch, Message};

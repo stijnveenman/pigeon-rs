@@ -5,7 +5,7 @@ use std::{
 
 use serde::{Deserialize, Serialize};
 use tokio::sync::broadcast;
-use tracing::{debug, field::debug, instrument};
+use tracing::{debug, instrument};
 
 use crate::db;
 
