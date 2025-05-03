@@ -1,3 +1,6 @@
+use async_stream::try_stream;
+use tokio_stream::Stream;
+
 use crate::{fetch, Message};
 
 use super::Client;
@@ -61,6 +64,14 @@ impl Consumer {
                 partition.current_offset += 1;
 
                 return Ok(message);
+            }
+        }
+    }
+
+    pub fn into_stream(mut self) -> impl Stream<Item = Result<Message, super::Error>> {
+        try_stream! {
+            loop {
+                yield self.next_message().await?
             }
         }
     }
