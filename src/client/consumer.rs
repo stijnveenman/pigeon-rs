@@ -1,4 +1,4 @@
-use async_stream::try_stream;
+use async_stream::{stream, try_stream};
 use tokio_stream::Stream;
 
 use crate::{fetch, Message};
@@ -68,10 +68,12 @@ impl Consumer {
         }
     }
 
-    pub fn into_stream(mut self) -> impl Stream<Item = Result<Message, super::Error>> {
-        try_stream! {
+    pub fn into_stream(mut self) -> impl Stream<Item = Message> {
+        stream! {
             loop {
-                yield self.next_message().await?
+                while let Ok(message) = self.next_message().await {
+                    yield message;
+                }
             }
         }
     }

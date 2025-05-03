@@ -5,22 +5,23 @@ use std::{
 
 use serde::{Deserialize, Serialize};
 use tokio::sync::broadcast;
-use tracing::{debug, instrument};
+use tracing::{debug, field::debug, instrument};
 
 use crate::db;
 
 use super::{Db, DbResult};
 
+#[derive(Debug)]
 pub struct Topic {
     pub partitions: BTreeMap<u64, Partition>,
 }
 
+#[derive(Debug)]
 pub struct Partition {
     pub messages: BTreeMap<u64, Message>,
     pub current_offset: u64,
 }
 
-/// Becasuse data is stored using 'Bytes', a clone is a shallow clone. Data is not copied
 #[derive(Debug, Default, Serialize, Deserialize, Clone)]
 pub struct Message {
     pub key: Vec<u8>,
@@ -73,7 +74,7 @@ impl Db {
 
         let topic = state.topics.get_mut(topic_name);
         let Some(topic) = topic else {
-            return Err(db::Error::NotFound);
+            return Err(db::Error::TopicNotFound);
         };
 
         let message = Message::new(key, data);
@@ -106,12 +107,12 @@ impl Db {
 
         let topic = state.topics.get(topic);
         let Some(topic) = topic else {
-            return Err(db::Error::NotFound);
+            return Err(db::Error::TopicNotFound);
         };
 
         let partition = topic.partitions.get(&partition);
         let Some(partition) = partition else {
-            return Err(db::Error::NotFound);
+            return Err(db::Error::PartitionNotFound);
         };
 
         let message = partition.messages.get(&offset).cloned();
@@ -121,7 +122,7 @@ impl Db {
     pub fn with_data_for_topic<T>(&self, topic: &str, f: impl FnOnce(&Topic) -> T) -> DbResult<T> {
         let state = &self.shared.lock().unwrap();
 
-        let topic = state.topics.get(topic).ok_or(db::Error::NotFound)?;
+        let topic = state.topics.get(topic).ok_or(db::Error::TopicNotFound)?;
 
         Ok(f(topic))
     }
