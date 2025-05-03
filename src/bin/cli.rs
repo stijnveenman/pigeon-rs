@@ -3,7 +3,12 @@ use core::str;
 use anyhow::Result;
 use bytes::Bytes;
 use clap::{Args, Parser, Subcommand};
-use pigeon_rs::{fetch, logging::set_up_logging, Client, DEFAULT_PORT};
+use pigeon_rs::{
+    client::{self},
+    fetch,
+    logging::set_up_logging,
+    DEFAULT_PORT,
+};
 
 #[derive(Parser, Debug)]
 #[command(
@@ -51,6 +56,10 @@ enum Command {
         #[arg(long, short = 'o', default_value_t = 0)]
         offset: u64,
     },
+    Consume {
+        #[arg(long, short = 't')]
+        topic: String,
+    },
 }
 
 #[derive(Debug, Args, Clone)]
@@ -86,7 +95,7 @@ async fn main() -> Result<()> {
 
     let addr = format!("{}:{}", cli.host, cli.port);
 
-    let mut client = Client::connect(&addr).await?;
+    let mut client = client::connect(&addr).await?;
 
     match cli.command {
         Command::Ping { msg } => {
@@ -124,6 +133,13 @@ async fn main() -> Result<()> {
                 println!("{:#?}", result);
             }
         },
+        Command::Consume { topic } => {
+            let mut consumer = client::consumer(client, topic).await?;
+
+            while let Ok(message) = consumer.next_message().await {
+                println!("fetched {:?}", message)
+            }
+        }
     }
 
     Ok(())

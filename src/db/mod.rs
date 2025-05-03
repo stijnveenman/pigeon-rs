@@ -15,8 +15,10 @@ use topics::Topic;
 pub enum Error {
     #[error("Name already in use")]
     NameInUse,
-    #[error("Item not found")]
-    NotFound,
+    #[error("Topic not found")]
+    TopicNotFound,
+    #[error("Partition not found")]
+    PartitionNotFound,
     #[error("Failed to receive a valid frame")]
     Recv,
     #[error("Server is shutting down")]

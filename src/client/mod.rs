@@ -1,5 +1,8 @@
+mod consumer;
+
 use std::io;
 
+use consumer::Consumer;
 use serde::de::DeserializeOwned;
 use thiserror::Error;
 use tokio::net::{TcpStream, ToSocketAddrs};
@@ -27,36 +30,63 @@ pub enum Error {
     Db(#[from] db::Error),
 }
 
+/// Establish a connection with the Redis server located at `addr`.
+///
+/// `addr` may be any type that can be asynchronously converted to a
+/// `SocketAddr`. This includes `SocketAddr` and strings. The `ToSocketAddrs`
+/// trait is the Tokio version and not the `std` version.
+///
+/// # Examples
+///
+/// ```no_run
+/// use pigeon_rs::client;
+///
+/// #[tokio::main]
+/// async fn main() {
+///     let client = match client::connect("localhost:6394").await {
+///         Ok(client) => client,
+///         Err(_) => panic!("failed to establish connection"),
+///     };
+///     // drop(client);
+/// }
+/// ```
+///
+pub async fn connect<T: ToSocketAddrs>(addr: T) -> Result<Client, Error> {
+    let socket = TcpStream::connect(addr).await?;
+
+    let connection = Connection::new(socket);
+
+    Ok(Client { connection })
+}
+
+/// Create a consumer for a given topic, consuming all partitions.
+/// This either starts at the beginning (offset 0), or at the end (current_offset).
+/// The next message can be received using `consumer.next_message`, or the consumer can be
+/// converted into a tokio stream using `consumer.into_stream`
+///
+/// # Examples
+/// ```no_run
+/// use pigeon_rs::client;
+///
+/// #[tokio::main]
+/// async fn main() {
+///     let client = client::connect("localhost:6394").await.unwrap();
+///     let mut consumer = client::consumer(client, "topic".into()).await.unwrap();
+///
+///     while let Ok(msg) = consumer.next_message().await {
+///         println!(
+///             "{}:{}",
+///             String::from_utf8(msg.key).unwrap(),
+///             String::from_utf8(msg.data).unwrap()
+///         )
+///     }
+/// }
+/// ```
+pub async fn consumer(client: Client, topic: String) -> Result<Consumer, Error> {
+    Consumer::consume(client, topic).await
+}
+
 impl Client {
-    /// Establish a connection with the Redis server located at `addr`.
-    ///
-    /// `addr` may be any type that can be asynchronously converted to a
-    /// `SocketAddr`. This includes `SocketAddr` and strings. The `ToSocketAddrs`
-    /// trait is the Tokio version and not the `std` version.
-    ///
-    /// # Examples
-    ///
-    /// ```no_run
-    /// use pigeon_rs::Client;
-    ///
-    /// #[tokio::main]
-    /// async fn main() {
-    ///     let client = match Client::connect("localhost:6394").await {
-    ///         Ok(client) => client,
-    ///         Err(_) => panic!("failed to establish connection"),
-    ///     };
-    /// # drop(client);
-    /// }
-    /// ```
-    ///
-    pub async fn connect<T: ToSocketAddrs>(addr: T) -> Result<Client, Error> {
-        let socket = TcpStream::connect(addr).await?;
-
-        let connection = Connection::new(socket);
-
-        Ok(Client { connection })
-    }
-
     async fn read_response<T: DeserializeOwned + std::fmt::Debug>(&mut self) -> Result<T, Error> {
         let response = self.connection.read_frame::<Result<T, db::Error>>().await?;
 
@@ -93,11 +123,11 @@ impl Client {
     /// # Examples
     /// Demonstrates basic usage.
     /// ```no_run
-    /// use pigeon_rs::Client;
+    /// use pigeon_rs::client;
     ///
     /// #[tokio::main]
     /// async fn main() {
-    ///     let mut client = Client::connect("localhost:6379").await.unwrap();
+    ///     let mut client = client::connect("localhost:6379").await.unwrap();
     ///
     ///     let pong = client.ping(None).await.unwrap();
     ///     assert_eq!(b"PONG", &pong[..]);
@@ -116,11 +146,11 @@ impl Client {
     /// # Examples
     /// Demonstrates basic usage.
     /// ```no_run
-    /// use pigeon_rs::Client;
+    /// use pigeon_rs::client;
     ///
     /// #[tokio::main]
     /// async fn main() {
-    ///     let mut client = Client::connect("localhost:6379").await.unwrap();
+    ///     let mut client = client::connect("localhost:6379").await.unwrap();
     ///
     ///     let result = client.create_topic("topic".into(), 5).await.unwrap();
     ///     assert_eq!((), result);
@@ -136,11 +166,11 @@ impl Client {
     /// # Examples
     /// Demonstrates basic usage.
     /// ```no_run
-    /// use pigeon_rs::Client;
+    /// use pigeon_rs::client;
     ///
     /// #[tokio::main]
     /// async fn main() {
-    ///     let mut client = Client::connect("localhost:6379").await.unwrap();
+    ///     let mut client = client::connect("localhost:6379").await.unwrap();
     ///
     ///     let result = client.create_topic("topic".into(), 5).await.unwrap();
     ///     assert_eq!((), result);
@@ -165,11 +195,11 @@ impl Client {
     /// # Examples
     /// demonstrate basic usage
     /// ```no_run
-    /// use pigeon_rs::{Client, fetch};
+    /// use pigeon_rs::{client, fetch};
     ///
     /// #[tokio::main]
     /// async fn main() {
-    ///     let mut client = Client::connect("localhost:6379").await.unwrap();
+    ///     let mut client = client::connect("localhost:6379").await.unwrap();
     ///
     ///     let config = fetch::Request {
     ///         timeout_ms: 1000,
@@ -203,11 +233,11 @@ impl Client {
     /// # Examples
     /// demonstrate basic usage
     /// ```no_run
-    /// use pigeon_rs::Client;
+    /// use pigeon_rs::client;
     ///
     /// #[tokio::main]
     /// async fn main() {
-    ///     let mut client = Client::connect("localhost:6379").await.unwrap();
+    ///     let mut client = client::connect("localhost:6379").await.unwrap();
     ///
     ///     let result = client.describe_topic("topic".into()).await.unwrap();
     ///     println!("{:#?}", result);

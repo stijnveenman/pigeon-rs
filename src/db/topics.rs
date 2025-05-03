@@ -11,17 +11,17 @@ use crate::db;
 
 use super::{Db, DbResult};
 
+#[derive(Debug)]
 pub struct Topic {
-    pub partitions: Vec<Partition>,
+    pub partitions: BTreeMap<u64, Partition>,
 }
 
-#[derive(Default)]
+#[derive(Debug)]
 pub struct Partition {
     pub messages: BTreeMap<u64, Message>,
     pub current_offset: u64,
 }
 
-/// Becasuse data is stored using 'Bytes', a clone is a shallow clone. Data is not copied
 #[derive(Debug, Default, Serialize, Deserialize, Clone)]
 pub struct Message {
     pub key: Vec<u8>,
@@ -31,7 +31,17 @@ pub struct Message {
 impl Topic {
     pub(crate) fn new(partitions: u64) -> Topic {
         Topic {
-            partitions: (0..partitions).map(|_| Partition::default()).collect(),
+            partitions: (0..partitions)
+                .map(|index| {
+                    (
+                        index,
+                        Partition {
+                            current_offset: 0,
+                            messages: BTreeMap::default(),
+                        },
+                    )
+                })
+                .collect(),
         }
     }
 }
@@ -64,7 +74,7 @@ impl Db {
 
         let topic = state.topics.get_mut(topic_name);
         let Some(topic) = topic else {
-            return Err(db::Error::NotFound);
+            return Err(db::Error::TopicNotFound);
         };
 
         let message = Message::new(key, data);
@@ -72,7 +82,7 @@ impl Db {
         let partition_key = message.hash() % topic.partitions.len() as u64;
         let partition = topic
             .partitions
-            .get_mut(partition_key as usize)
+            .get_mut(&partition_key)
             .expect("partition_key failed to produce a valid partition");
 
         let offset = partition.current_offset;
@@ -97,12 +107,12 @@ impl Db {
 
         let topic = state.topics.get(topic);
         let Some(topic) = topic else {
-            return Err(db::Error::NotFound);
+            return Err(db::Error::TopicNotFound);
         };
 
-        let partition = topic.partitions.get(partition as usize);
+        let partition = topic.partitions.get(&partition);
         let Some(partition) = partition else {
-            return Err(db::Error::NotFound);
+            return Err(db::Error::PartitionNotFound);
         };
 
         let message = partition.messages.get(&offset).cloned();
@@ -112,7 +122,7 @@ impl Db {
     pub fn with_data_for_topic<T>(&self, topic: &str, f: impl FnOnce(&Topic) -> T) -> DbResult<T> {
         let state = &self.shared.lock().unwrap();
 
-        let topic = state.topics.get(topic).ok_or(db::Error::NotFound)?;
+        let topic = state.topics.get(topic).ok_or(db::Error::TopicNotFound)?;
 
         Ok(f(topic))
     }
