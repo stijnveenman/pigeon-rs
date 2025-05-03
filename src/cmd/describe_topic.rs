@@ -40,8 +40,8 @@ impl Rpc for Request {
                 .partitions
                 .iter()
                 .map(|partition| PartitionDescription {
-                    current_offset: partition.current_offset,
-                    partition_number: partition.partition_number,
+                    current_offset: partition.1.current_offset,
+                    partition_number: *partition.0,
                 })
                 .collect(),
         })

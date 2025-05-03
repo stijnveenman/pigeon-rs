@@ -12,11 +12,10 @@ use crate::db;
 use super::{Db, DbResult};
 
 pub struct Topic {
-    pub partitions: Vec<Partition>,
+    pub partitions: BTreeMap<u64, Partition>,
 }
 
 pub struct Partition {
-    pub partition_number: u64,
     pub messages: BTreeMap<u64, Message>,
     pub current_offset: u64,
 }
@@ -32,10 +31,14 @@ impl Topic {
     pub(crate) fn new(partitions: u64) -> Topic {
         Topic {
             partitions: (0..partitions)
-                .map(|number| Partition {
-                    current_offset: 0,
-                    messages: BTreeMap::default(),
-                    partition_number: number,
+                .map(|index| {
+                    (
+                        index,
+                        Partition {
+                            current_offset: 0,
+                            messages: BTreeMap::default(),
+                        },
+                    )
                 })
                 .collect(),
         }
@@ -78,7 +81,7 @@ impl Db {
         let partition_key = message.hash() % topic.partitions.len() as u64;
         let partition = topic
             .partitions
-            .get_mut(partition_key as usize)
+            .get_mut(&partition_key)
             .expect("partition_key failed to produce a valid partition");
 
         let offset = partition.current_offset;
@@ -106,7 +109,7 @@ impl Db {
             return Err(db::Error::NotFound);
         };
 
-        let partition = topic.partitions.get(partition as usize);
+        let partition = topic.partitions.get(&partition);
         let Some(partition) = partition else {
             return Err(db::Error::NotFound);
         };
