@@ -59,6 +59,29 @@ pub async fn connect<T: ToSocketAddrs>(addr: T) -> Result<Client, Error> {
     Ok(Client { connection })
 }
 
+/// Create a consumer for a given topic, consuming all partitions.
+/// This either starts at the beginning (offset 0), or at the end (current_offset).
+/// The next message can be received using `consumer.next_message`, or the consumer can be
+/// converted into a tokio stream using `consumer.into_stream`
+///
+/// # Examples
+/// ```no_run
+/// use pigeon_rs::client;
+///
+/// #[tokio::main]
+/// async fn main() {
+///     let client = client::connect("localhost:6394").await.unwrap();
+///     let mut consumer = client::consumer(client, "topic".into()).await.unwrap();
+///
+///     while let Ok(msg) = consumer.next_message().await {
+///         println!(
+///             "{}:{}",
+///             String::from_utf8(msg.key).unwrap(),
+///             String::from_utf8(msg.data).unwrap()
+///         )
+///     }
+/// }
+/// ```
 pub async fn consumer(client: Client, topic: String) -> Result<Consumer, Error> {
     Consumer::consume(client, topic).await
 }

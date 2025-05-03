@@ -1,4 +1,4 @@
-use std::{fmt::format, time::Duration};
+use std::time::Duration;
 use tokio::time;
 use tokio_stream::StreamExt;
 use tracing::{info, warn};
