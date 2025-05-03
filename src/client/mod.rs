@@ -11,7 +11,7 @@ use tracing::debug;
 use crate::{
     cmd::{create_topic, fetch, ping, produce, Rpc},
     connection::{self, Connection},
-    db, describe_topic, Message,
+    db, describe_topic,
 };
 
 pub struct Client {
@@ -224,7 +224,10 @@ impl Client {
     ///     let result = client.fetch(config).await;
     /// }
     /// ```
-    pub async fn fetch(&mut self, request: fetch::Request) -> Result<Option<Message>, Error> {
+    pub async fn fetch(
+        &mut self,
+        request: fetch::Request,
+    ) -> Result<Option<fetch::MessageResponse>, Error> {
         self.rpc(request).await
     }
 

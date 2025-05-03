@@ -27,8 +27,15 @@ pub struct PartitionRequest {
     pub offset: u64,
 }
 
+#[derive(Debug, Default, Serialize, Deserialize)]
+pub struct MessageResponse {
+    pub topic: String,
+    pub partition: u64,
+    pub message: Message,
+}
+
 impl Rpc for Request {
-    type Response = Option<Message>;
+    type Response = Option<MessageResponse>;
 
     fn to_request(self) -> super::Command {
         super::Command::Fetch(self)
@@ -49,11 +56,17 @@ impl Request {
         &self,
         db: &mut super::Db,
         shutdown: &mut Shutdown,
-    ) -> Result<Option<Message>, crate::db::Error> {
+    ) -> Result<Option<MessageResponse>, crate::db::Error> {
         let mut map = StreamMap::new();
         for topic in &self.topics {
             match topic.fetch(db).await? {
-                Some(message) => return Ok(Some(message)),
+                Some(message) => {
+                    return Ok(Some(MessageResponse {
+                        partition: message.0,
+                        message: message.1,
+                        topic: topic.topic.clone(),
+                    }))
+                }
                 None => {
                     for partition in &topic.partitions {
                         let rx = partition.fetch(db, &topic.topic)?;
@@ -66,7 +79,12 @@ impl Request {
 
         select! {
             message = map.next() => {
-                Ok(message.map(|m| m.1))
+                Ok(message.map(|m| MessageResponse{
+                    partition: m.0.1,
+                    topic: m.0.0.into(),
+                    message: m.1
+
+                }))
             },
             _ = time::sleep(Duration::from_millis(self.timeout_ms)) => {
                 Ok(None)
@@ -80,10 +98,10 @@ impl Request {
 }
 
 impl TopicsRequest {
-    async fn fetch(&self, db: &mut super::Db) -> Result<Option<Message>, crate::db::Error> {
+    async fn fetch(&self, db: &mut super::Db) -> Result<Option<(u64, Message)>, crate::db::Error> {
         for partition in &self.partitions {
             if let Some(message) = db.fetch(&self.topic, partition.partition, partition.offset)? {
-                return Ok(Some(message));
+                return Ok(Some((partition.partition, message)));
             }
         }
 

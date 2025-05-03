@@ -63,7 +63,7 @@ impl Consumer {
                 let partition = self.partitions.iter_mut().next().unwrap();
                 partition.current_offset += 1;
 
-                return Ok(message);
+                return Ok(message.message);
             }
         }
     }
