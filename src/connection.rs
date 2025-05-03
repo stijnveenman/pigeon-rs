@@ -90,6 +90,11 @@ impl Connection {
             {
                 Ok(None)
             }
+            Err(bson::de::Error::DeserializationError { message, .. })
+                if message.contains("document length incorrect") =>
+            {
+                Ok(None)
+            }
             Err(e) => Err(e.into()),
             Ok(document) => {
                 self.buffer.advance(buf.position() as usize);
