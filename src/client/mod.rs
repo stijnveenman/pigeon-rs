@@ -39,11 +39,11 @@ pub enum Error {
 /// # Examples
 ///
 /// ```no_run
-/// use pigeon_rs::Client;
+/// use pigeon_rs::client;
 ///
 /// #[tokio::main]
 /// async fn main() {
-///     let client = match Client::connect("localhost:6394").await {
+///     let client = match client::connect("localhost:6394").await {
 ///         Ok(client) => client,
 ///         Err(_) => panic!("failed to establish connection"),
 ///     };
@@ -100,11 +100,11 @@ impl Client {
     /// # Examples
     /// Demonstrates basic usage.
     /// ```no_run
-    /// use pigeon_rs::Client;
+    /// use pigeon_rs::client;
     ///
     /// #[tokio::main]
     /// async fn main() {
-    ///     let mut client = Client::connect("localhost:6379").await.unwrap();
+    ///     let mut client = client::connect("localhost:6379").await.unwrap();
     ///
     ///     let pong = client.ping(None).await.unwrap();
     ///     assert_eq!(b"PONG", &pong[..]);
@@ -123,11 +123,11 @@ impl Client {
     /// # Examples
     /// Demonstrates basic usage.
     /// ```no_run
-    /// use pigeon_rs::Client;
+    /// use pigeon_rs::client;
     ///
     /// #[tokio::main]
     /// async fn main() {
-    ///     let mut client = Client::connect("localhost:6379").await.unwrap();
+    ///     let mut client = client::connect("localhost:6379").await.unwrap();
     ///
     ///     let result = client.create_topic("topic".into(), 5).await.unwrap();
     ///     assert_eq!((), result);
@@ -143,11 +143,11 @@ impl Client {
     /// # Examples
     /// Demonstrates basic usage.
     /// ```no_run
-    /// use pigeon_rs::Client;
+    /// use pigeon_rs::client;
     ///
     /// #[tokio::main]
     /// async fn main() {
-    ///     let mut client = Client::connect("localhost:6379").await.unwrap();
+    ///     let mut client = client::connect("localhost:6379").await.unwrap();
     ///
     ///     let result = client.create_topic("topic".into(), 5).await.unwrap();
     ///     assert_eq!((), result);
@@ -172,11 +172,11 @@ impl Client {
     /// # Examples
     /// demonstrate basic usage
     /// ```no_run
-    /// use pigeon_rs::{Client, fetch};
+    /// use pigeon_rs::{client, fetch};
     ///
     /// #[tokio::main]
     /// async fn main() {
-    ///     let mut client = Client::connect("localhost:6379").await.unwrap();
+    ///     let mut client = client::connect("localhost:6379").await.unwrap();
     ///
     ///     let config = fetch::Request {
     ///         timeout_ms: 1000,
@@ -210,11 +210,11 @@ impl Client {
     /// # Examples
     /// demonstrate basic usage
     /// ```no_run
-    /// use pigeon_rs::Client;
+    /// use pigeon_rs::client;
     ///
     /// #[tokio::main]
     /// async fn main() {
-    ///     let mut client = Client::connect("localhost:6379").await.unwrap();
+    ///     let mut client = client::connect("localhost:6379").await.unwrap();
     ///
     ///     let result = client.describe_topic("topic".into()).await.unwrap();
     ///     println!("{:#?}", result);
