@@ -70,10 +70,8 @@ impl Consumer {
 
     pub fn into_stream(mut self) -> impl Stream<Item = Message> {
         stream! {
-            loop {
-                while let Ok(message) = self.next_message().await {
-                    yield message;
-                }
+            while let Ok(message) = self.next_message().await {
+                yield message;
             }
         }
     }
