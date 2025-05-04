@@ -2,6 +2,7 @@ pub mod server;
 
 pub mod client;
 
+pub mod byte_buf;
 mod cmd;
 pub use cmd::describe_topic;
 pub use cmd::fetch;
