@@ -26,6 +26,12 @@ struct Cli {
 
     #[arg(long, default_value_t = DEFAULT_PORT)]
     port: u16,
+
+    #[arg(long, short, action = clap::ArgAction::Count)]
+    verbose: u8,
+
+    #[arg(long, short, action = clap::ArgAction::Count)]
+    quiet: u8,
 }
 
 #[derive(Subcommand, Debug)]
@@ -89,9 +95,9 @@ enum TopicCommand {
 /// multi-threaded.
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> Result<()> {
-    set_up_logging()?;
-
     let cli = Cli::parse();
+
+    set_up_logging(cli.verbose, cli.quiet)?;
 
     let addr = format!("{}:{}", cli.host, cli.port);
 
