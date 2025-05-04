@@ -1,4 +1,7 @@
-use std::fmt::Debug;
+use std::{
+    fmt::Debug,
+    ops::{Index, Range, RangeFull},
+};
 
 use serde::{Deserialize, Serialize};
 
@@ -21,11 +24,21 @@ impl Debug for ByteBuf {
     }
 }
 
-// impl Into<ByteBuf> for Bytes {
-//     fn into(self) -> ByteBuf {
-//         self.to_vec().into()
-//     }
-// }
+impl Index<Range<usize>> for ByteBuf {
+    type Output = [u8];
+
+    fn index(&self, index: Range<usize>) -> &Self::Output {
+        &self.0[index]
+    }
+}
+
+impl Index<RangeFull> for ByteBuf {
+    type Output = [u8];
+
+    fn index(&self, index: RangeFull) -> &Self::Output {
+        &self.0[index]
+    }
+}
 
 impl<T> From<T> for ByteBuf
 where
