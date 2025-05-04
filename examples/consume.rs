@@ -7,7 +7,7 @@ use pigeon_rs::{client, logging::set_up_logging, DEFAULT_PORT};
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> Result<(), anyhow::Error> {
-    set_up_logging()?;
+    set_up_logging(0, 0)?;
 
     let mut client = client::connect(format!("{}:{}", "127.0.0.1", DEFAULT_PORT)).await?;
 
