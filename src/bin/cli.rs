@@ -106,7 +106,7 @@ async fn main() -> Result<()> {
     match cli.command {
         Command::Ping { msg } => {
             let response = client.ping(msg.map(|msg| msg.to_vec())).await?;
-            println!("{:?}", response);
+            print_result(&response);
         }
         Command::Produce { topic, key, data } => {
             let value = client.produce(topic, key.to_vec(), data.to_vec()).await?;
@@ -149,4 +149,12 @@ async fn main() -> Result<()> {
     }
 
     Ok(())
+}
+
+fn print_result(value: &[u8]) {
+    if let Ok(string) = str::from_utf8(value) {
+        println!("\"{}\"", string);
+    } else {
+        println!("{:?}", value);
+    }
 }

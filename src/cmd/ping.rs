@@ -1,4 +1,4 @@
-use crate::{byte_buf::ByteBuf, db};
+use crate::db;
 use serde::{Deserialize, Serialize};
 use tracing::instrument;
 
@@ -12,13 +12,13 @@ use super::{Rpc, Shutdown};
 #[derive(Debug, Default, Serialize, Deserialize)]
 pub struct Request {
     /// optional message to be returned
-    pub msg: Option<ByteBuf>,
+    pub msg: Option<Vec<u8>>,
 }
 
 #[derive(Debug, Default, Serialize, Deserialize)]
 pub struct Response {
     /// Either PONG or a copy of the message provided
-    pub msg: ByteBuf,
+    pub msg: Vec<u8>,
 }
 
 impl Rpc for Request {
@@ -35,7 +35,7 @@ impl Rpc for Request {
         _shutdown: &mut Shutdown,
     ) -> Result<Self::Response, db::Error> {
         let response = Response {
-            msg: self.msg.unwrap_or(b"PONG".into()),
+            msg: self.msg.unwrap_or(b"PONG".to_vec()),
         };
 
         Ok(response)

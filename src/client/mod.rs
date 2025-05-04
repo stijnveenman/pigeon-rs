@@ -9,7 +9,6 @@ use tokio::net::{TcpStream, ToSocketAddrs};
 use tracing::debug;
 
 use crate::{
-    byte_buf::ByteBuf,
     cmd::{create_topic, fetch, ping, produce, Rpc},
     connection::{self, Connection},
     db, describe_topic,
@@ -134,12 +133,10 @@ impl Client {
     ///     assert_eq!(b"PONG", &pong[..]);
     /// }
     /// ```
-    pub async fn ping<T: Into<ByteBuf>>(&mut self, msg: Option<T>) -> Result<ByteBuf, Error> {
-        self.rpc(ping::Request {
-            msg: msg.map(|m| m.into()),
-        })
-        .await
-        .map(|response| response.msg)
+    pub async fn ping(&mut self, msg: Option<Vec<u8>>) -> Result<Vec<u8>, Error> {
+        self.rpc(ping::Request { msg })
+            .await
+            .map(|response| response.msg)
     }
 
     /// Create a new topic
