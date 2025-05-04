@@ -46,8 +46,6 @@
                   entry = "cargo fmt";
                   language = "system";
                   files = "\\.rs";
-                  pass_filenames = false;
-                  args = ["--"];
                 }
               ];
             }

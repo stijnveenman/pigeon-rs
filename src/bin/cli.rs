@@ -38,7 +38,7 @@ struct Cli {
 enum Command {
     Ping {
         /// Message to ping
-        msg: Option<String>,
+        msg: Option<Bytes>,
     },
     Topic {
         #[clap(subcommand)]
@@ -105,7 +105,7 @@ async fn main() -> Result<()> {
 
     match cli.command {
         Command::Ping { msg } => {
-            let response = client.ping(msg.as_deref()).await?;
+            let response = client.ping(msg.map(|msg| msg.to_vec())).await?;
             println!("{:?}", response);
         }
         Command::Produce { topic, key, data } => {
