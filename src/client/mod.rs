@@ -130,11 +130,11 @@ impl Client {
     /// async fn main() {
     ///     let mut client = client::connect("localhost:6379").await.unwrap();
     ///
-    ///     let pong = client.ping::<Vec<u8>>(None).await.unwrap();
+    ///     let pong = client.ping(None).await.unwrap();
     ///     assert_eq!(b"PONG", &pong[..]);
     /// }
     /// ```
-    pub async fn ping<T: Into<ByteBuf>>(&mut self, msg: Option<T>) -> Result<ByteBuf, Error> {
+    pub async fn ping(&mut self, msg: Option<&str>) -> Result<ByteBuf, Error> {
         self.rpc(ping::Request {
             msg: msg.map(|m| m.into()),
         })
