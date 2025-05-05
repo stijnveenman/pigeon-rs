@@ -511,6 +511,7 @@ dependencies = [
  "bytes",
  "clap",
  "serde",
+ "serde_bytes",
  "thiserror",
  "tokio",
  "tokio-stream",

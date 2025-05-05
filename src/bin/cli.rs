@@ -105,7 +105,7 @@ async fn main() -> Result<()> {
 
     match cli.command {
         Command::Ping { msg } => {
-            let response = client.ping(msg.map(|msg| msg.to_vec())).await?;
+            let response = client.ping(msg).await?;
             print_result(&response);
         }
         Command::Produce { topic, key, data } => {

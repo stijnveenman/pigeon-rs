@@ -4,6 +4,7 @@ use std::io;
 
 use consumer::Consumer;
 use serde::de::DeserializeOwned;
+use serde_bytes::ByteBuf;
 use thiserror::Error;
 use tokio::net::{TcpStream, ToSocketAddrs};
 use tracing::debug;
@@ -129,14 +130,16 @@ impl Client {
     /// async fn main() {
     ///     let mut client = client::connect("localhost:6379").await.unwrap();
     ///
-    ///     let pong = client.ping(None).await.unwrap();
+    ///     let pong = client.ping(None::<String>).await.unwrap();
     ///     assert_eq!(b"PONG", &pong[..]);
     /// }
     /// ```
-    pub async fn ping(&mut self, msg: Option<Vec<u8>>) -> Result<Vec<u8>, Error> {
-        self.rpc(ping::Request { msg })
-            .await
-            .map(|response| response.msg)
+    pub async fn ping(&mut self, msg: Option<impl Into<Vec<u8>>>) -> Result<ByteBuf, Error> {
+        self.rpc(ping::Request {
+            msg: msg.map(|m| ByteBuf::from(m)),
+        })
+        .await
+        .map(|response| response.msg)
     }
 
     /// Create a new topic
