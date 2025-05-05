@@ -72,7 +72,7 @@ pub async fn connect<T: ToSocketAddrs>(addr: T) -> Result<Client, Error> {
 /// #[tokio::main]
 /// async fn main() {
 ///     let client = client::connect("localhost:6394").await.unwrap();
-///     let mut consumer = client::consumer(client, "topic".into()).await.unwrap();
+///     let mut consumer = client::consumer(client, "topic").await.unwrap();
 ///
 ///     while let Ok(msg) = consumer.next_message().await {
 ///         println!(
@@ -83,8 +83,8 @@ pub async fn connect<T: ToSocketAddrs>(addr: T) -> Result<Client, Error> {
 ///     }
 /// }
 /// ```
-pub async fn consumer(client: Client, topic: String) -> Result<Consumer, Error> {
-    Consumer::consume(client, topic).await
+pub async fn consumer(client: Client, topic: impl Into<String>) -> Result<Consumer, Error> {
+    Consumer::consume(client, topic.into()).await
 }
 
 impl Client {
@@ -155,12 +155,20 @@ impl Client {
     /// async fn main() {
     ///     let mut client = client::connect("localhost:6379").await.unwrap();
     ///
-    ///     let result = client.create_topic("topic".into(), 5).await.unwrap();
+    ///     let result = client.create_topic("topic", 5).await.unwrap();
     ///     assert_eq!((), result);
     /// }
     /// ```
-    pub async fn create_topic(&mut self, name: String, partitions: u64) -> Result<(), Error> {
-        self.rpc(create_topic::Request { name, partitions }).await
+    pub async fn create_topic(
+        &mut self,
+        name: impl Into<String>,
+        partitions: u64,
+    ) -> Result<(), Error> {
+        self.rpc(create_topic::Request {
+            name: name.into(),
+            partitions,
+        })
+        .await
     }
 
     /// Produce a message on a topic
@@ -175,7 +183,7 @@ impl Client {
     /// async fn main() {
     ///     let mut client = client::connect("localhost:6379").await.unwrap();
     ///
-    ///     let result = client.create_topic("topic".into(), 5).await.unwrap();
+    ///     let result = client.create_topic("topic", 5).await.unwrap();
     ///     assert_eq!((), result);
     ///
     ///     let result = client.produce("topic", "key", "message").await.unwrap();
@@ -250,14 +258,17 @@ impl Client {
     /// async fn main() {
     ///     let mut client = client::connect("localhost:6379").await.unwrap();
     ///
-    ///     let result = client.describe_topic("topic".into()).await.unwrap();
+    ///     let result = client.describe_topic("topic").await.unwrap();
     ///     println!("{:#?}", result);
     /// }
     /// ```
     pub async fn describe_topic(
         &mut self,
-        topic: String,
+        topic: impl Into<String>,
     ) -> Result<describe_topic::TopicDescription, Error> {
-        self.rpc(describe_topic::Request { topic }).await
+        self.rpc(describe_topic::Request {
+            topic: topic.into(),
+        })
+        .await
     }
 }
