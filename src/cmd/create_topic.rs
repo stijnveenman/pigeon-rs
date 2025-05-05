@@ -1,8 +1,7 @@
 use serde::{Deserialize, Serialize};
 use tracing::instrument;
 
-use super::{Db, Rpc, Shutdown};
-use crate::db;
+use super::Rpc;
 
 #[derive(Debug, Default, Serialize, Deserialize)]
 pub struct Request {
@@ -13,13 +12,9 @@ pub struct Request {
 impl Rpc for Request {
     type Response = ();
 
-    #[instrument(skip(self, db, _shutdown))]
-    async fn apply(
-        self,
-        db: &mut Db,
-        _shutdown: &mut Shutdown,
-    ) -> Result<Self::Response, db::Error> {
-        db.create_topic(self.name, self.partitions)
+    #[instrument(skip(self, ctx))]
+    async fn apply(self, ctx: &mut super::RpcContext) -> Result<Self::Response, crate::db::Error> {
+        ctx.db.create_topic(self.name, self.partitions)
     }
 
     fn to_request(self) -> super::Command {

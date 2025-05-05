@@ -8,7 +8,7 @@ use tokio::{
 use tracing::{debug, error, info};
 
 use crate::{
-    cmd::{Command, Error},
+    cmd::{Command, Error, Rpc, RpcContext},
     connection::Connection,
     db::Db,
     shutdown::Shutdown,
@@ -25,9 +25,8 @@ struct Listener {
 }
 
 struct Handler {
-    db: Db,
     connection: Connection,
-    shutdown: Shutdown,
+    ctx: RpcContext,
     _shutdown_complete: mpsc::Sender<()>,
 }
 
@@ -95,9 +94,11 @@ impl Listener {
             info!("{:?} connected", addr);
 
             let mut handler = Handler {
-                db: self.db.clone(),
                 connection: Connection::new(socket),
-                shutdown: Shutdown::new(self.notify_shutdown.subscribe()),
+                ctx: RpcContext {
+                    db: self.db.clone(),
+                    shutdown: Shutdown::new(self.notify_shutdown.subscribe()),
+                },
                 _shutdown_complete: self.shutdown_complete_tx.clone(),
             };
 
@@ -138,10 +139,10 @@ impl Listener {
 
 impl Handler {
     async fn run(&mut self) -> Result<(), Error> {
-        while !self.shutdown.is_shutdown() {
+        while !self.ctx.shutdown.is_shutdown() {
             let maybe_frame = tokio::select! {
                 res = self.connection.read_frame() => res?,
-                _ = self.shutdown.recv() => {
+                _ = self.ctx.shutdown.recv() => {
                     return Ok(());
                 }
             };
@@ -153,8 +154,7 @@ impl Handler {
 
             debug!(?cmd);
 
-            cmd.apply(&mut self.db, &mut self.connection, &mut self.shutdown)
-                .await?;
+            cmd.apply(&mut self.connection, &mut self.ctx).await?;
         }
 
         Ok(())

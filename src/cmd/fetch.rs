@@ -7,7 +7,7 @@ use tracing::{debug, instrument};
 
 use crate::{db, Message};
 
-use super::{Rpc, Shutdown};
+use super::Rpc;
 
 #[derive(Debug, Default, Serialize, Deserialize)]
 pub struct Request {
@@ -41,25 +41,20 @@ impl Rpc for Request {
         super::Command::Fetch(self)
     }
 
-    #[instrument(skip(self, db, shutdown))]
-    async fn apply(
-        self,
-        db: &mut super::Db,
-        shutdown: &mut Shutdown,
-    ) -> Result<Self::Response, crate::db::Error> {
-        self.fetch(db, shutdown).await
+    #[instrument(skip(self, ctx))]
+    async fn apply(self, ctx: &mut super::RpcContext) -> Result<Self::Response, crate::db::Error> {
+        self.fetch(ctx).await
     }
 }
 
 impl Request {
     async fn fetch(
         &self,
-        db: &mut super::Db,
-        shutdown: &mut Shutdown,
+        ctx: &mut super::RpcContext,
     ) -> Result<Option<MessageResponse>, crate::db::Error> {
         let mut map = StreamMap::new();
         for topic in &self.topics {
-            match topic.fetch(db).await? {
+            match topic.fetch(ctx).await? {
                 Some(message) => {
                     return Ok(Some(MessageResponse {
                         partition: message.0,
@@ -69,7 +64,7 @@ impl Request {
                 }
                 None => {
                     for partition in &topic.partitions {
-                        let rx = partition.fetch(db, &topic.topic)?;
+                        let rx = partition.fetch(ctx, &topic.topic)?;
                         map.insert((&topic.topic, partition.partition), rx);
                     }
                     continue;
@@ -89,7 +84,7 @@ impl Request {
             _ = time::sleep(Duration::from_millis(self.timeout_ms)) => {
                 Ok(None)
             },
-            _ = shutdown.recv() => {
+            _ = ctx.shutdown.recv() => {
                 debug!("received shutdown signal waiting for fetch");
                 Err(db::Error::ShuttingDown)
             }
@@ -98,9 +93,15 @@ impl Request {
 }
 
 impl TopicsRequest {
-    async fn fetch(&self, db: &mut super::Db) -> Result<Option<(u64, Message)>, crate::db::Error> {
+    async fn fetch(
+        &self,
+        ctx: &mut super::RpcContext,
+    ) -> Result<Option<(u64, Message)>, crate::db::Error> {
         for partition in &self.partitions {
-            if let Some(message) = db.fetch(&self.topic, partition.partition, partition.offset)? {
+            if let Some(message) =
+                ctx.db
+                    .fetch(&self.topic, partition.partition, partition.offset)?
+            {
                 return Ok(Some((partition.partition, message)));
             }
         }
@@ -112,10 +113,10 @@ impl TopicsRequest {
 impl PartitionRequest {
     fn fetch(
         &self,
-        db: &mut super::Db,
+        ctx: &mut super::RpcContext,
         topic: &str,
     ) -> Result<Pin<Box<dyn Stream<Item = Message> + Send>>, db::Error> {
-        let mut rx = db.fetch_subscribe(topic, self.partition)?;
+        let mut rx = ctx.db.fetch_subscribe(topic, self.partition)?;
         let from_offset = self.offset;
 
         let rx = Box::pin(async_stream::stream! {

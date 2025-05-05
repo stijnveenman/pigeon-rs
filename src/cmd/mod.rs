@@ -28,28 +28,31 @@ pub enum Error {
     Connection(#[from] connection::Error),
 }
 
+pub struct RpcContext {
+    pub db: Db,
+    pub shutdown: Shutdown,
+}
+
 pub trait Rpc {
     type Response;
     fn to_request(self) -> Command;
-    async fn apply(self, db: &mut Db, shutdown: &mut Shutdown)
-        -> Result<Self::Response, db::Error>;
+    async fn apply(self, ctx: &mut RpcContext) -> Result<Self::Response, db::Error>;
 }
 
 impl Command {
     pub(crate) async fn apply(
         self,
-        db: &mut Db,
         dst: &mut Connection,
-        shutdown: &mut Shutdown,
+        ctx: &mut RpcContext,
     ) -> Result<(), connection::Error> {
         use Command::*;
 
         match self {
-            Ping(request) => dst.write_response(&request.apply(db, shutdown).await).await,
-            CreateTopic(request) => dst.write_response(&request.apply(db, shutdown).await).await,
-            Produce(request) => dst.write_response(&request.apply(db, shutdown).await).await,
-            Fetch(request) => dst.write_response(&request.apply(db, shutdown).await).await,
-            DescribeTopic(request) => dst.write_response(&request.apply(db, shutdown).await).await,
+            Ping(request) => dst.write_response(&request.apply(ctx).await).await,
+            CreateTopic(request) => dst.write_response(&request.apply(ctx).await).await,
+            Produce(request) => dst.write_response(&request.apply(ctx).await).await,
+            Fetch(request) => dst.write_response(&request.apply(ctx).await).await,
+            DescribeTopic(request) => dst.write_response(&request.apply(ctx).await).await,
         }
     }
 }

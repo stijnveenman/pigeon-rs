@@ -1,9 +1,8 @@
-use crate::db;
 use serde::{Deserialize, Serialize};
 use serde_bytes::ByteBuf;
 use tracing::instrument;
 
-use super::{Rpc, Shutdown};
+use super::Rpc;
 
 /// Returns PONG if no argument is provided, otherwise
 /// return a copy of the argument as a bulk.
@@ -29,12 +28,8 @@ impl Rpc for Request {
         super::Command::Ping(self)
     }
 
-    #[instrument(skip(self, _db, _shutdown))]
-    async fn apply(
-        self,
-        _db: &mut db::Db,
-        _shutdown: &mut Shutdown,
-    ) -> Result<Self::Response, db::Error> {
+    #[instrument(skip(self, _ctx))]
+    async fn apply(self, _ctx: &mut super::RpcContext) -> Result<Self::Response, crate::db::Error> {
         let response = Response {
             msg: self.msg.unwrap_or(ByteBuf::from(b"PONG")),
         };

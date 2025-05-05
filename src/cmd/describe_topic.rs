@@ -1,8 +1,7 @@
 use serde::{Deserialize, Serialize};
 use tracing::instrument;
 
-use super::{Db, Rpc, Shutdown};
-use crate::db;
+use super::Rpc;
 
 #[derive(Debug, Default, Serialize, Deserialize)]
 pub struct Request {
@@ -28,22 +27,19 @@ impl Rpc for Request {
         super::Command::DescribeTopic(self)
     }
 
-    #[instrument(skip(self, db, _shutdown))]
-    async fn apply(
-        self,
-        db: &mut Db,
-        _shutdown: &mut Shutdown,
-    ) -> Result<Self::Response, db::Error> {
-        db.with_data_for_topic(&self.topic, |topic| TopicDescription {
-            topic: self.topic.clone(),
-            partitions: topic
-                .partitions
-                .iter()
-                .map(|partition| PartitionDescription {
-                    current_offset: partition.1.current_offset,
-                    partition_number: *partition.0,
-                })
-                .collect(),
-        })
+    #[instrument(skip(self, ctx))]
+    async fn apply(self, ctx: &mut super::RpcContext) -> Result<Self::Response, crate::db::Error> {
+        ctx.db
+            .with_data_for_topic(&self.topic, |topic| TopicDescription {
+                topic: self.topic.clone(),
+                partitions: topic
+                    .partitions
+                    .iter()
+                    .map(|partition| PartitionDescription {
+                        current_offset: partition.1.current_offset,
+                        partition_number: *partition.0,
+                    })
+                    .collect(),
+            })
     }
 }
