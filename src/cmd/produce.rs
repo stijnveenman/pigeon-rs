@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use serde_bytes::ByteBuf;
 use tracing::instrument;
 
 use super::{Rpc, Shutdown};
@@ -6,8 +7,8 @@ use super::{Rpc, Shutdown};
 #[derive(Debug, Default, Serialize, Deserialize)]
 pub struct Request {
     pub topic: String,
-    pub key: Vec<u8>,
-    pub data: Vec<u8>,
+    pub key: ByteBuf,
+    pub data: ByteBuf,
 }
 
 impl Rpc for Request {

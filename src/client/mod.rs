@@ -77,8 +77,8 @@ pub async fn connect<T: ToSocketAddrs>(addr: T) -> Result<Client, Error> {
 ///     while let Ok(msg) = consumer.next_message().await {
 ///         println!(
 ///             "{}:{}",
-///             String::from_utf8(msg.key).unwrap(),
-///             String::from_utf8(msg.data).unwrap()
+///             String::from_utf8(msg.key.to_vec()).unwrap(),
+///             String::from_utf8(msg.data.to_vec()).unwrap()
 ///         )
 ///     }
 /// }
@@ -178,17 +178,22 @@ impl Client {
     ///     let result = client.create_topic("topic".into(), 5).await.unwrap();
     ///     assert_eq!((), result);
     ///
-    ///     let result = client.produce("topic".into(), "key".into(), "message".into()).await.unwrap();
+    ///     let result = client.produce("topic", "key", "message").await.unwrap();
     ///     assert_eq!(result, (0, 0));
     /// }
     /// ```
     pub async fn produce(
         &mut self,
-        topic: String,
-        key: Vec<u8>,
-        data: Vec<u8>,
+        topic: impl Into<String>,
+        key: impl Into<Vec<u8>>,
+        data: impl Into<Vec<u8>>,
     ) -> Result<(u64, u64), Error> {
-        self.rpc(produce::Request { topic, key, data }).await
+        self.rpc(produce::Request {
+            topic: topic.into(),
+            key: ByteBuf::from(key),
+            data: ByteBuf::from(data),
+        })
+        .await
     }
 
     /// Fetch using a fetch config

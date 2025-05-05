@@ -32,8 +32,8 @@ async fn main() -> Result<(), anyhow::Error> {
         while let Some(msg) = messages.next().await {
             println!(
                 "{}:{}",
-                String::from_utf8(msg.key).unwrap(),
-                String::from_utf8(msg.data).unwrap()
+                String::from_utf8(msg.key.to_vec()).unwrap(),
+                String::from_utf8(msg.data.to_vec()).unwrap()
             )
         }
     });
@@ -42,11 +42,7 @@ async fn main() -> Result<(), anyhow::Error> {
 
     for i in 0..50 {
         client
-            .produce(
-                "test".into(),
-                format!("{}", i).into(),
-                format!("value: {}", i).into(),
-            )
+            .produce("test", format!("{}", i), format!("value: {}", i))
             .await
             .expect("failed to produce message");
     }

@@ -53,7 +53,7 @@ async fn main() -> Result<(), anyhow::Error> {
     time::sleep(Duration::from_secs(5)).await;
 
     client
-        .produce("test".into(), "hello".into(), "world".into())
+        .produce("test", "hello", "world")
         .await
         .expect("failed to produce message");
 

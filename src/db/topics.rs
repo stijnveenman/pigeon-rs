@@ -4,6 +4,7 @@ use std::{
 };
 
 use serde::{Deserialize, Serialize};
+use serde_bytes::ByteBuf;
 use tokio::sync::broadcast;
 use tracing::{debug, instrument};
 
@@ -24,8 +25,8 @@ pub struct Partition {
 
 #[derive(Debug, Default, Serialize, Deserialize, Clone)]
 pub struct Message {
-    pub key: Vec<u8>,
-    pub data: Vec<u8>,
+    pub key: ByteBuf,
+    pub data: ByteBuf,
 }
 
 impl Topic {
@@ -67,8 +68,8 @@ impl Db {
     pub fn produce(
         &mut self,
         topic_name: &str,
-        key: Vec<u8>,
-        data: Vec<u8>,
+        key: ByteBuf,
+        data: ByteBuf,
     ) -> DbResult<(u64, u64)> {
         let mut state = self.shared.lock().unwrap();
 
@@ -77,7 +78,7 @@ impl Db {
             return Err(db::Error::TopicNotFound);
         };
 
-        let message = Message::new(key, data);
+        let message = Message { key, data };
 
         let partition_key = message.hash() % topic.partitions.len() as u64;
         let partition = topic
@@ -153,9 +154,5 @@ impl Message {
         let mut hasher = DefaultHasher::new();
         hasher.write(&self.key);
         hasher.finish()
-    }
-
-    fn new(key: Vec<u8>, data: Vec<u8>) -> Message {
-        Message { key, data }
     }
 }
