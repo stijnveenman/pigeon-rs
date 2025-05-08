@@ -8,7 +8,7 @@ use tokio::{
 use tracing::{debug, error, info};
 
 use crate::{
-    cmd::{Command, Error, Rpc, RpcContext},
+    cmd::{Command, Error, RpcContext},
     connection::Connection,
     db::Db,
     shutdown::Shutdown,
