@@ -67,6 +67,8 @@
               rust-analyzer
               cargo-watch
               zookeeper
+              process-compose
+              nodejs_22
             ];
           };
       }

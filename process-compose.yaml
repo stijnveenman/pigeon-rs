@@ -1,0 +1,10 @@
+version: "0.5"
+
+processes:
+  # https://f1bonacc1.github.io/process-compose/launcher/#multiple-replicas-of-a-process
+  zookeeper:
+    command: zkServer.sh start-foreground ./conf/zoo.cfg
+    readiness_probe:
+      exec:
+        command: zkServer.sh status ./conf/zoo.cfg
+      initial_delay_seconds: 2
