@@ -18,11 +18,11 @@ const MAX_CONNECTIONS: usize = 250;
 
 struct Listener {
     db: Db,
+    zk: zookeeper_client::Client,
     listener: TcpListener,
     limit_connections: Arc<Semaphore>,
     notify_shutdown: broadcast::Sender<()>,
     shutdown_complete_tx: mpsc::Sender<()>,
-    zk: zookeeper_client::Client,
 }
 
 struct Handler {
@@ -34,17 +34,17 @@ struct Handler {
 pub async fn run(listener: TcpListener, shutdown: impl Future) {
     let (notify_shutdown, _) = broadcast::channel(1);
     let (shutdown_complete_tx, mut shutdown_complete_rx) = mpsc::channel(1);
-    let cluster = zookeeper_client::Client::connect("localhost:2181")
+    let zk = zookeeper_client::Client::connect("localhost:2181")
         .await
         .expect("Failed to connect to zookeeper cluster");
 
     let mut server = Listener {
         db: Db::new(),
-        listener,
+        zk,
         limit_connections: Arc::new(Semaphore::new(MAX_CONNECTIONS)),
+        listener,
         notify_shutdown,
         shutdown_complete_tx,
-        zk: cluster,
     };
 
     tokio::select! {
@@ -103,6 +103,7 @@ impl Listener {
                 ctx: RpcContext {
                     db: self.db.clone(),
                     shutdown: Shutdown::new(self.notify_shutdown.subscribe()),
+                    zk: self.zk.clone(),
                 },
                 _shutdown_complete: self.shutdown_complete_tx.clone(),
             };
