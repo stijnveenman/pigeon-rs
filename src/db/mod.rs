@@ -1,3 +1,4 @@
+mod cluster;
 mod topics;
 
 use std::{
@@ -5,6 +6,7 @@ use std::{
     sync::{Arc, Mutex},
 };
 
+use cluster::ClusterState;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use tokio::sync::broadcast;
@@ -30,16 +32,15 @@ pub type DbResult<T> = Result<T, Error>;
 #[derive(Clone)]
 pub(crate) struct Db {
     shared: Arc<Mutex<State>>,
-    zk: zookeeper_client::Client,
 }
 
-#[derive(Default)]
 struct State {
     topics: HashMap<String, Topic>,
     /// A broadcast for fetching cosumers, if a consuming is fetching data that does not exist yet
     /// it's added to this list. Once a matching message comes in, it is pushed to the consumer
     /// Key is (Topic, partition)
     fetches: HashMap<(String, u64), broadcast::Sender<(u64, Message)>>,
+    cluster_state: ClusterState,
 }
 
 impl Db {
@@ -48,8 +49,8 @@ impl Db {
             shared: Arc::new(Mutex::new(State {
                 topics: HashMap::from([("hello".to_string(), Topic::new(1))]),
                 fetches: HashMap::default(),
+                cluster_state: ClusterState::new(zk),
             })),
-            zk,
         }
     }
 }
