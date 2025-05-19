@@ -30,6 +30,7 @@ pub type DbResult<T> = Result<T, Error>;
 #[derive(Clone)]
 pub(crate) struct Db {
     shared: Arc<Mutex<State>>,
+    zk: zookeeper_client::Client,
 }
 
 #[derive(Default)]
@@ -42,12 +43,13 @@ struct State {
 }
 
 impl Db {
-    pub(crate) fn new() -> Db {
+    pub(crate) fn new(zk: zookeeper_client::Client) -> Db {
         Db {
             shared: Arc::new(Mutex::new(State {
                 topics: HashMap::from([("hello".to_string(), Topic::new(1))]),
                 fetches: HashMap::default(),
             })),
+            zk,
         }
     }
 }

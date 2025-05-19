@@ -31,7 +31,6 @@ pub enum Error {
 pub struct RpcContext {
     pub db: Db,
     pub shutdown: Shutdown,
-    pub zk: zookeeper_client::Client,
 }
 
 pub trait Rpc {
