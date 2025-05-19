@@ -1,4 +1,4 @@
-use tracing::{debug, info};
+use tracing::info;
 
 #[derive(Clone)]
 pub struct ClusterState {
