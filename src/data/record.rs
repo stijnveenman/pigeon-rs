@@ -20,8 +20,7 @@ impl BinarySerialize for Record {
         // TODO Vec, Tuple
         buf.put_u32(self.headers.len() as u32);
         for header in &self.headers {
-            header.0.serialize(buf);
-            header.1.serialize(buf);
+            header.serialize(buf);
         }
     }
 }

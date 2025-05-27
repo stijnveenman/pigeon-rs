@@ -21,3 +21,14 @@ impl BinarySerialize for String {
         buf.put(self.as_bytes());
     }
 }
+
+impl<B1, B2> BinarySerialize for (B1, B2)
+where
+    B1: BinarySerialize,
+    B2: BinarySerialize,
+{
+    fn serialize(&self, buf: &mut impl BufMut) {
+        self.0.serialize(buf);
+        self.1.serialize(buf);
+    }
+}
