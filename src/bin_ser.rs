@@ -32,3 +32,24 @@ where
         self.1.serialize(buf);
     }
 }
+
+impl<B> BinarySerialize for &[B]
+where
+    B: BinarySerialize,
+{
+    fn serialize(&self, buf: &mut impl BufMut) {
+        buf.put_u32(self.len() as u32);
+        for b in self.iter() {
+            b.serialize(buf);
+        }
+    }
+}
+
+impl<B> BinarySerialize for Vec<B>
+where
+    B: BinarySerialize,
+{
+    fn serialize(&self, buf: &mut impl BufMut) {
+        self.as_slice().serialize(buf);
+    }
+}
