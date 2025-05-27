@@ -4,6 +4,7 @@ pub mod client;
 
 mod bin_ser;
 mod cmd;
+mod data;
 pub use cmd::describe_topic;
 pub use cmd::fetch;
 
