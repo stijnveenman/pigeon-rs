@@ -1,11 +1,20 @@
 use bytes::{Buf, BufMut, Bytes};
+use thiserror::Error;
 
 pub trait BinarySerialize {
     fn serialize(&self, buf: &mut impl BufMut);
 }
 
-pub trait BinaryDeserialize {
-    fn deserialize(&self, buf: &impl Buf) -> Self;
+pub trait BinaryDeserialize: Sized {
+    fn deserialize(buf: &mut impl Buf) -> Result<Self, DeserializeError>;
+}
+
+#[derive(Error, Debug)]
+pub enum DeserializeError {
+    #[error("Not enough bytes to get next item")]
+    TryGet(#[from] bytes::TryGetError),
+    #[error("Not enough bytes remaining")]
+    NotEnoughBytes,
 }
 
 impl BinarySerialize for Bytes {
@@ -51,5 +60,19 @@ where
 {
     fn serialize(&self, buf: &mut impl BufMut) {
         self.as_slice().serialize(buf);
+    }
+}
+
+impl BinaryDeserialize for Bytes {
+    fn deserialize(buf: &mut impl Buf) -> Result<Self, DeserializeError> {
+        let length = buf.try_get_u32()? as usize;
+
+        if length > buf.remaining() {
+            return Err(DeserializeError::NotEnoughBytes);
+        }
+
+        let bytes = buf.copy_to_bytes(length);
+
+        Ok(bytes)
     }
 }
