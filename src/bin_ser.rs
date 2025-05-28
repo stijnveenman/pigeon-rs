@@ -1,3 +1,5 @@
+use std::string;
+
 use bytes::{Buf, BufMut, Bytes};
 use thiserror::Error;
 
@@ -15,6 +17,8 @@ pub enum DeserializeError {
     TryGet(#[from] bytes::TryGetError),
     #[error("Not enough bytes remaining")]
     NotEnoughBytes,
+    #[error("Unable to read string as utf8 string")]
+    FromUtf8(#[from] string::FromUtf8Error),
 }
 
 impl BinarySerialize for Bytes {
@@ -74,5 +78,40 @@ impl BinaryDeserialize for Bytes {
         let bytes = buf.copy_to_bytes(length);
 
         Ok(bytes)
+    }
+}
+
+impl<B> BinaryDeserialize for Vec<B>
+where
+    B: BinaryDeserialize,
+{
+    fn deserialize(buf: &mut impl Buf) -> Result<Self, DeserializeError> {
+        todo!()
+    }
+}
+
+impl<B1, B2> BinaryDeserialize for (B1, B2)
+where
+    B1: BinaryDeserialize,
+    B2: BinaryDeserialize,
+{
+    fn deserialize(buf: &mut impl Buf) -> Result<Self, DeserializeError> {
+        todo!()
+    }
+}
+
+impl BinaryDeserialize for String {
+    fn deserialize(buf: &mut impl Buf) -> Result<Self, DeserializeError> {
+        let length = buf.try_get_u32()? as usize;
+
+        if length > buf.remaining() {
+            return Err(DeserializeError::NotEnoughBytes);
+        }
+
+        let mut v = Vec::with_capacity(length);
+        buf.take(length).copy_to_slice(&mut v);
+        let string = String::from_utf8(v)?;
+
+        Ok(string)
     }
 }

@@ -28,6 +28,13 @@ impl BinaryDeserialize for Record {
         let key = Bytes::deserialize(buf)?;
         let value = Bytes::deserialize(buf)?;
 
-        todo!()
+        let headers = Vec::<(String, Bytes)>::deserialize(buf)?;
+
+        Ok(Self {
+            offset,
+            key,
+            value,
+            headers,
+        })
     }
 }
