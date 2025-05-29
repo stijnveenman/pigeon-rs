@@ -2,10 +2,12 @@ use bytes::Bytes;
 
 use crate::bin_ser::{BinaryDeserialize, BinarySerialize};
 
+use super::timestamp::Timestamp;
+
 #[derive(Debug, PartialEq, Eq)]
 pub struct Record {
-    // TODO add timestamp
     offset: u64,
+    timestamp: Timestamp,
     key: Bytes,
     value: Bytes,
     headers: Vec<(String, Bytes)>,
@@ -14,6 +16,7 @@ pub struct Record {
 impl BinarySerialize for Record {
     fn serialize(&self, buf: &mut impl bytes::BufMut) {
         buf.put_u64(self.offset);
+        self.timestamp.serialize(buf);
 
         self.key.serialize(buf);
         self.value.serialize(buf);
@@ -25,6 +28,7 @@ impl BinarySerialize for Record {
 impl BinaryDeserialize for Record {
     fn deserialize(buf: &mut impl bytes::Buf) -> Result<Self, crate::bin_ser::DeserializeError> {
         let offset = buf.try_get_u64()?;
+        let timestamp = Timestamp::deserialize(buf)?;
 
         let key = Bytes::deserialize(buf)?;
         let value = Bytes::deserialize(buf)?;
@@ -33,6 +37,7 @@ impl BinaryDeserialize for Record {
 
         Ok(Self {
             offset,
+            timestamp,
             key,
             value,
             headers,
@@ -56,6 +61,7 @@ mod test {
         fn dummy_with_rng<R: fake::Rng + ?Sized>(_config: &Faker, rng: &mut R) -> Self {
             Record {
                 offset: Faker.fake_with_rng(rng),
+                timestamp: Faker.fake_with_rng(rng),
                 key: Faker.fake_with_rng::<String, _>(rng).into(),
                 value: Faker.fake_with_rng::<String, _>(rng).into(),
                 headers: (0..rng.random_range(0..10))
