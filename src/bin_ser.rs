@@ -96,7 +96,10 @@ where
     B2: BinaryDeserialize,
 {
     fn deserialize(buf: &mut impl Buf) -> Result<Self, DeserializeError> {
-        todo!()
+        let l = B1::deserialize(buf)?;
+        let r = B2::deserialize(buf)?;
+
+        Ok((l, r))
     }
 }
 
