@@ -1,15 +1,30 @@
 use bytes::Bytes;
+use fake::{Dummy, Fake, Faker};
 
 use crate::bin_ser::{BinaryDeserialize, BinarySerialize};
 
 use super::timestamp::Timestamp;
 
-#[derive(Debug, PartialEq, Eq)]
+struct BytesFake;
+
+impl Dummy<BytesFake> for Bytes {
+    fn dummy_with_rng<R: fake::Rng + ?Sized>(_config: &BytesFake, rng: &mut R) -> Self {
+        let len: usize = (10..50).fake_with_rng(rng);
+        let data: Vec<u8> = (0..len).map(|_| Faker.fake_with_rng(rng)).collect();
+
+        data.into()
+    }
+}
+
+#[derive(Debug, PartialEq, Eq, Dummy)]
 pub struct Record {
     offset: u64,
     timestamp: Timestamp,
+    #[dummy(faker = "BytesFake")]
     key: Bytes,
+    #[dummy(faker = "BytesFake")]
     value: Bytes,
+    #[dummy(expr = "Vec::new()")]
     headers: Vec<(String, Bytes)>,
 }
 
@@ -50,31 +65,12 @@ mod test {
     use bytes::Bytes;
     use fake::{
         rand::{rngs::StdRng, SeedableRng},
-        Dummy, Fake, Faker,
+        Fake, Faker,
     };
 
     use crate::bin_ser::{BinaryDeserialize, BinarySerialize};
 
     use super::Record;
-
-    impl Dummy<Faker> for Record {
-        fn dummy_with_rng<R: fake::Rng + ?Sized>(_config: &Faker, rng: &mut R) -> Self {
-            Record {
-                offset: Faker.fake_with_rng(rng),
-                timestamp: Faker.fake_with_rng(rng),
-                key: Faker.fake_with_rng::<String, _>(rng).into(),
-                value: Faker.fake_with_rng::<String, _>(rng).into(),
-                headers: (0..rng.random_range(0..10))
-                    .map(|_| {
-                        (
-                            Faker.fake_with_rng::<String, _>(rng),
-                            Faker.fake_with_rng::<String, _>(rng).into(),
-                        )
-                    })
-                    .collect(),
-            }
-        }
-    }
 
     #[test]
     fn test_serialize_and_deserialize() {
