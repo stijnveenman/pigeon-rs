@@ -2,6 +2,7 @@ use bytes::Bytes;
 
 use crate::bin_ser::{BinaryDeserialize, BinarySerialize};
 
+#[derive(Debug)]
 pub struct Record {
     // TODO add timestamp
     offset: u64,
@@ -36,5 +37,38 @@ impl BinaryDeserialize for Record {
             value,
             headers,
         })
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use fake::{Dummy, Fake, Faker};
+
+    use super::Record;
+
+    impl Dummy<Faker> for Record {
+        fn dummy_with_rng<R: fake::Rng + ?Sized>(_config: &Faker, rng: &mut R) -> Self {
+            Record {
+                offset: Faker.fake_with_rng(rng),
+                key: Faker.fake_with_rng::<String, _>(rng).into(),
+                value: Faker.fake_with_rng::<String, _>(rng).into(),
+                headers: (0..rng.random_range(1..10))
+                    .map(|_| {
+                        (
+                            Faker.fake_with_rng::<String, _>(rng),
+                            Faker.fake_with_rng::<String, _>(rng).into(),
+                        )
+                    })
+                    .collect(),
+            }
+        }
+    }
+
+    #[test]
+    fn test_serialize_and_deserialize() {
+        let record: Record = Faker.fake();
+
+        println!("{:?}", record);
+        // assert_eq!(record.offset, 2);
     }
 }
