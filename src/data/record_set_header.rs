@@ -1,5 +1,8 @@
+use fake::Dummy;
+
 use crate::bin_ser::{BinaryDeserialize, BinarySerialize};
 
+#[derive(Debug, PartialEq, Eq, Dummy)]
 pub struct RecordSetHeader {
     length: u32,
     start_offset: u64,
@@ -33,5 +36,35 @@ impl BinaryDeserialize for RecordSetHeader {
             crc,
             record_count,
         })
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use bytes::Bytes;
+    use fake::{
+        rand::{rngs::StdRng, SeedableRng},
+        Fake, Faker,
+    };
+
+    use crate::bin_ser::{BinaryDeserialize, BinarySerialize};
+
+    use super::RecordSetHeader;
+
+    #[test]
+    fn test_serialize_and_deserialize() {
+        let rng = &mut StdRng::seed_from_u64(1023489710234894);
+
+        for _ in 0..100 {
+            let record: RecordSetHeader = Faker.fake_with_rng(rng);
+
+            let mut v = vec![];
+            // TODO add serialize buf function
+            record.serialize(&mut v);
+
+            let result = RecordSetHeader::deserialize(&mut Bytes::from(v))
+                .expect("failed to deserialize buf");
+            assert_eq!(record, result);
+        }
     }
 }
