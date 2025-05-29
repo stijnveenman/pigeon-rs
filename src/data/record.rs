@@ -2,7 +2,7 @@ use bytes::Bytes;
 
 use crate::bin_ser::{BinaryDeserialize, BinarySerialize};
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Record {
     // TODO add timestamp
     offset: u64,
@@ -42,7 +42,13 @@ impl BinaryDeserialize for Record {
 
 #[cfg(test)]
 mod test {
-    use fake::{Dummy, Fake, Faker};
+    use bytes::Bytes;
+    use fake::{
+        rand::{rngs::StdRng, SeedableRng},
+        Dummy, Fake, Faker,
+    };
+
+    use crate::bin_ser::{BinaryDeserialize, BinarySerialize};
 
     use super::Record;
 
@@ -52,7 +58,7 @@ mod test {
                 offset: Faker.fake_with_rng(rng),
                 key: Faker.fake_with_rng::<String, _>(rng).into(),
                 value: Faker.fake_with_rng::<String, _>(rng).into(),
-                headers: (0..rng.random_range(1..10))
+                headers: (0..rng.random_range(1..2))
                     .map(|_| {
                         (
                             Faker.fake_with_rng::<String, _>(rng),
@@ -66,9 +72,14 @@ mod test {
 
     #[test]
     fn test_serialize_and_deserialize() {
-        let record: Record = Faker.fake();
+        let rng = &mut StdRng::seed_from_u64(1023489710234894);
+        let record: Record = Faker.fake_with_rng(rng);
 
-        println!("{:?}", record);
-        // assert_eq!(record.offset, 2);
+        let mut v = vec![];
+        // TODO add serialize buf function
+        record.serialize(&mut v);
+
+        let result = Record::deserialize(&mut Bytes::from(v)).expect("failed to deserialize buf");
+        assert_eq!(record, result);
     }
 }

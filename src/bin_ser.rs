@@ -119,7 +119,8 @@ impl BinaryDeserialize for String {
         }
 
         let mut v = Vec::with_capacity(length);
-        buf.take(length).copy_to_slice(&mut v);
+        v.put(buf.take(length));
+
         let string = String::from_utf8(v)?;
 
         Ok(string)
