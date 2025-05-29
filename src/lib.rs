@@ -5,6 +5,7 @@ pub mod client;
 mod bin_ser;
 mod cmd;
 mod data;
+mod dur;
 mod fake;
 pub use cmd::describe_topic;
 pub use cmd::fetch;

@@ -4,6 +4,7 @@ use bytes::{Buf, BufMut, Bytes};
 use thiserror::Error;
 
 pub trait BinarySerialize {
+    // serialize and deserialize should rely on read write
     fn serialize(&self, buf: &mut impl BufMut);
 }
 

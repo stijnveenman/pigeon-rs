@@ -11,6 +11,18 @@ pub struct RecordSetHeader {
     record_count: u32,
 }
 
+impl RecordSetHeader {
+    pub fn new() -> Self {
+        Self {
+            length: 0,
+            start_offset: 0,
+            end_offset: 0,
+            crc: 0,
+            record_count: 0,
+        }
+    }
+}
+
 impl BinarySerialize for RecordSetHeader {
     fn serialize(&self, buf: &mut impl bytes::BufMut) {
         buf.put_u32(self.length);
