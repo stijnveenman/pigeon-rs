@@ -58,7 +58,7 @@ mod test {
                 offset: Faker.fake_with_rng(rng),
                 key: Faker.fake_with_rng::<String, _>(rng).into(),
                 value: Faker.fake_with_rng::<String, _>(rng).into(),
-                headers: (0..rng.random_range(1..2))
+                headers: (0..rng.random_range(0..10))
                     .map(|_| {
                         (
                             Faker.fake_with_rng::<String, _>(rng),
@@ -73,13 +73,17 @@ mod test {
     #[test]
     fn test_serialize_and_deserialize() {
         let rng = &mut StdRng::seed_from_u64(1023489710234894);
-        let record: Record = Faker.fake_with_rng(rng);
 
-        let mut v = vec![];
-        // TODO add serialize buf function
-        record.serialize(&mut v);
+        for _ in 0..100 {
+            let record: Record = Faker.fake_with_rng(rng);
 
-        let result = Record::deserialize(&mut Bytes::from(v)).expect("failed to deserialize buf");
-        assert_eq!(record, result);
+            let mut v = vec![];
+            // TODO add serialize buf function
+            record.serialize(&mut v);
+
+            let result =
+                Record::deserialize(&mut Bytes::from(v)).expect("failed to deserialize buf");
+            assert_eq!(record, result);
+        }
     }
 }
