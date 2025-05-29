@@ -1,19 +1,16 @@
 use bytes::Bytes;
-use fake::{Dummy, Fake, Faker};
+use fake::Dummy;
 
 use crate::bin_ser::{BinaryDeserialize, BinarySerialize};
+use crate::fake::BytesFake;
 
 use super::timestamp::Timestamp;
 
-struct BytesFake;
-
-impl Dummy<BytesFake> for Bytes {
-    fn dummy_with_rng<R: fake::Rng + ?Sized>(_config: &BytesFake, rng: &mut R) -> Self {
-        let len: usize = (10..50).fake_with_rng(rng);
-        let data: Vec<u8> = (0..len).map(|_| Faker.fake_with_rng(rng)).collect();
-
-        data.into()
-    }
+#[derive(Debug, PartialEq, Eq, Dummy)]
+pub struct RecordHeader {
+    key: String,
+    #[dummy(faker = "BytesFake")]
+    value: Bytes,
 }
 
 #[derive(Debug, PartialEq, Eq, Dummy)]
@@ -24,8 +21,23 @@ pub struct Record {
     key: Bytes,
     #[dummy(faker = "BytesFake")]
     value: Bytes,
-    #[dummy(expr = "Vec::new()")]
-    headers: Vec<(String, Bytes)>,
+    headers: Vec<RecordHeader>,
+}
+
+impl BinarySerialize for RecordHeader {
+    fn serialize(&self, buf: &mut impl bytes::BufMut) {
+        self.key.serialize(buf);
+        self.value.serialize(buf);
+    }
+}
+
+impl BinaryDeserialize for RecordHeader {
+    fn deserialize(buf: &mut impl bytes::Buf) -> Result<Self, crate::bin_ser::DeserializeError> {
+        let key = String::deserialize(buf)?;
+        let value = Bytes::deserialize(buf)?;
+
+        Ok(Self { key, value })
+    }
 }
 
 impl BinarySerialize for Record {
@@ -48,7 +60,7 @@ impl BinaryDeserialize for Record {
         let key = Bytes::deserialize(buf)?;
         let value = Bytes::deserialize(buf)?;
 
-        let headers = Vec::<(String, Bytes)>::deserialize(buf)?;
+        let headers = Vec::<RecordHeader>::deserialize(buf)?;
 
         Ok(Self {
             offset,
