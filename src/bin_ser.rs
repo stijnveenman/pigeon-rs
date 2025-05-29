@@ -86,7 +86,14 @@ where
     B: BinaryDeserialize,
 {
     fn deserialize(buf: &mut impl Buf) -> Result<Self, DeserializeError> {
-        todo!()
+        let length = buf.try_get_u32()? as usize;
+
+        let mut v = Vec::with_capacity(length);
+        for _ in 0..length {
+            v.push(B::deserialize(buf)?);
+        }
+
+        Ok(v)
     }
 }
 
