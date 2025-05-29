@@ -1,0 +1,37 @@
+use crate::bin_ser::{BinaryDeserialize, BinarySerialize};
+
+pub struct RecordSetHeader {
+    length: u32,
+    start_offset: u64,
+    end_offset: u64,
+    crc: u32,
+    record_count: u32,
+}
+
+impl BinarySerialize for RecordSetHeader {
+    fn serialize(&self, buf: &mut impl bytes::BufMut) {
+        buf.put_u32(self.length);
+        buf.put_u64(self.start_offset);
+        buf.put_u64(self.end_offset);
+        buf.put_u32(self.crc);
+        buf.put_u32(self.record_count);
+    }
+}
+
+impl BinaryDeserialize for RecordSetHeader {
+    fn deserialize(buf: &mut impl bytes::Buf) -> Result<Self, crate::bin_ser::DeserializeError> {
+        let length = buf.try_get_u32()?;
+        let start_offset = buf.try_get_u64()?;
+        let end_offset = buf.try_get_u64()?;
+        let crc = buf.try_get_u32()?;
+        let record_count = buf.try_get_u32()?;
+
+        Ok(Self {
+            length,
+            start_offset,
+            end_offset,
+            crc,
+            record_count,
+        })
+    }
+}
