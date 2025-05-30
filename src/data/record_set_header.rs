@@ -6,11 +6,11 @@ use super::record::Record;
 
 #[derive(Debug, PartialEq, Eq, Dummy)]
 pub struct RecordSetHeader {
-    length: u32,
-    start_offset: u64,
-    end_offset: u64,
-    crc: u32,
-    record_count: u32,
+    pub length: u32,
+    pub start_offset: u64,
+    pub end_offset: u64,
+    pub crc: u32,
+    pub record_count: u32,
 }
 
 impl RecordSetHeader {
@@ -27,7 +27,7 @@ impl RecordSetHeader {
 
     pub fn for_records(records: &[Record]) -> Self {
         let mut length = 0;
-        let mut start_offset = 0;
+        let mut start_offset = u64::MAX;
         let mut end_offset = 0;
 
         for record in records {
