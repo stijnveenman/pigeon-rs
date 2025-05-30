@@ -40,6 +40,7 @@ impl RecordSetHeader {
             length,
             start_offset,
             end_offset,
+            // TODO implement actual crc
             crc: 0,
             record_count: records.len() as u32,
         }
