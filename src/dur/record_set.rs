@@ -15,7 +15,7 @@ impl RecordSet {
         records: &[Record],
         writer: &mut BufWriter<T>,
     ) -> std::io::Result<()> {
-        let header = RecordSetHeader::empty();
+        let header = RecordSetHeader::for_records(records);
 
         let mut buf = BytesMut::new();
         header.serialize(&mut buf);
