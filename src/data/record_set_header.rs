@@ -1,6 +1,6 @@
 use fake::Dummy;
 
-use crate::bin_ser::{BinaryDeserialize, BinarySerialize};
+use crate::bin_ser::{BinaryDeserialize, BinarySerialize, DynamicBinarySize, StaticBinarySize};
 
 use super::record::Record;
 
@@ -47,11 +47,13 @@ impl RecordSetHeader {
     }
 }
 
-impl BinarySerialize for RecordSetHeader {
-    fn binary_size(&self) -> usize {
+impl StaticBinarySize for RecordSetHeader {
+    fn binary_size() -> usize {
         4 + 8 + 8 + 4 + 4
     }
+}
 
+impl BinarySerialize for RecordSetHeader {
     fn serialize(&self, buf: &mut impl bytes::BufMut) {
         buf.put_u32(self.length);
         buf.put_u64(self.start_offset);
@@ -87,7 +89,7 @@ mod test {
         Fake, Faker,
     };
 
-    use crate::bin_ser::{BinaryDeserialize, BinarySerialize};
+    use crate::bin_ser::{BinaryDeserialize, BinarySerialize, DynamicBinarySize};
 
     use super::RecordSetHeader;
 

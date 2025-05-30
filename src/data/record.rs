@@ -1,7 +1,7 @@
 use bytes::Bytes;
 use fake::Dummy;
 
-use crate::bin_ser::{BinaryDeserialize, BinarySerialize};
+use crate::bin_ser::{BinaryDeserialize, BinarySerialize, DynamicBinarySize};
 use crate::fake::BytesFake;
 
 use super::timestamp::Timestamp;
@@ -24,11 +24,13 @@ pub struct Record {
     pub headers: Vec<RecordHeader>,
 }
 
-impl BinarySerialize for RecordHeader {
+impl DynamicBinarySize for RecordHeader {
     fn binary_size(&self) -> usize {
         self.key.binary_size() + self.value.binary_size()
     }
+}
 
+impl BinarySerialize for RecordHeader {
     fn serialize(&self, buf: &mut impl bytes::BufMut) {
         self.key.serialize(buf);
         self.value.serialize(buf);
@@ -44,14 +46,16 @@ impl BinaryDeserialize for RecordHeader {
     }
 }
 
-impl BinarySerialize for Record {
+impl DynamicBinarySize for Record {
     fn binary_size(&self) -> usize {
         8 + self.timestamp.binary_size()
             + self.key.binary_size()
             + self.value.binary_size()
             + self.headers.binary_size()
     }
+}
 
+impl BinarySerialize for Record {
     fn serialize(&self, buf: &mut impl bytes::BufMut) {
         buf.put_u64(self.offset);
         self.timestamp.serialize(buf);
@@ -91,7 +95,7 @@ mod test {
         Fake, Faker,
     };
 
-    use crate::bin_ser::{BinaryDeserialize, BinarySerialize};
+    use crate::bin_ser::{BinaryDeserialize, BinarySerialize, DynamicBinarySize};
 
     use super::Record;
 

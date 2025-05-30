@@ -4,7 +4,7 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use chrono::{DateTime, Utc};
 use fake::{Dummy, Fake, Faker};
 
-use crate::bin_ser::{BinaryDeserialize, BinarySerialize};
+use crate::bin_ser::{BinaryDeserialize, BinarySerialize, StaticBinarySize};
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct Timestamp(SystemTime);
@@ -71,11 +71,13 @@ impl BinaryDeserialize for Timestamp {
     }
 }
 
-impl BinarySerialize for Timestamp {
-    fn binary_size(&self) -> usize {
+impl StaticBinarySize for Timestamp {
+    fn binary_size() -> usize {
         8
     }
+}
 
+impl BinarySerialize for Timestamp {
     fn serialize(&self, buf: &mut impl bytes::BufMut) {
         buf.put_u64(self.as_micros())
     }

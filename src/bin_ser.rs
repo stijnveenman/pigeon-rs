@@ -4,8 +4,24 @@ use bytes::{Buf, BufMut, Bytes};
 use thiserror::Error;
 
 pub trait BinarySerialize {
-    fn binary_size(&self) -> usize;
     fn serialize(&self, buf: &mut impl BufMut);
+}
+
+pub trait DynamicBinarySize {
+    fn binary_size(&self) -> usize;
+}
+
+pub trait StaticBinarySize {
+    fn binary_size() -> usize;
+}
+
+impl<B> DynamicBinarySize for B
+where
+    B: StaticBinarySize,
+{
+    fn binary_size(&self) -> usize {
+        B::binary_size()
+    }
 }
 
 pub trait BinaryDeserialize: Sized {
@@ -22,25 +38,39 @@ pub enum DeserializeError {
     FromUtf8(#[from] string::FromUtf8Error),
 }
 
-impl BinarySerialize for Bytes {
+impl DynamicBinarySize for Bytes {
     fn binary_size(&self) -> usize {
         4 + self.len()
     }
+}
 
+impl BinarySerialize for Bytes {
     fn serialize(&self, buf: &mut impl BufMut) {
         buf.put_u32(self.len() as u32);
         buf.put(self.clone());
     }
 }
 
-impl BinarySerialize for String {
+impl DynamicBinarySize for String {
     fn binary_size(&self) -> usize {
         4 + self.len()
     }
+}
 
+impl BinarySerialize for String {
     fn serialize(&self, buf: &mut impl BufMut) {
         buf.put_u32(self.len() as u32);
         buf.put(self.as_bytes());
+    }
+}
+
+impl<B1, B2> DynamicBinarySize for (B1, B2)
+where
+    B1: DynamicBinarySize,
+    B2: DynamicBinarySize,
+{
+    fn binary_size(&self) -> usize {
+        self.0.binary_size() + self.1.binary_size()
     }
 }
 
@@ -49,13 +79,18 @@ where
     B1: BinarySerialize,
     B2: BinarySerialize,
 {
-    fn binary_size(&self) -> usize {
-        self.0.binary_size() + self.1.binary_size()
-    }
-
     fn serialize(&self, buf: &mut impl BufMut) {
         self.0.serialize(buf);
         self.1.serialize(buf);
+    }
+}
+
+impl<B> DynamicBinarySize for &[B]
+where
+    B: DynamicBinarySize,
+{
+    fn binary_size(&self) -> usize {
+        4 + self.iter().map(|s| s.binary_size()).sum::<usize>()
     }
 }
 
@@ -63,10 +98,6 @@ impl<B> BinarySerialize for &[B]
 where
     B: BinarySerialize,
 {
-    fn binary_size(&self) -> usize {
-        4 + self.iter().map(|s| s.binary_size()).sum::<usize>()
-    }
-
     fn serialize(&self, buf: &mut impl BufMut) {
         buf.put_u32(self.len() as u32);
         for b in self.iter() {
@@ -75,14 +106,19 @@ where
     }
 }
 
-impl<B> BinarySerialize for Vec<B>
+impl<B> DynamicBinarySize for Vec<B>
 where
-    B: BinarySerialize,
+    B: DynamicBinarySize,
 {
     fn binary_size(&self) -> usize {
         self.as_slice().binary_size()
     }
+}
 
+impl<B> BinarySerialize for Vec<B>
+where
+    B: BinarySerialize,
+{
     fn serialize(&self, buf: &mut impl BufMut) {
         self.as_slice().serialize(buf);
     }
