@@ -6,8 +6,10 @@ use crate::{
     data::{record::Record, record_set_header::RecordSetHeader},
 };
 
+#[derive(Debug)]
 pub struct RecordSet {
     header: RecordSetHeader,
+    records: Vec<Record>,
 }
 
 impl RecordSet {
@@ -46,7 +48,18 @@ impl RecordSet {
         let header = RecordSetHeader::deserialize(&mut Bytes::from(buf))
             .expect("Failed to deserialize RecordSetHeader");
 
-        Ok(RecordSet { header })
+        let mut buf = Vec::with_capacity(header.length as usize);
+        reader
+            .take(header.length.into())
+            .read_to_end(buf.as_mut())
+            .await?;
+        let mut reader = Bytes::from(buf);
+
+        let records = (0..header.record_count)
+            .map(|_| Record::deserialize(&mut reader).expect("Failed to deserialize Record"))
+            .collect();
+
+        Ok(RecordSet { header, records })
     }
 }
 
@@ -100,5 +113,7 @@ mod test {
             },
             record_set.header
         );
+        dbg!(&record_set);
+        assert_eq!(records, record_set.records);
     }
 }
