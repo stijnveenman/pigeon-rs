@@ -8,23 +8,27 @@ use super::timestamp::Timestamp;
 
 #[derive(Debug, PartialEq, Eq, Dummy)]
 pub struct RecordHeader {
-    key: String,
+    pub key: String,
     #[dummy(faker = "BytesFake")]
-    value: Bytes,
+    pub value: Bytes,
 }
 
 #[derive(Debug, PartialEq, Eq, Dummy)]
 pub struct Record {
-    offset: u64,
-    timestamp: Timestamp,
+    pub offset: u64,
+    pub timestamp: Timestamp,
     #[dummy(faker = "BytesFake")]
-    key: Bytes,
+    pub key: Bytes,
     #[dummy(faker = "BytesFake")]
-    value: Bytes,
-    headers: Vec<RecordHeader>,
+    pub value: Bytes,
+    pub headers: Vec<RecordHeader>,
 }
 
 impl BinarySerialize for RecordHeader {
+    fn binary_size(&self) -> usize {
+        self.key.binary_size() + self.value.binary_size()
+    }
+
     fn serialize(&self, buf: &mut impl bytes::BufMut) {
         self.key.serialize(buf);
         self.value.serialize(buf);
@@ -41,6 +45,13 @@ impl BinaryDeserialize for RecordHeader {
 }
 
 impl BinarySerialize for Record {
+    fn binary_size(&self) -> usize {
+        8 + self.timestamp.binary_size()
+            + self.key.binary_size()
+            + self.value.binary_size()
+            + self.headers.binary_size()
+    }
+
     fn serialize(&self, buf: &mut impl bytes::BufMut) {
         buf.put_u64(self.offset);
         self.timestamp.serialize(buf);
@@ -84,6 +95,7 @@ mod test {
 
     use super::Record;
 
+    // TODO binary ser easy test suite for dummy tested
     #[test]
     fn test_serialize_and_deserialize() {
         let rng = &mut StdRng::seed_from_u64(1023489710234894);
@@ -94,6 +106,13 @@ mod test {
             let mut v = vec![];
             // TODO add serialize buf function
             record.serialize(&mut v);
+            assert_eq!(
+                record.binary_size(),
+                v.len(),
+                "expected a binary_size of {}, got a buffer with len {}",
+                record.binary_size(),
+                v.len()
+            );
 
             let result =
                 Record::deserialize(&mut Bytes::from(v)).expect("failed to deserialize buf");

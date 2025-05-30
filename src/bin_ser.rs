@@ -4,7 +4,7 @@ use bytes::{Buf, BufMut, Bytes};
 use thiserror::Error;
 
 pub trait BinarySerialize {
-    // serialize and deserialize should rely on read write
+    fn binary_size(&self) -> usize;
     fn serialize(&self, buf: &mut impl BufMut);
 }
 
@@ -23,6 +23,10 @@ pub enum DeserializeError {
 }
 
 impl BinarySerialize for Bytes {
+    fn binary_size(&self) -> usize {
+        4 + self.len()
+    }
+
     fn serialize(&self, buf: &mut impl BufMut) {
         buf.put_u32(self.len() as u32);
         buf.put(self.clone());
@@ -30,6 +34,10 @@ impl BinarySerialize for Bytes {
 }
 
 impl BinarySerialize for String {
+    fn binary_size(&self) -> usize {
+        4 + self.len()
+    }
+
     fn serialize(&self, buf: &mut impl BufMut) {
         buf.put_u32(self.len() as u32);
         buf.put(self.as_bytes());
@@ -41,6 +49,10 @@ where
     B1: BinarySerialize,
     B2: BinarySerialize,
 {
+    fn binary_size(&self) -> usize {
+        self.0.binary_size() + self.1.binary_size()
+    }
+
     fn serialize(&self, buf: &mut impl BufMut) {
         self.0.serialize(buf);
         self.1.serialize(buf);
@@ -51,6 +63,10 @@ impl<B> BinarySerialize for &[B]
 where
     B: BinarySerialize,
 {
+    fn binary_size(&self) -> usize {
+        4 + self.iter().map(|s| s.binary_size()).sum::<usize>()
+    }
+
     fn serialize(&self, buf: &mut impl BufMut) {
         buf.put_u32(self.len() as u32);
         for b in self.iter() {
@@ -63,6 +79,10 @@ impl<B> BinarySerialize for Vec<B>
 where
     B: BinarySerialize,
 {
+    fn binary_size(&self) -> usize {
+        self.as_slice().binary_size()
+    }
+
     fn serialize(&self, buf: &mut impl BufMut) {
         self.as_slice().serialize(buf);
     }

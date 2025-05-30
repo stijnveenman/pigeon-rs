@@ -2,6 +2,8 @@ use fake::Dummy;
 
 use crate::bin_ser::{BinaryDeserialize, BinarySerialize};
 
+use super::record::Record;
+
 #[derive(Debug, PartialEq, Eq, Dummy)]
 pub struct RecordSetHeader {
     length: u32,
@@ -12,7 +14,8 @@ pub struct RecordSetHeader {
 }
 
 impl RecordSetHeader {
-    pub fn new() -> Self {
+    #![allow(dead_code)]
+    pub fn empty() -> Self {
         Self {
             length: 0,
             start_offset: 0,
@@ -21,9 +24,33 @@ impl RecordSetHeader {
             record_count: 0,
         }
     }
+
+    pub fn for_records(records: &[Record]) -> Self {
+        let mut length = 0;
+        let mut start_offset = 0;
+        let mut end_offset = 0;
+
+        for record in records {
+            length += record.binary_size() as u32;
+            start_offset = start_offset.min(record.offset);
+            end_offset = end_offset.max(record.offset)
+        }
+
+        Self {
+            length,
+            start_offset,
+            end_offset,
+            crc: 0,
+            record_count: records.len() as u32,
+        }
+    }
 }
 
 impl BinarySerialize for RecordSetHeader {
+    fn binary_size(&self) -> usize {
+        4 + 8 + 8 + 4 + 4
+    }
+
     fn serialize(&self, buf: &mut impl bytes::BufMut) {
         buf.put_u32(self.length);
         buf.put_u64(self.start_offset);
@@ -73,6 +100,8 @@ mod test {
             let mut v = vec![];
             // TODO add serialize buf function
             record.serialize(&mut v);
+
+            assert_eq!(record.binary_size(), v.len());
 
             let result = RecordSetHeader::deserialize(&mut Bytes::from(v))
                 .expect("failed to deserialize buf");

@@ -72,6 +72,10 @@ impl BinaryDeserialize for Timestamp {
 }
 
 impl BinarySerialize for Timestamp {
+    fn binary_size(&self) -> usize {
+        8
+    }
+
     fn serialize(&self, buf: &mut impl bytes::BufMut) {
         buf.put_u64(self.as_micros())
     }
