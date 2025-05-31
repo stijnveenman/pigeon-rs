@@ -40,7 +40,7 @@ impl RecordSetHeader {
             length,
             start_offset,
             end_offset,
-            // TODO implement actual crc
+            // TODO: implement actual crc
             crc: 0,
             record_count: records.len() as u32,
         }
@@ -101,7 +101,7 @@ mod test {
             let record: RecordSetHeader = Faker.fake_with_rng(rng);
 
             let mut v = vec![];
-            // TODO add serialize buf function
+            // TODO: add serialize buf function
             record.serialize(&mut v);
 
             assert_eq!(record.binary_size(), v.len());

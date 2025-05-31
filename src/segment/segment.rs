@@ -11,7 +11,7 @@ pub struct Segment {
 }
 
 fn get_path(start_offset: u64) -> String {
-    // TODO have a log config, and order topics etc in correct path
+    // TODO: have a log config, and order topics etc in correct path
 
     format!("{:0>10}.log", start_offset)
 }

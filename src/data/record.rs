@@ -99,7 +99,7 @@ mod test {
 
     use super::Record;
 
-    // TODO binary ser easy test suite for dummy tested
+    // TODO: binary ser easy test suite for dummy tested
     #[test]
     fn test_serialize_and_deserialize() {
         let rng = &mut StdRng::seed_from_u64(1023489710234894);
@@ -108,7 +108,7 @@ mod test {
             let record: Record = Faker.fake_with_rng(rng);
 
             let mut v = vec![];
-            // TODO add serialize buf function
+            // TODO: add serialize buf function
             record.serialize(&mut v);
             assert_eq!(
                 record.binary_size(),

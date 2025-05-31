@@ -45,7 +45,7 @@ impl<T: AsyncRead + Unpin + AsyncSeek> RecordSet<T> {
             .read_to_end(buf.as_mut())
             .await?;
 
-        // TODO handle deserialize errors
+        // TODO: handle deserialize errors
         let header = RecordSetHeader::deserialize(&mut Bytes::from(buf))
             .expect("Failed to deserialize RecordSetHeader");
 
