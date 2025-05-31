@@ -1,5 +1,8 @@
 use bytes::{Bytes, BytesMut};
-use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt, BufReader, BufWriter};
+use tokio::io::{
+    AsyncRead, AsyncReadExt, AsyncSeek, AsyncSeekExt, AsyncWrite, AsyncWriteExt, BufReader,
+    BufWriter,
+};
 
 use crate::{
     bin_ser::{BinaryDeserialize, BinarySerialize, StaticBinarySize},
@@ -7,13 +10,13 @@ use crate::{
 };
 
 #[derive(Debug)]
-pub struct RecordSet {
+pub struct RecordSet<T> {
     header: RecordSetHeader,
-    records: Vec<Record>,
+    reader: T,
 }
 
-impl RecordSet {
-    pub async fn write_to_buf<T: AsyncWrite + Unpin>(
+impl<T: AsyncWrite + Unpin> RecordSet<T> {
+    pub async fn write_to_buf(
         records: &[Record],
         writer: &mut BufWriter<T>,
     ) -> std::io::Result<()> {
@@ -34,10 +37,10 @@ impl RecordSet {
 
         Ok(())
     }
+}
 
-    pub async fn read_from<T: AsyncRead + Unpin>(
-        reader: &mut BufReader<T>,
-    ) -> std::io::Result<RecordSet> {
+impl<T: AsyncRead + Unpin + AsyncSeek> RecordSet<T> {
+    async fn read_header(reader: &mut BufReader<T>) -> std::io::Result<RecordSetHeader> {
         let mut buf = Vec::with_capacity(RecordSetHeader::binary_size());
         reader
             .take(RecordSetHeader::binary_size() as u64)
@@ -48,23 +51,47 @@ impl RecordSet {
         let header = RecordSetHeader::deserialize(&mut Bytes::from(buf))
             .expect("Failed to deserialize RecordSetHeader");
 
-        let mut buf = Vec::with_capacity(header.length as usize);
-        reader
-            .take(header.length.into())
+        Ok(header)
+    }
+
+    pub async fn read_from(mut reader: BufReader<T>) -> std::io::Result<RecordSet<BufReader<T>>> {
+        let header = Self::read_header(&mut reader).await?;
+
+        Ok(RecordSet { header, reader })
+    }
+
+    pub async fn records(&mut self) -> std::io::Result<Vec<Record>> {
+        let mut buf = Vec::with_capacity(self.header.length as usize);
+        (&mut self.reader)
+            .take(self.header.length.into())
             .read_to_end(buf.as_mut())
             .await?;
         let mut reader = Bytes::from(buf);
 
-        let records = (0..header.record_count)
+        let records = (0..self.header.record_count)
             .map(|_| Record::deserialize(&mut reader).expect("Failed to deserialize Record"))
             .collect();
 
-        Ok(RecordSet { header, records })
+        Ok(records)
+    }
+
+    pub async fn skip(&mut self) -> std::io::Result<()> {
+        self.reader
+            .seek(std::io::SeekFrom::Current(self.header.length.into()))
+            .await?;
+
+        Ok(())
+    }
+
+    pub fn remaining_buf(self) -> T {
+        self.reader
     }
 }
 
 #[cfg(test)]
 mod test {
+    use std::io::Cursor;
+
     use tokio::io::{BufReader, BufWriter};
 
     use crate::{
@@ -99,7 +126,7 @@ mod test {
             .await
             .expect("failed to write RecordSet");
 
-        let record_set = RecordSet::read_from(&mut BufReader::new(buf.as_slice()))
+        let mut record_set = RecordSet::read_from(BufReader::new(Cursor::new(buf)))
             .await
             .expect("failed to read RecordSet");
 
@@ -114,6 +141,9 @@ mod test {
             record_set.header
         );
         dbg!(&record_set);
-        assert_eq!(records, record_set.records);
+
+        let read_records = record_set.records().await.expect("failed to Read Records");
+
+        assert_eq!(records, read_records);
     }
 }
