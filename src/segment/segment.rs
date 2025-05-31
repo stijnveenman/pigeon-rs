@@ -1,5 +1,7 @@
 use std::io;
 
+use crate::data::{record::Record, timestamp::Timestamp};
+
 use super::record_writer::RecordWriter;
 
 pub struct Segment {
@@ -29,6 +31,30 @@ impl Segment {
         let record_writer = RecordWriter::new(&self.record_log_path).await?;
 
         self.record_writer = Some(record_writer);
+
+        Ok(())
+    }
+
+    async fn write_batch(
+        &mut self,
+        mut batch: Vec<Record>,
+        current_offset: u64,
+    ) -> Result<(), io::Error> {
+        let mut next_offset = current_offset + 1;
+        let timestamp = Timestamp::now();
+
+        for record in batch.iter_mut() {
+            record.offset = next_offset;
+            record.timestamp = timestamp;
+
+            next_offset += 1;
+        }
+
+        self.record_writer
+            .as_mut()
+            .expect("Record writer not prepared")
+            .append_record_set(&batch)
+            .await?;
 
         Ok(())
     }

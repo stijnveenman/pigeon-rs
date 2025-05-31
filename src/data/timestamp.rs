@@ -6,7 +6,7 @@ use fake::{Dummy, Fake, Faker};
 
 use crate::bin_ser::{BinaryDeserialize, BinarySerialize, StaticBinarySize};
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub struct Timestamp(SystemTime);
 
 pub const UTC_TIME_FORMAT: &str = "%Y-%m-%d %H:%M:%S";
@@ -16,11 +16,11 @@ impl Timestamp {
         Self::default()
     }
 
-    pub fn to_utc_string(&self, format: &str) -> String {
+    pub fn to_utc_string(self, format: &str) -> String {
         DateTime::<Utc>::from(self.0).format(format).to_string()
     }
 
-    pub fn to_secs(&self) -> u64 {
+    pub fn to_secs(self) -> u64 {
         self.0.duration_since(UNIX_EPOCH).unwrap().as_secs()
     }
 
