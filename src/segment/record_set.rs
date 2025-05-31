@@ -33,8 +33,6 @@ impl<T: AsyncWrite + Unpin> RecordSet<T> {
             writer.write_all(&buf).await?;
         }
 
-        writer.flush().await?;
-
         Ok(())
     }
 }
@@ -90,9 +88,9 @@ impl<T: AsyncRead + Unpin + AsyncSeek> RecordSet<T> {
 
 #[cfg(test)]
 mod test {
-    use std::io::Cursor;
+    use std::io::{Cursor, Write};
 
-    use tokio::io::{BufReader, BufWriter};
+    use tokio::io::{AsyncWriteExt, BufReader, BufWriter};
 
     use crate::{
         bin_ser::DynamicBinarySize,
@@ -104,9 +102,11 @@ mod test {
     #[tokio::test]
     async fn test_write_to_buf_empty() {
         let mut buf = BufWriter::new(Vec::new());
-        RecordSet::write_to_buf(&[], &mut BufWriter::new(&mut buf))
+        let mut writer = BufWriter::new(&mut buf);
+        RecordSet::write_to_buf(&[], &mut writer)
             .await
-            .expect("write_to_buf failed");
+            .expect("failed to write RecordSet");
+        writer.flush().await.expect("failed to flush writer");
 
         assert_eq!(buf.get_ref().len(), 28);
     }
@@ -116,15 +116,17 @@ mod test {
         let mut buf = Vec::new();
         let records = vec![Record {
             offset: 1,
-            timestamp: Timestamp::now(),
+            timestamp: Timestamp::from(10423712340),
             key: "foo".into(),
             value: "bar".into(),
             headers: vec![],
         }];
 
-        RecordSet::write_to_buf(&records, &mut BufWriter::new(&mut buf))
+        let mut writer = BufWriter::new(&mut buf);
+        RecordSet::write_to_buf(&records, &mut writer)
             .await
             .expect("failed to write RecordSet");
+        writer.flush().await.expect("failed to flush writer");
 
         let mut record_set = RecordSet::read_from(BufReader::new(Cursor::new(buf)))
             .await
