@@ -23,7 +23,7 @@ fn get_path(start_offset: u64) -> String {
 }
 
 impl Segment {
-    pub fn create(start_offset: u64) -> Self {
+    pub fn new(start_offset: u64) -> Self {
         let record_log_path = get_path(start_offset);
 
         Self {
@@ -113,5 +113,55 @@ impl Segment {
             .await?;
 
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod test {
+
+    use crate::data::{record::Record, timestamp::Timestamp};
+
+    use super::Segment;
+
+    fn create_record(key: &str, value: &str) -> Record {
+        Record {
+            headers: vec![],
+            offset: 0,
+            value: value.to_string().into(),
+            key: key.to_string().into(),
+            timestamp: Timestamp::now(),
+        }
+    }
+
+    #[tokio::test]
+    async fn segment_basic_read_write() {
+        let mut segment = Segment::new(0);
+
+        segment.prepare().await.expect("Failed to prepare segment");
+
+        segment
+            .write_batch(vec![create_record("hello", "world")], 0)
+            .await
+            .expect("Failed to write_batch");
+        segment
+            .write_batch(vec![create_record("hello", "world")], 0)
+            .await
+            .expect("Failed to write_batch");
+        segment
+            .write_batch(vec![create_record("hello", "world")], 0)
+            .await
+            .expect("Failed to write_batch");
+
+        let returned_record = segment
+            .read_records_from_offset(1, 1)
+            .await
+            .expect("Failed to read a record")
+            .into_iter()
+            .next()
+            .unwrap();
+
+        assert_eq!(&returned_record.key, "hello");
+        assert_eq!(&returned_record.value, "world");
+        assert_eq!(returned_record.offset, 1u64);
     }
 }

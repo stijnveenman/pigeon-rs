@@ -33,6 +33,8 @@ impl<T: AsyncWrite + Unpin> RecordSet<T> {
             writer.write_all(&buf).await?;
         }
 
+        writer.flush().await?;
+
         Ok(())
     }
 }
@@ -106,7 +108,6 @@ mod test {
         RecordSet::write_to_buf(&[], &mut writer)
             .await
             .expect("failed to write RecordSet");
-        writer.flush().await.expect("failed to flush writer");
 
         assert_eq!(buf.get_ref().len(), 28);
     }
@@ -126,7 +127,6 @@ mod test {
         RecordSet::write_to_buf(&records, &mut writer)
             .await
             .expect("failed to write RecordSet");
-        writer.flush().await.expect("failed to flush writer");
 
         let mut record_set = RecordSet::read_from(BufReader::new(Cursor::new(buf)))
             .await
