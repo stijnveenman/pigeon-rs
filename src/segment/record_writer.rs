@@ -26,6 +26,8 @@ impl RecordWriter {
     pub async fn append_record_set(&mut self, set: &[Record]) -> Result<(), tokio::io::Error> {
         let mut writer = BufWriter::new(&mut self.file);
 
+        // TODO: remove RecordSet and use underlying logic in RecordWriter and RecordReader
+        // such that we have underlying control over file IO
         RecordSet::write_to_buf(set, &mut writer).await?;
 
         self.file.sync_all().await?;
