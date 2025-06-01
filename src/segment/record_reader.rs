@@ -22,6 +22,12 @@ impl RecordReader {
         Ok(Self { file })
     }
 
+    pub async fn read_next(&mut self) -> Result<Vec<Record>, tokio::io::Error> {
+        let mut set = RecordSet::read_from(BufReader::new(&mut self.file)).await?;
+
+        set.records().await
+    }
+
     pub async fn read_records_at(
         &mut self,
         file_offset: u32,
@@ -30,8 +36,6 @@ impl RecordReader {
             .seek(std::io::SeekFrom::Start(file_offset as u64))
             .await?;
 
-        let mut set = RecordSet::read_from(BufReader::new(&mut self.file)).await?;
-
-        set.records().await
+        self.read_next().await
     }
 }
