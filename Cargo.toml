@@ -30,3 +30,4 @@ thiserror = "2.0.11"
 anyhow = "1.0.95"
 chrono = "0.4.41"
 fake = { version = "4", features = ["derive"] }
+tempfile = "3.20.0"

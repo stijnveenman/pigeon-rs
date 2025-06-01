@@ -16,15 +16,15 @@ pub struct Segment {
     record_reader: Option<RecordReader>,
 }
 
-fn get_path(start_offset: u64) -> String {
+fn get_path(base_dir: &str, start_offset: u64) -> String {
     // TODO: have a log config, and order topics etc in correct path
 
-    format!("{:0>10}.log", start_offset)
+    format!("{}/{:0>10}.log", base_dir, start_offset)
 }
 
 impl Segment {
-    pub fn new(start_offset: u64) -> Self {
-        let record_log_path = get_path(start_offset);
+    pub fn new(base_dir: &str, start_offset: u64) -> Self {
+        let record_log_path = get_path(base_dir, start_offset);
 
         Self {
             record_log_path,
@@ -119,6 +119,8 @@ impl Segment {
 #[cfg(test)]
 mod test {
 
+    use tempfile::tempdir;
+
     use crate::data::{record::Record, timestamp::Timestamp};
 
     use super::Segment;
@@ -135,9 +137,8 @@ mod test {
 
     #[tokio::test]
     async fn segment_basic_read_write() {
-        // FIX: add temp directory for log files
-        // by adding https://docs.rs/tempfile/latest/tempfile/
-        let mut segment = Segment::new(0);
+        let dir = tempdir().expect("failed to create tempdir");
+        let mut segment = Segment::new(dir.path().to_str().unwrap(), 0);
 
         segment.prepare().await.expect("Failed to prepare segment");
 
