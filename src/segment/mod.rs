@@ -135,6 +135,8 @@ mod test {
 
     #[tokio::test]
     async fn segment_basic_read_write() {
+        // FIX: add temp directory for log files
+        // by adding https://docs.rs/tempfile/latest/tempfile/
         let mut segment = Segment::new(0);
 
         segment.prepare().await.expect("Failed to prepare segment");
