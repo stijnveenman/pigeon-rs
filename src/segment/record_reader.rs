@@ -1,41 +1,78 @@
-use std::io::Seek;
+use std::{io::Seek, os::unix::fs::FileExt, sync::Arc};
 
 use anyhow::Error;
+use bytes::Bytes;
 use tokio::{
     fs::{File, OpenOptions},
     io::{AsyncRead, AsyncSeekExt, BufReader},
     task::spawn_blocking,
 };
 
-use crate::data::record::Record;
+use crate::{
+    bin_ser::{BinaryDeserialize, StaticBinarySize},
+    data::{record::Record, record_set_header::RecordSetHeader},
+};
 
 use super::record_set::RecordSet;
 
 pub struct RecordReader {
-    file: File,
+    file: Arc<std::fs::File>,
 }
 
 impl RecordReader {
     pub async fn new(file_path: &str) -> Result<Self, tokio::io::Error> {
         let file = OpenOptions::new().read(true).open(file_path).await?;
 
-        Ok(Self { file })
+        Ok(Self {
+            file: Arc::new(file.into_std().await),
+        })
     }
 
-    pub async fn read_next(&mut self) -> Result<Vec<Record>, tokio::io::Error> {
-        let mut set = RecordSet::read_from(BufReader::new(&mut self.file)).await?;
-
-        set.records().await
-    }
-
-    pub async fn read_records_at(
+    pub async fn load_messages_at(
         &mut self,
-        file_offset: u32,
-    ) -> Result<Vec<Record>, tokio::io::Error> {
-        self.file
-            .seek(std::io::SeekFrom::Start(file_offset as u64))
-            .await?;
+        start_file_offset: u64,
+        offset: u64,
+        count: u64,
+    ) -> Result<Vec<Record>, std::io::Error> {
+        let file = self.file.clone();
 
-        self.read_next().await
+        spawn_blocking(move || {
+            let mut file_offset = start_file_offset;
+            loop {
+                let mut header_buf = vec![0; RecordSetHeader::binary_size()];
+                file.read_exact_at(&mut header_buf, file_offset)?;
+                file_offset += header_buf.len() as u64;
+
+                // TODO: handle deserialize errors
+                let header = RecordSetHeader::deserialize(&mut Bytes::from(header_buf))
+                    .expect("Failed to deserialize RecordSetHeader");
+
+                // check if header contains the message we want
+                if header.start_offset <= offset && header.end_offset >= offset {
+                    let to_idx = offset + count - 1;
+                    if to_idx > header.end_offset {
+                        // TODO: we need more messages
+                        unimplemented!()
+                    }
+
+                    // Read messages
+                    let mut buf = vec![0; header.length as usize];
+                    file.read_exact_at(&mut buf, file_offset)?;
+                    let mut buf = Bytes::from(buf);
+                    let records = (0..header.record_count)
+                        .map(|_| {
+                            Record::deserialize(&mut buf).expect("Failed to deserialize Record")
+                        })
+                        .skip((offset - header.start_offset) as usize)
+                        .collect();
+
+                    return Ok(records);
+                } else {
+                    // else skip this header
+                    file_offset += header.length as u64;
+                }
+            }
+        })
+        .await?
     }
 }

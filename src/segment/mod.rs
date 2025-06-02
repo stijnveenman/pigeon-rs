@@ -67,28 +67,7 @@ impl Segment {
             .as_mut()
             .expect("Reading has not been initialized");
 
-        let mut messages = reader.read_records_at(0).await?;
-
-        loop {
-            if messages.is_empty() {
-                return Ok(vec![]);
-            }
-
-            let from_idx = messages.iter().position(|r| r.offset >= offset);
-            let Some(from_idx) = from_idx else {
-                continue;
-            };
-
-            let to_idx = from_idx + count as usize;
-
-            if to_idx > messages.len() {
-                if let Ok(mut next_batch) = reader.read_next().await {
-                    messages.append(&mut next_batch);
-                }
-            }
-
-            return Ok(messages);
-        }
+        reader.load_messages_at(0, offset, count).await
     }
 
     async fn write_batch(
@@ -143,15 +122,15 @@ mod test {
         segment.prepare().await.expect("Failed to prepare segment");
 
         segment
-            .write_batch(vec![create_record("hello", "world")], 0)
+            .write_batch(vec![create_record("hello", "world 1")], 0)
             .await
             .expect("Failed to write_batch");
         segment
-            .write_batch(vec![create_record("hello", "world")], 0)
+            .write_batch(vec![create_record("hello", "world 2")], 0)
             .await
             .expect("Failed to write_batch");
         segment
-            .write_batch(vec![create_record("hello", "world")], 0)
+            .write_batch(vec![create_record("hello", "world 3")], 0)
             .await
             .expect("Failed to write_batch");
 
@@ -164,7 +143,9 @@ mod test {
             .unwrap();
 
         assert_eq!(&returned_record.key, "hello");
-        assert_eq!(&returned_record.value, "world");
+        assert_eq!(&returned_record.value, "world 1");
         assert_eq!(returned_record.offset, 1u64);
     }
+
+    // TODO: add a test overlapping multiple batches
 }
