@@ -12,8 +12,8 @@ use crate::data::{record::Record, timestamp::Timestamp};
 pub struct Segment {
     start_offset: u64,
     record_log_path: String,
-    record_writer: Option<RecordWriter>,
-    record_reader: Option<RecordReader>,
+    record_writer: RecordWriter,
+    record_reader: RecordReader,
 }
 
 fn get_path(base_dir: &str, start_offset: u64) -> String {
@@ -23,38 +23,18 @@ fn get_path(base_dir: &str, start_offset: u64) -> String {
 }
 
 impl Segment {
-    pub fn new(base_dir: &str, start_offset: u64) -> Self {
+    pub async fn load(base_dir: &str, start_offset: u64) -> Result<Self, io::Error> {
         let record_log_path = get_path(base_dir, start_offset);
 
-        Self {
+        let record_writer = RecordWriter::new(&record_log_path).await?;
+        let record_reader = RecordReader::new(&record_log_path).await?;
+
+        Ok(Self {
             record_log_path,
             start_offset,
-            record_writer: None,
-            record_reader: None,
-        }
-    }
-
-    async fn prepare_reading(&mut self) -> Result<(), io::Error> {
-        let record_reader = RecordReader::new(&self.record_log_path).await?;
-
-        self.record_reader = Some(record_reader);
-
-        Ok(())
-    }
-
-    async fn prepare_writing(&mut self) -> Result<(), io::Error> {
-        let record_writer = RecordWriter::new(&self.record_log_path).await?;
-
-        self.record_writer = Some(record_writer);
-
-        Ok(())
-    }
-
-    async fn prepare(&mut self) -> Result<(), io::Error> {
-        self.prepare_writing().await?;
-        self.prepare_reading().await?;
-
-        Ok(())
+            record_writer,
+            record_reader,
+        })
     }
 
     async fn read_records_from_offset(
@@ -85,11 +65,7 @@ impl Segment {
             next_offset += 1;
         }
 
-        self.record_writer
-            .as_mut()
-            .expect("Record writer not prepared")
-            .append_record_set(&batch)
-            .await?;
+        self.record_writer.append_record_set(&batch).await?;
 
         Ok(())
     }
@@ -117,9 +93,9 @@ mod test {
     #[tokio::test]
     async fn segment_basic_read_write() {
         let dir = tempdir().expect("failed to create tempdir");
-        let mut segment = Segment::new(dir.path().to_str().unwrap(), 0);
-
-        segment.prepare().await.expect("Failed to prepare segment");
+        let mut segment = Segment::load(dir.path().to_str().unwrap(), 0)
+            .await
+            .expect("Faileed to load segment");
 
         segment
             .write_batch(vec![create_record("hello", "world 1")], 0)
