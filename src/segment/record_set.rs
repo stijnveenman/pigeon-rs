@@ -15,30 +15,6 @@ pub struct RecordSet<T> {
     reader: T,
 }
 
-impl<T: AsyncWrite + Unpin> RecordSet<T> {
-    pub async fn write_to_buf(
-        records: &[Record],
-        writer: &mut BufWriter<T>,
-    ) -> std::io::Result<()> {
-        let header = RecordSetHeader::for_records(records);
-
-        let mut buf = BytesMut::new();
-        header.serialize(&mut buf);
-
-        writer.write_all(&buf).await?;
-
-        for record in records {
-            buf.clear();
-            record.serialize(&mut buf);
-            writer.write_all(&buf).await?;
-        }
-
-        writer.flush().await?;
-
-        Ok(())
-    }
-}
-
 impl<T: AsyncRead + Unpin + AsyncSeek> RecordSet<T> {
     async fn read_header(reader: &mut BufReader<T>) -> std::io::Result<RecordSetHeader> {
         let mut buf = Vec::with_capacity(RecordSetHeader::binary_size());
@@ -85,67 +61,5 @@ impl<T: AsyncRead + Unpin + AsyncSeek> RecordSet<T> {
 
     pub fn remaining_buf(self) -> T {
         self.reader
-    }
-}
-
-#[cfg(test)]
-mod test {
-    use std::io::{Cursor, Write};
-
-    use tokio::io::{AsyncWriteExt, BufReader, BufWriter};
-
-    use crate::{
-        bin_ser::DynamicBinarySize,
-        data::{record::Record, record_set_header::RecordSetHeader, timestamp::Timestamp},
-    };
-
-    use super::RecordSet;
-
-    #[tokio::test]
-    async fn test_write_to_buf_empty() {
-        let mut buf = BufWriter::new(Vec::new());
-        let mut writer = BufWriter::new(&mut buf);
-        RecordSet::write_to_buf(&[], &mut writer)
-            .await
-            .expect("failed to write RecordSet");
-
-        assert_eq!(buf.get_ref().len(), 28);
-    }
-
-    #[tokio::test]
-    async fn test_write_and_read_set() {
-        let mut buf = Vec::new();
-        let records = vec![Record {
-            offset: 1,
-            timestamp: Timestamp::from(10423712340),
-            key: "foo".into(),
-            value: "bar".into(),
-            headers: vec![],
-        }];
-
-        let mut writer = BufWriter::new(&mut buf);
-        RecordSet::write_to_buf(&records, &mut writer)
-            .await
-            .expect("failed to write RecordSet");
-
-        let mut record_set = RecordSet::read_from(BufReader::new(Cursor::new(buf)))
-            .await
-            .expect("failed to read RecordSet");
-
-        assert_eq!(
-            RecordSetHeader {
-                length: records.first().unwrap().binary_size() as u32,
-                start_offset: 1,
-                end_offset: 1,
-                crc: 0,
-                record_count: 1
-            },
-            record_set.header
-        );
-        dbg!(&record_set);
-
-        let read_records = record_set.records().await.expect("failed to Read Records");
-
-        assert_eq!(records, read_records);
     }
 }
