@@ -1,19 +1,12 @@
-use std::{io::Seek, os::unix::fs::FileExt, sync::Arc};
+use std::{os::unix::fs::FileExt, sync::Arc};
 
-use anyhow::Error;
 use bytes::Bytes;
-use tokio::{
-    fs::{File, OpenOptions},
-    io::{AsyncRead, AsyncSeekExt, BufReader},
-    task::spawn_blocking,
-};
+use tokio::{fs::OpenOptions, task::spawn_blocking};
 
 use crate::{
     bin_ser::{BinaryDeserialize, StaticBinarySize},
     data::{record::Record, record_set_header::RecordSetHeader},
 };
-
-use super::record_set::RecordSet;
 
 pub struct RecordReader {
     file: Arc<std::fs::File>,

@@ -1,5 +1,4 @@
 mod record_reader;
-mod record_set;
 mod record_writer;
 
 use std::io;
@@ -42,12 +41,7 @@ impl Segment {
         offset: u64,
         count: u64,
     ) -> Result<Vec<Record>, io::Error> {
-        let reader = self
-            .record_reader
-            .as_mut()
-            .expect("Reading has not been initialized");
-
-        reader.load_messages_at(0, offset, count).await
+        self.record_reader.load_messages_at(0, offset, count).await
     }
 
     async fn write_batch(
