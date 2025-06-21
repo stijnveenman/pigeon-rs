@@ -5,7 +5,7 @@ use tokio::{fs::OpenOptions, task::spawn_blocking};
 
 use crate::{
     bin_ser::{BinaryDeserialize, StaticBinarySize},
-    data::{record::Record, record_set_header::RecordSetHeader},
+    data::{record::Record, record_set_header::RecordSet},
 };
 
 pub struct RecordReader {
@@ -32,12 +32,12 @@ impl RecordReader {
         spawn_blocking(move || {
             let mut file_offset = start_file_offset;
             loop {
-                let mut header_buf = vec![0; RecordSetHeader::binary_size()];
+                let mut header_buf = vec![0; RecordSet::binary_size()];
                 file.read_exact_at(&mut header_buf, file_offset)?;
                 file_offset += header_buf.len() as u64;
 
                 // TODO: handle deserialize errors
-                let header = RecordSetHeader::deserialize(&mut Bytes::from(header_buf))
+                let header = RecordSet::deserialize(&mut Bytes::from(header_buf))
                     .expect("Failed to deserialize RecordSetHeader");
 
                 // check if header contains the message we want

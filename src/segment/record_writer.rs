@@ -6,7 +6,7 @@ use tokio::{
 
 use crate::{
     bin_ser::{BinarySerialize, DynamicBinarySize},
-    data::{record::Record, record_set_header::RecordSetHeader},
+    data::{record::Record, record_set_header::RecordSet},
 };
 
 pub struct RecordWriter {
@@ -28,7 +28,7 @@ impl RecordWriter {
     pub async fn append_record_set(&mut self, set: &[Record]) -> Result<(), tokio::io::Error> {
         let mut writer = BufWriter::new(&mut self.file);
 
-        let header = RecordSetHeader::for_records(set);
+        let header = RecordSet::for_records(set);
 
         let mut buf = BytesMut::with_capacity(header.binary_size());
         header.serialize(&mut buf);

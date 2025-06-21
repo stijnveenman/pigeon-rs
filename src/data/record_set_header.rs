@@ -5,7 +5,7 @@ use crate::bin_ser::{BinaryDeserialize, BinarySerialize, DynamicBinarySize, Stat
 use super::record::Record;
 
 #[derive(Debug, PartialEq, Eq, Dummy)]
-pub struct RecordSetHeader {
+pub struct RecordSet {
     pub length: u32,
     pub start_offset: u64,
     pub end_offset: u64,
@@ -13,7 +13,7 @@ pub struct RecordSetHeader {
     pub record_count: u32,
 }
 
-impl RecordSetHeader {
+impl RecordSet {
     #![allow(dead_code)]
     pub fn empty() -> Self {
         Self {
@@ -47,13 +47,13 @@ impl RecordSetHeader {
     }
 }
 
-impl StaticBinarySize for RecordSetHeader {
+impl StaticBinarySize for RecordSet {
     fn binary_size() -> usize {
         4 + 8 + 8 + 4 + 4
     }
 }
 
-impl BinarySerialize for RecordSetHeader {
+impl BinarySerialize for RecordSet {
     fn serialize(&self, buf: &mut impl bytes::BufMut) {
         buf.put_u32(self.length);
         buf.put_u64(self.start_offset);
@@ -63,7 +63,7 @@ impl BinarySerialize for RecordSetHeader {
     }
 }
 
-impl BinaryDeserialize for RecordSetHeader {
+impl BinaryDeserialize for RecordSet {
     fn deserialize(buf: &mut impl bytes::Buf) -> Result<Self, crate::bin_ser::DeserializeError> {
         let length = buf.try_get_u32()?;
         let start_offset = buf.try_get_u64()?;
@@ -91,14 +91,14 @@ mod test {
 
     use crate::bin_ser::{BinaryDeserialize, BinarySerialize, DynamicBinarySize};
 
-    use super::RecordSetHeader;
+    use super::RecordSet;
 
     #[test]
     fn test_serialize_and_deserialize() {
         let rng = &mut StdRng::seed_from_u64(1023489710234894);
 
         for _ in 0..100 {
-            let record: RecordSetHeader = Faker.fake_with_rng(rng);
+            let record: RecordSet = Faker.fake_with_rng(rng);
 
             let mut v = vec![];
             // TODO: add serialize buf function
@@ -106,8 +106,8 @@ mod test {
 
             assert_eq!(record.binary_size(), v.len());
 
-            let result = RecordSetHeader::deserialize(&mut Bytes::from(v))
-                .expect("failed to deserialize buf");
+            let result =
+                RecordSet::deserialize(&mut Bytes::from(v)).expect("failed to deserialize buf");
             assert_eq!(record, result);
         }
     }
