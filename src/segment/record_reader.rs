@@ -5,7 +5,7 @@ use tokio::{fs::OpenOptions, task::spawn_blocking};
 
 use crate::{
     bin_ser::{BinaryDeserialize, StaticBinarySize},
-    data::{record::Record, record_set_header::RecordSet},
+    data::{record::Record, record_set::RecordSet},
 };
 
 pub struct RecordReader {

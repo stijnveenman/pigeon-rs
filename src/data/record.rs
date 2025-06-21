@@ -108,7 +108,6 @@ mod test {
             let record: Record = Faker.fake_with_rng(rng);
 
             let mut v = vec![];
-            // TODO: add serialize buf function
             record.serialize(&mut v);
             assert_eq!(
                 record.binary_size(),

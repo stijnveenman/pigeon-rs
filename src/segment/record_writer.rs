@@ -6,7 +6,7 @@ use tokio::{
 
 use crate::{
     bin_ser::{BinarySerialize, DynamicBinarySize},
-    data::{record::Record, record_set_header::RecordSet},
+    data::{record::Record, record_set::RecordSet},
 };
 
 pub struct RecordWriter {
