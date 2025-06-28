@@ -4,6 +4,7 @@ pub mod client;
 
 mod bin_ser;
 mod cmd;
+mod config;
 mod data;
 mod fake;
 mod segment;

@@ -1,12 +1,16 @@
 mod record_reader;
 mod record_writer;
 
-use std::io;
+use std::{io, path::Path};
 
 use record_reader::RecordReader;
 use record_writer::RecordWriter;
+use tokio::fs::create_dir_all;
 
-use crate::data::{record::Record, timestamp::Timestamp};
+use crate::{
+    config::Config,
+    data::{record::Record, timestamp::Timestamp},
+};
 
 pub struct Segment {
     start_offset: u64,
@@ -15,15 +19,14 @@ pub struct Segment {
     record_reader: RecordReader,
 }
 
-fn get_path(base_dir: &str, start_offset: u64) -> String {
-    // TODO: have a log config, and order topics etc in correct path
-
-    format!("{}/{:0>10}.log", base_dir, start_offset)
-}
-
 impl Segment {
-    pub async fn load(base_dir: &str, start_offset: u64) -> Result<Self, io::Error> {
-        let record_log_path = get_path(base_dir, start_offset);
+    pub async fn load(config: &Config, start_offset: u64) -> Result<Self, io::Error> {
+        let segment_path = config.segment_path(0, 0, start_offset);
+        if !Path::new(&segment_path).exists() {
+            create_dir_all(&segment_path).await?;
+        };
+
+        let record_log_path = config.log_path(0, 0, start_offset);
 
         let record_writer = RecordWriter::new(&record_log_path).await?;
         let record_reader = RecordReader::new(&record_log_path).await?;
@@ -70,7 +73,10 @@ mod test {
 
     use tempfile::tempdir;
 
-    use crate::data::{record::Record, timestamp::Timestamp};
+    use crate::{
+        config::Config,
+        data::{record::Record, timestamp::Timestamp},
+    };
 
     use super::Segment;
 
@@ -87,7 +93,12 @@ mod test {
     #[tokio::test]
     async fn segment_basic_read_write() {
         let dir = tempdir().expect("failed to create tempdir");
-        let mut segment = Segment::load(dir.path().to_str().unwrap(), 0)
+
+        let config = Config {
+            path: dir.path().to_str().unwrap().to_string(),
+        };
+
+        let mut segment = Segment::load(&config, 0)
             .await
             .expect("Faileed to load segment");
 
