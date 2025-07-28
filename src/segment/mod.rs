@@ -12,6 +12,7 @@ use crate::{
     data::{record::Record, timestamp::Timestamp},
 };
 
+#[allow(dead_code)]
 pub struct Segment {
     start_offset: u64,
     record_log_path: String,
@@ -19,6 +20,7 @@ pub struct Segment {
     record_reader: RecordReader,
 }
 
+#[allow(dead_code)]
 impl Segment {
     pub async fn load(config: &Config, start_offset: u64) -> Result<Self, io::Error> {
         let segment_path = config.segment_path(0, 0, start_offset);

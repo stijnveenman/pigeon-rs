@@ -1,5 +1,3 @@
-use std::{default, path};
-
 #[derive(Debug)]
 pub struct Config {
     pub path: String,
