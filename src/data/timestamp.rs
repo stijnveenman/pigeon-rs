@@ -3,8 +3,6 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use chrono::{DateTime, Utc};
 
-use crate::bin_ser::{BinaryDeserialize, BinarySerialize, StaticBinarySize};
-
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub struct Timestamp(SystemTime);
 
@@ -55,23 +53,5 @@ impl From<Timestamp> for u64 {
 impl From<SystemTime> for Timestamp {
     fn from(timestamp: SystemTime) -> Self {
         Timestamp(timestamp)
-    }
-}
-
-impl BinaryDeserialize for Timestamp {
-    fn deserialize(buf: &mut impl bytes::Buf) -> Result<Self, crate::bin_ser::DeserializeError> {
-        Ok(buf.try_get_u64()?.into())
-    }
-}
-
-impl StaticBinarySize for Timestamp {
-    fn binary_size() -> usize {
-        8
-    }
-}
-
-impl BinarySerialize for Timestamp {
-    fn serialize(&self, buf: &mut impl bytes::BufMut) {
-        buf.put_u64(self.as_micros())
     }
 }
