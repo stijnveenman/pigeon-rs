@@ -6,8 +6,6 @@ mod bin_ser;
 mod cmd;
 mod config;
 mod data;
-mod fake;
-mod segment;
 pub use cmd::describe_topic;
 pub use cmd::fetch;
 

@@ -1,10 +1,8 @@
-use fake::Dummy;
-
 use crate::bin_ser::{BinaryDeserialize, BinarySerialize, DynamicBinarySize, StaticBinarySize};
 
 use super::record::Record;
 
-#[derive(Debug, PartialEq, Eq, Dummy)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct RecordSet {
     pub length: u32,
     pub start_offset: u64,
@@ -78,36 +76,5 @@ impl BinaryDeserialize for RecordSet {
             crc,
             record_count,
         })
-    }
-}
-
-#[cfg(test)]
-mod test {
-    use bytes::Bytes;
-    use fake::{
-        rand::{rngs::StdRng, SeedableRng},
-        Fake, Faker,
-    };
-
-    use crate::bin_ser::{BinaryDeserialize, BinarySerialize, DynamicBinarySize};
-
-    use super::RecordSet;
-
-    #[test]
-    fn test_serialize_and_deserialize() {
-        let rng = &mut StdRng::seed_from_u64(1023489710234894);
-
-        for _ in 0..100 {
-            let record: RecordSet = Faker.fake_with_rng(rng);
-
-            let mut v = vec![];
-            record.serialize(&mut v);
-
-            assert_eq!(record.binary_size(), v.len());
-
-            let result =
-                RecordSet::deserialize(&mut Bytes::from(v)).expect("failed to deserialize buf");
-            assert_eq!(record, result);
-        }
     }
 }

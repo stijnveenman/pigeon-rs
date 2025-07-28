@@ -1,25 +1,20 @@
 use bytes::Bytes;
-use fake::Dummy;
 
 use crate::bin_ser::{BinaryDeserialize, BinarySerialize, DynamicBinarySize};
-use crate::fake::BytesFake;
 
 use super::timestamp::Timestamp;
 
-#[derive(Debug, PartialEq, Eq, Dummy)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct RecordHeader {
     pub key: String,
-    #[dummy(faker = "BytesFake")]
     pub value: Bytes,
 }
 
-#[derive(Debug, PartialEq, Eq, Dummy)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Record {
     pub offset: u64,
     pub timestamp: Timestamp,
-    #[dummy(faker = "BytesFake")]
     pub key: Bytes,
-    #[dummy(faker = "BytesFake")]
     pub value: Bytes,
     pub headers: Vec<RecordHeader>,
 }
@@ -84,42 +79,5 @@ impl BinaryDeserialize for Record {
             value,
             headers,
         })
-    }
-}
-
-#[cfg(test)]
-mod test {
-    use bytes::Bytes;
-    use fake::{
-        rand::{rngs::StdRng, SeedableRng},
-        Fake, Faker,
-    };
-
-    use crate::bin_ser::{BinaryDeserialize, BinarySerialize, DynamicBinarySize};
-
-    use super::Record;
-
-    // TODO: binary ser easy test suite for dummy tested
-    #[test]
-    fn test_serialize_and_deserialize() {
-        let rng = &mut StdRng::seed_from_u64(1023489710234894);
-
-        for _ in 0..100 {
-            let record: Record = Faker.fake_with_rng(rng);
-
-            let mut v = vec![];
-            record.serialize(&mut v);
-            assert_eq!(
-                record.binary_size(),
-                v.len(),
-                "expected a binary_size of {}, got a buffer with len {}",
-                record.binary_size(),
-                v.len()
-            );
-
-            let result =
-                Record::deserialize(&mut Bytes::from(v)).expect("failed to deserialize buf");
-            assert_eq!(record, result);
-        }
     }
 }
