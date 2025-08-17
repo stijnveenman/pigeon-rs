@@ -15,4 +15,5 @@ pub struct Record {
     pub key: Bytes,
     pub value: Bytes,
     pub headers: Vec<RecordHeader>,
+    // pub crc: u32,
 }
