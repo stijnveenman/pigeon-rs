@@ -10,7 +10,7 @@ pub const UTC_TIME_FORMAT: &str = "%Y-%m-%d %H:%M:%S";
 
 impl Timestamp {
     pub fn now() -> Self {
-        Self::default()
+        Self::default().as_micros().into()
     }
 
     pub fn to_utc_string(self, format: &str) -> String {

@@ -1,7 +1,9 @@
+use std::io::{BufRead, BufReader};
 use std::os::unix::fs::FileExt;
 use std::sync::Arc;
 use std::{collections::BTreeMap, path::Path};
 
+use bytes::{Buf, Bytes};
 use std::fs::File as StdFile;
 use tokio::task::spawn_blocking;
 use tokio::{
@@ -9,6 +11,8 @@ use tokio::{
     io::{self, AsyncSeekExt, AsyncWriteExt, BufWriter},
 };
 
+use crate::data::record::RecordHeader;
+use crate::data::timestamp::Timestamp;
 use crate::{config::Config, data::record::Record};
 
 pub struct Segment {
@@ -88,7 +92,8 @@ impl Segment {
         Ok(())
     }
 
-    pub async fn read(&self, offset: u64) {
+    // FIX: error handling
+    pub async fn read(&self, offset: u64) -> Record {
         let _offset = self.index.get(&offset).expect("record offset not found");
 
         let mut index_range = self.index.range(offset..);
@@ -102,9 +107,9 @@ impl Segment {
 
         // If we have a next entry in the index, we know how many bytes to read
         // Otherwise, we need to read until EOF
-        let next_file_Offset = index_range.next().map(|e| *e.1);
+        let next_file_offset = index_range.next().map(|e| *e.1);
 
-        let record_len = if let Some(next) = next_file_Offset {
+        let record_len = if let Some(next) = next_file_offset {
             next - record_file_offset
         } else {
             self.log_size - record_file_offset
@@ -116,6 +121,41 @@ impl Segment {
             .expect("failed to read from file");
 
         assert_eq!(bytes.len(), record_len);
+
+        let mut bytes = Bytes::from(bytes);
+
+        // FIX: handle not enough bytes
+        let offset = bytes.get_u64();
+        let timestamp = Timestamp::from(bytes.get_u64());
+
+        let key_len = bytes.get_u32();
+        let key = bytes.copy_to_bytes(key_len as usize);
+
+        let value_len = bytes.get_u32();
+        let value = bytes.copy_to_bytes(value_len as usize);
+
+        let header_len = bytes.get_u16();
+
+        let headers = (0..header_len)
+            .map(|_| {
+                let key_len = bytes.get_u32();
+                let key = bytes.copy_to_bytes(key_len as usize);
+                let key = String::from_utf8(key.to_vec()).expect("failed to parse from_utf8");
+
+                let value_len = bytes.get_u32();
+                let value = bytes.copy_to_bytes(value_len as usize);
+
+                RecordHeader { key, value }
+            })
+            .collect::<Vec<_>>();
+
+        Record {
+            offset,
+            timestamp,
+            key,
+            value,
+            headers,
+        }
     }
 
     #[allow(clippy::uninit_vec)]
@@ -173,6 +213,7 @@ mod test {
             .await
             .expect("Failed to append record");
 
-        segment.read(record.offset).await;
+        let read_record = segment.read(record.offset).await;
+        assert_eq!(record, read_record);
     }
 }
