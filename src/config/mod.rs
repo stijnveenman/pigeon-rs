@@ -46,4 +46,11 @@ impl Config {
             self.segment_path(topic_id, partition_id, start_offset)
         )
     }
+
+    pub fn index_path(&self, topic_id: u64, partition_id: u64, start_offset: u64) -> String {
+        format!(
+            "{}.index",
+            self.segment_path(topic_id, partition_id, start_offset)
+        )
+    }
 }
