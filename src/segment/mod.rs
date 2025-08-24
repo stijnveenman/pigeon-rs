@@ -1,8 +1,8 @@
-use std::{io::Read, path::Path};
+use std::{collections::BTreeMap, io::Read, path::Path};
 
 use tokio::{
     fs::{create_dir_all, File, OpenOptions},
-    io::{self, AsyncWriteExt, BufWriter},
+    io::{self, AsyncSeekExt, AsyncWriteExt, BufWriter},
 };
 
 use crate::{config::Config, data::record::Record};
@@ -10,6 +10,8 @@ use crate::{config::Config, data::record::Record};
 pub struct Segment {
     start_offset: u64,
 
+    /// A BTreeMap of Offset -> File location to index records.
+    index: BTreeMap<u64, u64>,
     log_file: File,
 }
 
@@ -30,6 +32,8 @@ impl Segment {
 
         Ok(Self {
             start_offset,
+            // TODO: if a record exist, we should try loading this from disk
+            index: BTreeMap::default(),
             log_file,
         })
     }
@@ -56,9 +60,15 @@ impl Segment {
             writer.write_all(&header.value).await?;
         }
 
-        writer.flush().await?;
+        let position = self.log_file.stream_position().await?;
+
+        self.index.insert(record.offset, position);
 
         Ok(())
+    }
+
+    pub async fn read(&self, offset: u64) {
+        let _offset = self.index.get(&offset).expect("record offset not found");
     }
 }
 
@@ -72,7 +82,7 @@ mod test {
         data::{record::Record, timestamp::Timestamp},
     };
 
-    fn basic_record(key: &str, value: &str) -> Record {
+    fn basic_record(offset: u64, key: &str, value: &str) -> Record {
         Record {
             headers: vec![],
             offset: 0,
@@ -94,9 +104,12 @@ mod test {
             .await
             .expect("Failed to load segment");
 
+        let record = basic_record(0, "Hello", "World");
         segment
-            .append(&basic_record("Hello", "World"))
+            .append(&record)
             .await
             .expect("Failed to append record");
+
+        segment.read(record.offset).await;
     }
 }
