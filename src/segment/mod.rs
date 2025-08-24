@@ -1,5 +1,9 @@
-use std::{collections::BTreeMap, io::Read, path::Path};
+use std::os::unix::fs::FileExt;
+use std::sync::Arc;
+use std::{collections::BTreeMap, path::Path};
 
+use std::fs::File as StdFile;
+use tokio::task::spawn_blocking;
 use tokio::{
     fs::{create_dir_all, File, OpenOptions},
     io::{self, AsyncSeekExt, AsyncWriteExt, BufWriter},
@@ -12,7 +16,9 @@ pub struct Segment {
 
     /// A BTreeMap of Offset -> File location to index records.
     index: BTreeMap<u64, u64>,
-    log_file: File,
+    log_file_r: Arc<StdFile>,
+    log_file_w: File,
+    log_size: u64,
 }
 
 impl Segment {
@@ -23,23 +29,35 @@ impl Segment {
             create_dir_all(&segment_path).await?;
         }
 
-        let log_file = OpenOptions::new()
+        let logfile_path = config.log_path(0, 0, start_offset);
+        // TODO: should we always open the write file? what if a segment is closed
+        let log_file_write = OpenOptions::new()
             .write(true)
             .create(true)
             .append(true)
-            .open(config.log_path(0, 0, start_offset))
+            .open(&logfile_path)
             .await?;
+
+        let log_file_read = OpenOptions::new()
+            .read(true)
+            .open(&logfile_path)
+            .await?
+            .into_std()
+            .await;
 
         Ok(Self {
             start_offset,
             // TODO: if a record exist, we should try loading this from disk
             index: BTreeMap::default(),
-            log_file,
+            log_file_w: log_file_write,
+            log_file_r: Arc::new(log_file_read),
+            // FIX: should come from file size when loading existing segment
+            log_size: 0,
         })
     }
 
     pub async fn append(&mut self, record: &Record) -> io::Result<()> {
-        let mut writer = BufWriter::new(&mut self.log_file);
+        let mut writer = BufWriter::new(&mut self.log_file_w);
 
         writer.write_u64(record.offset).await?;
         writer.write_u64(record.timestamp.as_micros()).await?;
@@ -60,15 +78,60 @@ impl Segment {
             writer.write_all(&header.value).await?;
         }
 
-        let position = self.log_file.stream_position().await?;
+        writer.flush().await?;
 
-        self.index.insert(record.offset, position);
+        // Save the size of the start of the mesasge, or, the log size before writing the message
+        self.index.insert(record.offset, self.log_size);
+
+        self.log_size = self.log_file_w.stream_position().await?;
 
         Ok(())
     }
 
     pub async fn read(&self, offset: u64) {
         let _offset = self.index.get(&offset).expect("record offset not found");
+
+        let mut index_range = self.index.range(offset..);
+        let record_file_offset = index_range
+            .next()
+            .expect("expect to receive at least first record");
+        // FIX: Expect offset to always be in the index for now
+        assert_eq!(*record_file_offset.0, offset);
+
+        let record_file_offset = *record_file_offset.1;
+
+        // If we have a next entry in the index, we know how many bytes to read
+        // Otherwise, we need to read until EOF
+        let next_file_Offset = index_range.next().map(|e| *e.1);
+
+        let record_len = if let Some(next) = next_file_Offset {
+            next - record_file_offset
+        } else {
+            self.log_size - record_file_offset
+        } as usize;
+
+        let bytes = self
+            .read_at(record_file_offset, record_len)
+            .await
+            .expect("failed to read from file");
+
+        assert_eq!(bytes.len(), record_len);
+    }
+
+    #[allow(clippy::uninit_vec)]
+    async fn read_at(&self, file_offset: u64, length: usize) -> std::io::Result<Vec<u8>> {
+        let file = self.log_file_r.clone();
+        spawn_blocking(move || {
+            let mut buf = Vec::with_capacity(length);
+            unsafe {
+                buf.set_len(length);
+            }
+            file.read_exact_at(&mut buf, file_offset)?;
+
+            Ok(buf)
+        })
+        .await
+        .expect("failed to join spawn_blocking handle")
     }
 }
 
