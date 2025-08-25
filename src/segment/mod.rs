@@ -1,4 +1,3 @@
-use std::io::{BufRead, BufReader};
 use std::os::unix::fs::FileExt;
 use std::sync::Arc;
 use std::{collections::BTreeMap, path::Path};
@@ -23,6 +22,7 @@ pub struct Segment {
     log_file_r: Arc<StdFile>,
     log_file_w: File,
     log_size: u64,
+    index_file: File,
 }
 
 impl Segment {
@@ -33,21 +33,29 @@ impl Segment {
             create_dir_all(&segment_path).await?;
         }
 
-        let logfile_path = config.log_path(0, 0, start_offset);
+        let log_file_path = config.log_path(0, 0, start_offset);
         // TODO: should we always open the write file? what if a segment is closed
         let log_file_write = OpenOptions::new()
             .write(true)
             .create(true)
             .append(true)
-            .open(&logfile_path)
+            .open(&log_file_path)
             .await?;
 
         let log_file_read = OpenOptions::new()
             .read(true)
-            .open(&logfile_path)
+            .open(&log_file_path)
             .await?
             .into_std()
             .await;
+
+        let index_file_path = config.index_path(0, 0, start_offset);
+        let index_file = OpenOptions::new()
+            .write(true)
+            .create(true)
+            .append(true)
+            .open(&index_file_path)
+            .await?;
 
         Ok(Self {
             start_offset,
@@ -55,6 +63,7 @@ impl Segment {
             index: BTreeMap::default(),
             log_file_w: log_file_write,
             log_file_r: Arc::new(log_file_read),
+            index_file,
             // FIX: should come from file size when loading existing segment
             log_size: 0,
         })
@@ -82,6 +91,11 @@ impl Segment {
             writer.write_all(&header.value).await?;
         }
 
+        writer.flush().await?;
+
+        let mut writer = BufWriter::new(&mut self.index_file);
+        writer.write_u64(record.offset).await?;
+        writer.write_u64(self.log_size).await?;
         writer.flush().await?;
 
         // Save the size of the start of the mesasge, or, the log size before writing the message
@@ -188,7 +202,7 @@ mod test {
     fn basic_record(offset: u64, key: &str, value: &str) -> Record {
         Record {
             headers: vec![],
-            offset: 0,
+            offset,
             value: value.to_string().into(),
             key: key.to_string().into(),
             timestamp: Timestamp::now(),
