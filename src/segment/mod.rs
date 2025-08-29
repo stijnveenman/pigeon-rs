@@ -1,4 +1,5 @@
 use std::collections::BTreeMap;
+use std::fmt::{Debug, Display};
 use std::os::unix::fs::{FileExt, MetadataExt};
 use std::sync::Arc;
 
@@ -15,6 +16,8 @@ use crate::data::timestamp::Timestamp;
 use crate::{config::Config, data::record::Record};
 
 pub struct Segment {
+    topic_id: u64,
+    partition_id: u64,
     start_offset: u64,
 
     /// A BTreeMap of Offset -> File location to index records.
@@ -26,8 +29,13 @@ pub struct Segment {
 }
 
 impl Segment {
-    pub async fn load(config: &Config, start_offset: u64) -> Result<Self, io::Error> {
-        let log_file_path = config.log_path(0, 0, start_offset);
+    pub async fn load(
+        config: &Config,
+        topic_id: u64,
+        partition_id: u64,
+        start_offset: u64,
+    ) -> Result<Self, io::Error> {
+        let log_file_path = config.log_path(topic_id, partition_id, start_offset);
         // TODO: should we always open the write file? what if a segment is closed
         let log_file_write = OpenOptions::new()
             .write(true)
@@ -45,7 +53,7 @@ impl Segment {
             .into_std()
             .await;
 
-        let index_file_path = config.index_path(0, 0, start_offset);
+        let index_file_path = config.index_path(topic_id, partition_id, start_offset);
         let index_file = OpenOptions::new()
             .write(true)
             .create(true)
@@ -55,6 +63,9 @@ impl Segment {
 
         Ok(Self {
             start_offset,
+            topic_id,
+            partition_id,
+
             // TODO: if a record exist, we should try loading this from disk
             index: BTreeMap::default(),
             log_file_w: log_file_write,
@@ -184,6 +195,16 @@ impl Segment {
     }
 }
 
+impl Display for Segment {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "Segment({{ topic_id: {}, partition_id: {}, start_offset: {}, log_size: {} }})",
+            self.topic_id, self.partition_id, self.start_offset, self.log_size
+        )
+    }
+}
+
 #[cfg(test)]
 mod test {
     use std::{fs::create_dir_all, path::Path};
@@ -224,7 +245,7 @@ mod test {
     async fn segment_basic_read_write() {
         let (_dir, config) = create_config();
 
-        let mut segment = Segment::load(&config, 0)
+        let mut segment = Segment::load(&config, 0, 0, 0)
             .await
             .expect("Failed to load segment");
 
@@ -233,6 +254,8 @@ mod test {
             .append(&record)
             .await
             .expect("Failed to append record");
+
+        println!("{}", segment);
 
         let read_record = segment.read(record.offset).await;
         assert_eq!(record, read_record);
