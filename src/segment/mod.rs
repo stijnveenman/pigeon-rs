@@ -1,5 +1,5 @@
 use std::collections::BTreeMap;
-use std::os::unix::fs::FileExt;
+use std::os::unix::fs::{FileExt, MetadataExt};
 use std::sync::Arc;
 
 use bytes::{Buf, Bytes};
@@ -36,6 +36,8 @@ impl Segment {
             .open(&log_file_path)
             .await?;
 
+        let log_size = log_file_write.metadata().await?.size();
+
         let log_file_read = OpenOptions::new()
             .read(true)
             .open(&log_file_path)
@@ -58,8 +60,7 @@ impl Segment {
             log_file_w: log_file_write,
             log_file_r: Arc::new(log_file_read),
             index_file,
-            // FIX: should come from file size when loading existing segment
-            log_size: 0,
+            log_size,
         })
     }
 
