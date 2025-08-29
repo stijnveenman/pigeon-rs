@@ -1,12 +1,12 @@
+use std::collections::BTreeMap;
 use std::os::unix::fs::FileExt;
 use std::sync::Arc;
-use std::{collections::BTreeMap, path::Path};
 
 use bytes::{Buf, Bytes};
 use std::fs::File as StdFile;
 use tokio::task::spawn_blocking;
 use tokio::{
-    fs::{create_dir_all, File, OpenOptions},
+    fs::{File, OpenOptions},
     io::{self, AsyncSeekExt, AsyncWriteExt, BufWriter},
 };
 
@@ -27,12 +27,6 @@ pub struct Segment {
 
 impl Segment {
     pub async fn load(config: &Config, start_offset: u64) -> Result<Self, io::Error> {
-        let segment_path = config.segment_path(0, 0, start_offset);
-
-        if !Path::new(&segment_path).exists() {
-            create_dir_all(&segment_path).await?;
-        }
-
         let log_file_path = config.log_path(0, 0, start_offset);
         // TODO: should we always open the write file? what if a segment is closed
         let log_file_write = OpenOptions::new()
@@ -191,11 +185,13 @@ impl Segment {
 
 #[cfg(test)]
 mod test {
+    use std::{fs::create_dir_all, path::Path};
+
     use tempfile::tempdir;
 
     use super::Segment;
     use crate::{
-        config::Config,
+        config::{self, Config},
         data::{record::Record, timestamp::Timestamp},
     };
 
@@ -209,13 +205,23 @@ mod test {
         }
     }
 
-    #[tokio::test]
-    async fn segment_basic_read_write() {
+    fn create_config() -> (tempfile::TempDir, config::Config) {
         let dir = tempdir().expect("failed to create tempdir");
 
         let config = Config {
             path: dir.path().to_str().unwrap().to_string(),
         };
+
+        let partition_path = config.partition_path(0, 0);
+
+        create_dir_all(Path::new(&partition_path)).expect("failed to create partition_path");
+
+        (dir, config)
+    }
+
+    #[tokio::test]
+    async fn segment_basic_read_write() {
+        let (_dir, config) = create_config();
 
         let mut segment = Segment::load(&config, 0)
             .await
