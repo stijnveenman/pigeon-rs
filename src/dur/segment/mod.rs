@@ -43,6 +43,8 @@ impl Segment {
         start_offset: u64,
     ) -> Result<Self> {
         let log_file_path = config.log_path(topic_id, partition_id, start_offset);
+        let index_file_path = config.index_path(topic_id, partition_id, start_offset);
+
         // TODO: should we always open the write file? what if a segment is closed
         let log_file_write = OpenOptions::new()
             .write(true)
@@ -60,7 +62,6 @@ impl Segment {
             .into_std()
             .await;
 
-        let index_file_path = config.index_path(topic_id, partition_id, start_offset);
         Ok(Self {
             start_offset,
             topic_id,
@@ -71,31 +72,6 @@ impl Segment {
             log_file_r: Arc::new(log_file_read),
             log_size,
         })
-    }
-
-    async fn load_index_from_disk(path: &str) -> Result<BTreeMap<u64, u64>> {
-        let index_file = match OpenOptions::new().read(true).open(path).await {
-            Ok(file) => file,
-            Err(err) if err.kind() == io::ErrorKind::NotFound => return Ok(BTreeMap::default()),
-            Err(err) => return Err(err.into()),
-        };
-
-        let mut index = BTreeMap::new();
-        let mut reader = BufReader::new(index_file);
-
-        loop {
-            let offset = match reader.read_u64().await {
-                Ok(offset) => offset,
-                Err(e) if e.kind() == ErrorKind::UnexpectedEof => break,
-                Err(e) => return Err(e.into()),
-            };
-
-            let position = reader.read_u64().await?;
-
-            index.insert(offset, position);
-        }
-
-        Ok(index)
     }
 
     pub async fn append(&mut self, record: &Record) -> Result<()> {
