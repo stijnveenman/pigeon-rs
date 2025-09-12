@@ -78,6 +78,10 @@ impl Segment {
     }
 
     pub async fn append(&mut self, record: &Record) -> Result<()> {
+        if self.is_full() {
+            return Err(Error::SegmentFull);
+        }
+
         let mut writer = BufWriter::new(&mut self.log_file_w);
 
         writer.write_u64(record.offset).await?;
@@ -207,6 +211,7 @@ mod test {
     use crate::{
         config::{self, Config},
         data::{record::Record, timestamp::Timestamp},
+        dur::error::Error,
     };
 
     fn basic_record(offset: u64, key: &str, value: &str) -> Record {
@@ -304,5 +309,10 @@ mod test {
             .expect("Failed to append record");
 
         assert!(segment.is_full());
+
+        let record = basic_record(1, "Hello", "World");
+        let result = segment.append(&record).await;
+
+        assert!(matches!(result, Err(Error::SegmentFull)))
     }
 }
