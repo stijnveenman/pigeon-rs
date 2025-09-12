@@ -1,3 +1,6 @@
+// TODO: remove
+#![allow(unused)]
+
 use std::collections::BTreeMap;
 use std::fmt::Display;
 use std::io::ErrorKind;
@@ -16,6 +19,8 @@ use tokio::{
 use crate::data::record::RecordHeader;
 use crate::data::timestamp::Timestamp;
 use crate::{config::Config, data::record::Record};
+
+use super::error::Result;
 
 pub struct Segment {
     topic_id: u64,
@@ -36,7 +41,7 @@ impl Segment {
         topic_id: u64,
         partition_id: u64,
         start_offset: u64,
-    ) -> Result<Self, io::Error> {
+    ) -> Result<Self> {
         let log_file_path = config.log_path(topic_id, partition_id, start_offset);
         // TODO: should we always open the write file? what if a segment is closed
         let log_file_write = OpenOptions::new()
@@ -77,11 +82,11 @@ impl Segment {
         })
     }
 
-    async fn load_index_from_disk(path: &str) -> Result<BTreeMap<u64, u64>, io::Error> {
+    async fn load_index_from_disk(path: &str) -> Result<BTreeMap<u64, u64>> {
         let index_file = match OpenOptions::new().read(true).open(path).await {
             Ok(file) => file,
             Err(err) if err.kind() == io::ErrorKind::NotFound => return Ok(BTreeMap::default()),
-            Err(err) => return Err(err),
+            Err(err) => return Err(err.into()),
         };
 
         let mut index = BTreeMap::new();
@@ -91,7 +96,7 @@ impl Segment {
             let offset = match reader.read_u64().await {
                 Ok(offset) => offset,
                 Err(e) if e.kind() == ErrorKind::UnexpectedEof => break,
-                Err(e) => return Err(e),
+                Err(e) => return Err(e.into()),
             };
 
             let position = reader.read_u64().await?;
@@ -102,7 +107,7 @@ impl Segment {
         Ok(index)
     }
 
-    pub async fn append(&mut self, record: &Record) -> io::Result<()> {
+    pub async fn append(&mut self, record: &Record) -> Result<()> {
         let mut writer = BufWriter::new(&mut self.log_file_w);
 
         writer.write_u64(record.offset).await?;
@@ -206,7 +211,7 @@ impl Segment {
     }
 
     #[allow(clippy::uninit_vec)]
-    async fn read_at(&self, file_offset: u64, length: usize) -> std::io::Result<Vec<u8>> {
+    async fn read_at(&self, file_offset: u64, length: usize) -> Result<Vec<u8>> {
         let file = self.log_file_r.clone();
         spawn_blocking(move || {
             let mut buf = Vec::with_capacity(length);
