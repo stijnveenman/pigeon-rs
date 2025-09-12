@@ -21,6 +21,7 @@ use tokio::{
 
 use crate::data::record::RecordHeader;
 use crate::data::timestamp::Timestamp;
+use crate::dur::error::Error;
 use crate::{config::Config, data::record::Record};
 
 use super::error::Result;
@@ -106,37 +107,30 @@ impl Segment {
         Ok(())
     }
 
-    // FIX: error handling
-    pub async fn read(&self, offset: u64) -> Record {
+    pub async fn read_exact(&self, offset: u64) -> Result<Record> {
         let mut index_range = self.index.range(offset..);
-        let record_file_offset = index_range
-            .next()
-            .expect("expect to receive at least first record");
-        // FIX: Expect offset to always be in the index for now
-        assert_eq!(*record_file_offset.0, offset);
+
+        let record_file_offset = index_range.next().ok_or(Error::OffsetNotFound)?;
+        if (*record_file_offset.0 != offset) {
+            return Err(Error::OffsetNotFound);
+        }
 
         let record_file_offset = *record_file_offset.1;
 
         // If we have a next entry in the index, we know how many bytes to read
         // Otherwise, we need to read until EOF
         let next_file_offset = index_range.next().map(|e| *e.1);
-
         let record_len = if let Some(next) = next_file_offset {
             next - record_file_offset
         } else {
             self.log_size - record_file_offset
         } as usize;
 
-        let bytes = self
-            .read_at(record_file_offset, record_len)
-            .await
-            .expect("failed to read from file");
-
+        let bytes = self.read_at(record_file_offset, record_len).await?;
         assert_eq!(bytes.len(), record_len);
 
         let mut bytes = Bytes::from(bytes);
 
-        // FIX: handle not enough bytes
         let offset = bytes.get_u64();
         let timestamp = Timestamp::from(bytes.get_u64());
 
@@ -161,13 +155,13 @@ impl Segment {
             })
             .collect::<Vec<_>>();
 
-        Record {
+        Ok(Record {
             offset,
             timestamp,
             key,
             value,
             headers,
-        }
+        })
     }
 
     #[allow(clippy::uninit_vec)]
@@ -249,7 +243,11 @@ mod test {
 
         println!("{}", segment);
 
-        let read_record = segment.read(record.offset).await;
+        let read_record = segment
+            .read_exact(record.offset)
+            .await
+            .expect("Read of record failed");
+
         assert_eq!(record, read_record);
     }
 
@@ -273,7 +271,11 @@ mod test {
         let segment = Segment::load(&config, 0, 0, 0)
             .await
             .expect("Failed to load segment");
-        let read_record = segment.read(record.offset).await;
+
+        let read_record = segment
+            .read_exact(record.offset)
+            .await
+            .expect("Read record failed");
         assert_eq!(record, read_record);
     }
 }
