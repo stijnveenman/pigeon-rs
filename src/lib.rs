@@ -5,7 +5,7 @@ pub mod client;
 mod cmd;
 mod config;
 mod data;
-pub mod segment;
+mod dur;
 pub use cmd::describe_topic;
 pub use cmd::fetch;
 
