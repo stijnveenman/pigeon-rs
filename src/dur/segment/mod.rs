@@ -34,6 +34,7 @@ pub struct Segment {
     log_file_w: File,
     log_size: u64,
     index: Index,
+    max_log_size: u64,
 }
 
 impl Segment {
@@ -72,6 +73,7 @@ impl Segment {
             log_file_w: log_file_write,
             log_file_r: Arc::new(log_file_read),
             log_size,
+            max_log_size: config.segment.size,
         })
     }
 
@@ -105,6 +107,10 @@ impl Segment {
         self.log_size = self.log_file_w.stream_position().await?;
 
         Ok(())
+    }
+
+    pub fn is_full(&self) -> bool {
+        self.log_size >= self.max_log_size
     }
 
     pub async fn read_exact(&self, offset: u64) -> Result<Record> {
@@ -218,6 +224,7 @@ mod test {
 
         let config = Config {
             path: dir.path().to_str().unwrap().to_string(),
+            ..Default::default()
         };
 
         let partition_path = config.partition_path(0, 0);
@@ -277,5 +284,25 @@ mod test {
             .await
             .expect("Read record failed");
         assert_eq!(record, read_record);
+    }
+
+    #[tokio::test]
+    async fn segment_is_full() {
+        let (_dir, mut config) = create_config();
+        config.segment.size = 1;
+
+        let mut segment = Segment::load(&config, 0, 0, 0)
+            .await
+            .expect("Failed to load segment");
+
+        assert!(!segment.is_full());
+
+        let record = basic_record(0, "Hello", "World");
+        segment
+            .append(&record)
+            .await
+            .expect("Failed to append record");
+
+        assert!(segment.is_full());
     }
 }

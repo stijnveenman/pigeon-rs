@@ -1,13 +1,26 @@
 #[derive(Debug)]
 pub struct Config {
     pub path: String,
+    pub segment: SegmentConfig,
+}
+
+#[derive(Debug)]
+pub struct SegmentConfig {
+    pub size: u64,
 }
 
 impl Default for Config {
     fn default() -> Self {
         Self {
             path: "data".to_string(),
+            segment: SegmentConfig::default(),
         }
+    }
+}
+
+impl Default for SegmentConfig {
+    fn default() -> Self {
+        Self { size: 1024 * 512 } // 512MB
     }
 }
 
