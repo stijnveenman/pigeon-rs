@@ -1,6 +1,8 @@
 // TODO: remove
 #![allow(unused)]
 
+mod index;
+
 use std::collections::BTreeMap;
 use std::fmt::Display;
 use std::io::ErrorKind;
@@ -8,6 +10,7 @@ use std::os::unix::fs::{FileExt, MetadataExt};
 use std::sync::Arc;
 
 use bytes::{Buf, Bytes};
+use index::Index;
 use std::fs::File as StdFile;
 use tokio::io::{AsyncReadExt, BufReader};
 use tokio::task::spawn_blocking;
@@ -26,13 +29,10 @@ pub struct Segment {
     topic_id: u64,
     partition_id: u64,
     start_offset: u64,
-
-    /// A BTreeMap of Offset -> File location to index records.
-    index: BTreeMap<u64, u64>,
     log_file_r: Arc<StdFile>,
     log_file_w: File,
     log_size: u64,
-    index_file: File,
+    index: Index,
 }
 
 impl Segment {
@@ -61,23 +61,14 @@ impl Segment {
             .await;
 
         let index_file_path = config.index_path(topic_id, partition_id, start_offset);
-        let index_file = OpenOptions::new()
-            .write(true)
-            .create(true)
-            .append(true)
-            .open(&index_file_path)
-            .await?;
-
         Ok(Self {
             start_offset,
             topic_id,
             partition_id,
 
-            // TODO: if a record exist, we should try loading this from disk
-            index: Self::load_index_from_disk(&index_file_path).await?,
+            index: Index::load_from_disk(&index_file_path).await?,
             log_file_w: log_file_write,
             log_file_r: Arc::new(log_file_read),
-            index_file,
             log_size,
         })
     }
@@ -131,13 +122,8 @@ impl Segment {
 
         writer.flush().await?;
 
-        let mut writer = BufWriter::new(&mut self.index_file);
-        writer.write_u64(record.offset).await?;
-        writer.write_u64(self.log_size).await?;
-        writer.flush().await?;
-
         // Save the size of the start of the mesasge, or, the log size before writing the message
-        self.index.insert(record.offset, self.log_size);
+        self.index.append(record.offset, self.log_size).await?;
 
         self.log_size = self.log_file_w.stream_position().await?;
 
@@ -146,8 +132,6 @@ impl Segment {
 
     // FIX: error handling
     pub async fn read(&self, offset: u64) -> Record {
-        let _offset = self.index.get(&offset).expect("record offset not found");
-
         let mut index_range = self.index.range(offset..);
         let record_file_offset = index_range
             .next()
