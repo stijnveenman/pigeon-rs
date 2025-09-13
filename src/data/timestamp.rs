@@ -2,9 +2,6 @@ use core::fmt;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use chrono::{DateTime, Utc};
-use fake::{Dummy, Fake, Faker};
-
-use crate::bin_ser::{BinaryDeserialize, BinarySerialize, StaticBinarySize};
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub struct Timestamp(SystemTime);
@@ -13,7 +10,7 @@ pub const UTC_TIME_FORMAT: &str = "%Y-%m-%d %H:%M:%S";
 
 impl Timestamp {
     pub fn now() -> Self {
-        Self::default()
+        Self::default().as_micros().into()
     }
 
     pub fn to_utc_string(self, format: &str) -> String {
@@ -56,29 +53,5 @@ impl From<Timestamp> for u64 {
 impl From<SystemTime> for Timestamp {
     fn from(timestamp: SystemTime) -> Self {
         Timestamp(timestamp)
-    }
-}
-
-impl Dummy<Faker> for Timestamp {
-    fn dummy_with_rng<R: fake::Rng + ?Sized>(_config: &Faker, rng: &mut R) -> Self {
-        Faker::fake_with_rng::<u64, _>(&Faker, rng).into()
-    }
-}
-
-impl BinaryDeserialize for Timestamp {
-    fn deserialize(buf: &mut impl bytes::Buf) -> Result<Self, crate::bin_ser::DeserializeError> {
-        Ok(buf.try_get_u64()?.into())
-    }
-}
-
-impl StaticBinarySize for Timestamp {
-    fn binary_size() -> usize {
-        8
-    }
-}
-
-impl BinarySerialize for Timestamp {
-    fn serialize(&self, buf: &mut impl bytes::BufMut) {
-        buf.put_u64(self.as_micros())
     }
 }

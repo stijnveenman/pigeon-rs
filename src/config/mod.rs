@@ -1,13 +1,26 @@
 #[derive(Debug)]
 pub struct Config {
     pub path: String,
+    pub segment: SegmentConfig,
+}
+
+#[derive(Debug)]
+pub struct SegmentConfig {
+    pub size: u64,
 }
 
 impl Default for Config {
     fn default() -> Self {
         Self {
             path: "data".to_string(),
+            segment: SegmentConfig::default(),
         }
+    }
+}
+
+impl Default for SegmentConfig {
+    fn default() -> Self {
+        Self { size: 1024 * 512 } // 512MB
     }
 }
 
@@ -43,6 +56,13 @@ impl Config {
     pub fn log_path(&self, topic_id: u64, partition_id: u64, start_offset: u64) -> String {
         format!(
             "{}.log",
+            self.segment_path(topic_id, partition_id, start_offset)
+        )
+    }
+
+    pub fn index_path(&self, topic_id: u64, partition_id: u64, start_offset: u64) -> String {
+        format!(
+            "{}.index",
             self.segment_path(topic_id, partition_id, start_offset)
         )
     }
