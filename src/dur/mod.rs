@@ -1,2 +1,3 @@
 mod error;
-pub mod segment;
+mod partition;
+mod segment;
