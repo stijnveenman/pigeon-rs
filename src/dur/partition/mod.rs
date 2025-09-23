@@ -1,9 +1,9 @@
-use std::{collections::BTreeMap, path::Path};
+use std::{collections::BTreeMap, ops::Bound, path::Path};
 
 use tokio::fs::create_dir_all;
 
 use super::{error::Result, segment::Segment};
-use crate::{config::Config, data::record::Record};
+use crate::{config::Config, data::record::Record, dur::error::Error};
 
 pub struct Partition {
     topic_id: u64,
@@ -32,6 +32,15 @@ impl Partition {
             next_offset: 0,
             segments: BTreeMap::from([(0, start_segment)]),
         })
+    }
+
+    pub async fn read_exact(&self, offset: u64) -> Result<Record> {
+        // We want to get the segment with the latest start offset before the offset
+
+        let mut cursor = self.segments.lower_bound(Bound::Excluded(&offset));
+        let segment = cursor.prev().ok_or(Error::OffsetNotFound)?.1;
+
+        segment.read_exact(offset).await
     }
 
     pub async fn append(&mut self, mut record: Record) -> Result<u64> {
@@ -120,11 +129,19 @@ mod test {
             .expect("Failed to append record");
         assert_eq!(offset, 0);
 
-        let record = basic_record("foo", "bar");
+        let record = basic_record("foo", "bar2");
         let offset = partition
             .append(record)
             .await
             .expect("Failed to append record");
         assert_eq!(offset, 1);
+
+        let read_record = partition
+            .read_exact(1)
+            .await
+            .expect("Failed to read record");
+        assert_eq!(read_record.key, "foo");
+        assert_eq!(read_record.value, "bar2");
+        assert_eq!(read_record.offset, 1);
     }
 }

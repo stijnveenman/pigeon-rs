@@ -1,3 +1,5 @@
+#![feature(btree_cursors)]
+
 pub mod server;
 
 pub mod client;
