@@ -1,4 +1,4 @@
-use std::{collections::BTreeMap, ops::Bound, path::Path};
+use std::{collections::BTreeMap, ops::Bound, path::Path, sync::Arc};
 
 use tokio::fs::create_dir_all;
 
@@ -8,14 +8,18 @@ use crate::{config::Config, data::record::Record, dur::error::Error};
 pub struct Partition {
     topic_id: u64,
     partition_id: u64,
-    config: Config,
+    config: Arc<Config>,
 
     next_offset: u64,
     segments: BTreeMap<u64, Segment>,
 }
 
 impl Partition {
-    pub async fn load_from_disk(config: Config, topic_id: u64, partition_id: u64) -> Result<Self> {
+    pub async fn load_from_disk(
+        config: Arc<Config>,
+        topic_id: u64,
+        partition_id: u64,
+    ) -> Result<Self> {
         let partition_path = config.partition_path(topic_id, partition_id);
 
         create_dir_all(Path::new(&partition_path)).await?;
@@ -80,7 +84,7 @@ impl Partition {
 #[cfg(test)]
 mod test {
     use crate::dur::partition::Partition;
-    use std::{fs::create_dir_all, path::Path};
+    use std::{fs::create_dir_all, path::Path, sync::Arc};
 
     use tempfile::tempdir;
 
@@ -117,6 +121,7 @@ mod test {
     #[tokio::test]
     async fn partition_basic_read_write() {
         let (_dir, config) = create_config();
+        let config = Arc::new(config);
 
         let mut partition = Partition::load_from_disk(config, 0, 0)
             .await
@@ -128,6 +133,44 @@ mod test {
             .await
             .expect("Failed to append record");
         assert_eq!(offset, 0);
+
+        let record = basic_record("foo", "bar2");
+        let offset = partition
+            .append(record)
+            .await
+            .expect("Failed to append record");
+        assert_eq!(offset, 1);
+
+        let read_record = partition
+            .read_exact(1)
+            .await
+            .expect("Failed to read record");
+        assert_eq!(read_record.key, "foo");
+        assert_eq!(read_record.value, "bar2");
+        assert_eq!(read_record.offset, 1);
+    }
+
+    #[tokio::test]
+    async fn partition_ocntinue_on_existing() {
+        let (_dir, config) = create_config();
+        let config = Arc::new(config);
+
+        let mut partition = Partition::load_from_disk(config.clone(), 0, 0)
+            .await
+            .expect("Failed to load partition");
+
+        let record = basic_record("foo", "bar");
+        let offset = partition
+            .append(record)
+            .await
+            .expect("Failed to append record");
+        assert_eq!(offset, 0);
+
+        drop(partition);
+
+        let mut partition = Partition::load_from_disk(config, 0, 0)
+            .await
+            .expect("Failed to load partition");
 
         let record = basic_record("foo", "bar2");
         let offset = partition

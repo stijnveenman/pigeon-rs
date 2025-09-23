@@ -28,13 +28,6 @@
               repo = "local";
               hooks = [
                 {
-                  id = "cargo test";
-                  entry = "cargo test";
-                  language = "system";
-                  files = "\\.rs";
-                  pass_filenames = false;
-                }
-                {
                   id = "cargo clippy";
                   entry = "cargo clippy";
                   language = "system";
