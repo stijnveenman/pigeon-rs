@@ -83,7 +83,7 @@ impl Partition {
 
 #[cfg(test)]
 mod test {
-    use crate::dur::partition::Partition;
+    use crate::dur::{partition::Partition, segment};
     use std::{fs::create_dir_all, path::Path, sync::Arc};
 
     use tempfile::tempdir;
@@ -186,5 +186,40 @@ mod test {
         assert_eq!(read_record.key, "foo");
         assert_eq!(read_record.value, "bar2");
         assert_eq!(read_record.offset, 1);
+    }
+
+    #[tokio::test]
+    async fn partition_multiple_segments() {
+        let (_dir, mut config) = create_config();
+        config.segment.size = 1;
+        let config = Arc::new(config);
+
+        let mut partition = Partition::load_from_disk(config.clone(), 0, 0)
+            .await
+            .expect("Failed to load partition");
+
+        let record = basic_record("foo", "bar");
+        let offset = partition
+            .append(record)
+            .await
+            .expect("Failed to append record");
+        assert_eq!(offset, 0);
+
+        let record = basic_record("foo", "bar2");
+        let offset = partition
+            .append(record)
+            .await
+            .expect("Failed to append record");
+        assert_eq!(offset, 1);
+
+        assert_eq!(partition.segments.len(), 2);
+
+        let read_record = partition
+            .read_exact(0)
+            .await
+            .expect("Failed to read record");
+        assert_eq!(read_record.key, "foo");
+        assert_eq!(read_record.value, "bar");
+        assert_eq!(read_record.offset, 0);
     }
 }
