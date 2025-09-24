@@ -1,8 +1,11 @@
 use std::{collections::BTreeMap, ops::Bound, path::Path, sync::Arc};
 
-use tokio::fs::create_dir_all;
+use tokio::fs::{self, create_dir_all};
 
-use super::{error::Result, segment::Segment};
+use super::{
+    error::Result,
+    segment::{self, Segment},
+};
 use crate::{config::Config, data::record::Record, dur::error::Error};
 
 pub struct Partition {
@@ -12,6 +15,45 @@ pub struct Partition {
 
     next_offset: u64,
     segments: BTreeMap<u64, Segment>,
+}
+
+async fn load_segments_form_disk(
+    config: &Config,
+    topic_id: u64,
+    partition_id: u64,
+    dir: &str,
+) -> Result<BTreeMap<u64, Segment>> {
+    let mut btree = BTreeMap::new();
+
+    let mut stream = fs::read_dir(dir).await?;
+    while let Some(entry) = stream.next_entry().await? {
+        if entry.path().extension().is_none_or(|s| s != "log") {
+            continue;
+        }
+
+        // TODO: error handling
+        let start_offset = entry
+            .path()
+            .file_stem()
+            .expect("Log file has invalid file name format")
+            .to_str()
+            .expect("start_offset string conversion invalid")
+            .parse::<u64>()
+            .expect("start_offset of log file is invalid");
+
+        let segment = Segment::load_from_disk(config, topic_id, partition_id, start_offset).await?;
+
+        btree.insert(start_offset, segment);
+    }
+
+    if btree.is_empty() {
+        btree.insert(
+            0,
+            Segment::load_from_disk(&config, topic_id, partition_id, 0).await?,
+        );
+    }
+
+    Ok(btree)
 }
 
 impl Partition {
@@ -24,8 +66,8 @@ impl Partition {
 
         create_dir_all(Path::new(&partition_path)).await?;
 
-        // FIX: load_from_disk
-        let start_segment = Segment::load_from_disk(&config, topic_id, partition_id, 0).await?;
+        let segments =
+            load_segments_form_disk(&config, topic_id, partition_id, &partition_path).await?;
 
         Ok(Self {
             partition_id,
@@ -34,7 +76,7 @@ impl Partition {
 
             // FIX: load_from_disk
             next_offset: 0,
-            segments: BTreeMap::from([(0, start_segment)]),
+            segments,
         })
     }
 
