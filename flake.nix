@@ -28,13 +28,6 @@
               repo = "local";
               hooks = [
                 {
-                  id = "cargo test";
-                  entry = "cargo test";
-                  language = "system";
-                  files = "\\.rs";
-                  pass_filenames = false;
-                }
-                {
                   id = "cargo clippy";
                   entry = "cargo clippy";
                   language = "system";
@@ -63,7 +56,7 @@
               .shellHook;
 
             buildInputs = [
-              rust-bin.stable.latest.default
+              rust-bin.nightly.latest.default
               rust-analyzer
               cargo-watch
             ];

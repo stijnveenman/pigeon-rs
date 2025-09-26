@@ -38,7 +38,7 @@ pub struct Segment {
 }
 
 impl Segment {
-    pub async fn load(
+    pub async fn load_from_disk(
         config: &Config,
         topic_id: u64,
         partition_id: u64,
@@ -174,6 +174,10 @@ impl Segment {
         })
     }
 
+    pub fn max_offset(&self) -> Option<u64> {
+        self.index.max_offset()
+    }
+
     #[allow(clippy::uninit_vec)]
     async fn read_at(&self, file_offset: u64, length: usize) -> Result<Vec<u8>> {
         let file = self.log_file_r.clone();
@@ -243,7 +247,7 @@ mod test {
     async fn segment_basic_read_write() {
         let (_dir, config) = create_config();
 
-        let mut segment = Segment::load(&config, 0, 0, 0)
+        let mut segment = Segment::load_from_disk(&config, 0, 0, 0)
             .await
             .expect("Failed to load segment");
 
@@ -267,7 +271,7 @@ mod test {
     async fn segment_continue_on_existing_segment() {
         let (_dir, config) = create_config();
 
-        let mut segment = Segment::load(&config, 0, 0, 0)
+        let mut segment = Segment::load_from_disk(&config, 0, 0, 0)
             .await
             .expect("Failed to load segment");
 
@@ -280,7 +284,7 @@ mod test {
         println!("{}", segment);
         drop(segment);
 
-        let segment = Segment::load(&config, 0, 0, 0)
+        let segment = Segment::load_from_disk(&config, 0, 0, 0)
             .await
             .expect("Failed to load segment");
 
@@ -296,7 +300,7 @@ mod test {
         let (_dir, mut config) = create_config();
         config.segment.size = 1;
 
-        let mut segment = Segment::load(&config, 0, 0, 0)
+        let mut segment = Segment::load_from_disk(&config, 0, 0, 0)
             .await
             .expect("Failed to load segment");
 
