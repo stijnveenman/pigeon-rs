@@ -49,7 +49,7 @@ async fn load_segments_form_disk(
     if btree.is_empty() {
         btree.insert(
             0,
-            Segment::load_from_disk(&config, topic_id, partition_id, 0).await?,
+            Segment::load_from_disk(config, topic_id, partition_id, 0).await?,
         );
     }
 
@@ -69,20 +69,27 @@ impl Partition {
         let segments =
             load_segments_form_disk(&config, topic_id, partition_id, &partition_path).await?;
 
+        let mut next_offset = 0;
+        let mut cursos = segments.upper_bound(Bound::Unbounded);
+        while let Some(segment) = cursos.prev() {
+            if let Some(offset) = segment.1.max_offset() {
+                next_offset = offset + 1;
+                break;
+            }
+        }
+
         Ok(Self {
             partition_id,
             topic_id,
             config,
 
-            // FIX: load_from_disk
-            next_offset: 0,
+            next_offset,
             segments,
         })
     }
 
     pub async fn read_exact(&self, offset: u64) -> Result<Record> {
         // We want to get the segment with the latest start offset before the offset
-
         let mut cursor = self.segments.lower_bound(Bound::Excluded(&offset));
         let segment = cursor.prev().ok_or(Error::OffsetNotFound)?.1;
 
