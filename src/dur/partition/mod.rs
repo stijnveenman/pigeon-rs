@@ -1,11 +1,10 @@
+// TODO: remove
+#![allow(unused)]
 use std::{collections::BTreeMap, ops::Bound, path::Path, sync::Arc};
 
 use tokio::fs::{self, create_dir_all};
 
-use super::{
-    error::Result,
-    segment::{self, Segment},
-};
+use super::{error::Result, segment::Segment};
 use crate::{config::Config, data::record::Record, dur::error::Error};
 
 pub struct Partition {
