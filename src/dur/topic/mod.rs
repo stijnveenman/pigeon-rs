@@ -40,6 +40,15 @@ impl Topic {
 
         partition.append(record).await
     }
+
+    pub async fn read_exact(&self, partition_id: u64, offset: u64) -> Result<Record> {
+        let partition = self
+            .partitions
+            .get(partition_id as usize)
+            .ok_or(Error::PartitionNotFound)?;
+
+        partition.read_exact(offset).await
+    }
 }
 
 #[cfg(test)]
@@ -95,5 +104,10 @@ mod test {
             .await
             .expect("Failed to append record");
         assert_eq!(offset, 0);
+
+        let read_record = topic.read_exact(0, 0).await.expect("Failed to read record");
+        assert_eq!(read_record.key, "foo");
+        assert_eq!(read_record.value, "bar");
+        assert_eq!(read_record.offset, 0);
     }
 }
