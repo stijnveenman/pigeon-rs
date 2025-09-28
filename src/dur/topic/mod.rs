@@ -4,7 +4,8 @@ use std::future::Future;
 use std::sync::Arc;
 
 use crate::config::Config;
-use crate::dur::error::Result;
+use crate::data::record::Record;
+use crate::dur::error::{Error, Result};
 
 use super::partition::Partition;
 
@@ -29,6 +30,15 @@ impl Topic {
             config,
             partitions,
         })
+    }
+
+    pub async fn append(&mut self, partition_id: u64, record: Record) -> Result<u64> {
+        let partition = self
+            .partitions
+            .get_mut(partition_id as usize)
+            .ok_or(Error::PartitionNotFound)?;
+
+        partition.append(record).await
     }
 }
 
@@ -78,5 +88,12 @@ mod test {
         let mut topic = Topic::load_from_disk(config, 0)
             .await
             .expect("Failed to create topic");
+
+        let record = basic_record("foo", "bar");
+        let offset = topic
+            .append(0, record)
+            .await
+            .expect("Failed to append record");
+        assert_eq!(offset, 0);
     }
 }

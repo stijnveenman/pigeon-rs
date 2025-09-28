@@ -8,6 +8,8 @@ pub enum Error {
     OffsetNotFound,
     #[error("Segment is full and does not accept extra records")]
     SegmentFull,
+    #[error("Partition ID does not exist")]
+    PartitionNotFound,
 }
 
 pub type Result<T> = std::result::Result<T, Error>;
