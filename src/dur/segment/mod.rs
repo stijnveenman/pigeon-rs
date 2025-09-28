@@ -218,16 +218,6 @@ mod test {
         dur::error::Error,
     };
 
-    fn basic_record(offset: u64, key: &str, value: &str) -> Record {
-        Record {
-            headers: vec![],
-            offset,
-            value: value.to_string().into(),
-            key: key.to_string().into(),
-            timestamp: Timestamp::now(),
-        }
-    }
-
     fn create_config() -> (tempfile::TempDir, config::Config) {
         let dir = tempdir().expect("failed to create tempdir");
 
@@ -251,7 +241,7 @@ mod test {
             .await
             .expect("Failed to load segment");
 
-        let record = basic_record(0, "Hello", "World");
+        let record = Record::basic_with_offset(0, "Hello", "World");
         segment
             .append(&record)
             .await
@@ -275,7 +265,7 @@ mod test {
             .await
             .expect("Failed to load segment");
 
-        let record = basic_record(0, "Hello", "World");
+        let record = Record::basic_with_offset(0, "Hello", "World");
         segment
             .append(&record)
             .await
@@ -306,7 +296,7 @@ mod test {
 
         assert!(!segment.is_full());
 
-        let record = basic_record(0, "Hello", "World");
+        let record = Record::basic_with_offset(0, "Hello", "World");
         segment
             .append(&record)
             .await
@@ -314,7 +304,7 @@ mod test {
 
         assert!(segment.is_full());
 
-        let record = basic_record(1, "Hello", "World");
+        let record = Record::basic_with_offset(1, "Hello", "World");
         let result = segment.append(&record).await;
 
         assert!(matches!(result, Err(Error::SegmentFull)))

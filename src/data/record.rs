@@ -17,3 +17,24 @@ pub struct Record {
     pub headers: Vec<RecordHeader>,
     // pub crc: u32,
 }
+
+#[cfg(test)]
+impl Record {
+    pub fn basic(key: impl Into<String>, value: impl Into<String>) -> Self {
+        Self::basic_with_offset(0, key, value)
+    }
+
+    pub fn basic_with_offset(
+        offset: u64,
+        key: impl Into<String>,
+        value: impl Into<String>,
+    ) -> Self {
+        Self {
+            headers: vec![],
+            offset,
+            value: value.into().into(),
+            key: key.into().into(),
+            timestamp: Timestamp::now(),
+        }
+    }
+}

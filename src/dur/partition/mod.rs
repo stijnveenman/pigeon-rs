@@ -141,16 +141,6 @@ mod test {
         data::{record::Record, timestamp::Timestamp},
     };
 
-    fn basic_record(key: &str, value: &str) -> Record {
-        Record {
-            headers: vec![],
-            offset: 0,
-            value: value.to_string().into(),
-            key: key.to_string().into(),
-            timestamp: Timestamp::now(),
-        }
-    }
-
     fn create_config() -> (tempfile::TempDir, config::Config) {
         let dir = tempdir().expect("failed to create tempdir");
 
@@ -175,14 +165,14 @@ mod test {
             .await
             .expect("Failed to load partition");
 
-        let record = basic_record("foo", "bar");
+        let record = Record::basic("foo", "bar");
         let offset = partition
             .append(record)
             .await
             .expect("Failed to append record");
         assert_eq!(offset, 0);
 
-        let record = basic_record("foo", "bar2");
+        let record = Record::basic("foo", "bar2");
         let offset = partition
             .append(record)
             .await
@@ -207,7 +197,7 @@ mod test {
             .await
             .expect("Failed to load partition");
 
-        let record = basic_record("foo", "bar");
+        let record = Record::basic("foo", "bar");
         let offset = partition
             .append(record)
             .await
@@ -220,7 +210,7 @@ mod test {
             .await
             .expect("Failed to load partition");
 
-        let record = basic_record("foo", "bar2");
+        let record = Record::basic("foo", "bar2");
         let offset = partition
             .append(record)
             .await
@@ -246,14 +236,14 @@ mod test {
             .await
             .expect("Failed to load partition");
 
-        let record = basic_record("foo", "bar");
+        let record = Record::basic("foo", "bar");
         let offset = partition
             .append(record)
             .await
             .expect("Failed to append record");
         assert_eq!(offset, 0);
 
-        let record = basic_record("foo", "bar2");
+        let record = Record::basic("foo", "bar2");
         let offset = partition
             .append(record)
             .await
