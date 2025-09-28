@@ -61,6 +61,7 @@ mod test {
     use crate::{
         config::{self, Config},
         data::{record::Record, timestamp::Timestamp},
+        dur::error::Error,
     };
 
     //  TODO: move into record behind cfg(test)
@@ -109,5 +110,71 @@ mod test {
         assert_eq!(read_record.key, "foo");
         assert_eq!(read_record.value, "bar");
         assert_eq!(read_record.offset, 0);
+    }
+
+    #[tokio::test]
+    async fn topic_continue_on_existing() {
+        let (_dir, config) = create_config();
+
+        let mut topic = Topic::load_from_disk(config.clone(), 0)
+            .await
+            .expect("Failed to create topic");
+
+        let record = basic_record("foo", "bar");
+        let offset = topic
+            .append(0, record)
+            .await
+            .expect("Failed to append record");
+        assert_eq!(offset, 0);
+        drop(topic);
+
+        let mut topic = Topic::load_from_disk(config, 0)
+            .await
+            .expect("Failed to create topic");
+
+        let read_record = topic.read_exact(0, 0).await.expect("Failed to read record");
+        assert_eq!(read_record.key, "foo");
+        assert_eq!(read_record.value, "bar");
+        assert_eq!(read_record.offset, 0);
+    }
+
+    #[tokio::test]
+    async fn topic_multiple_partitions() {
+        let (_dir, config) = create_config();
+
+        let mut topic = Topic::load_from_disk(config.clone(), 0)
+            .await
+            .expect("Failed to create topic");
+
+        let record = basic_record("foo", "bar");
+        let offset = topic
+            .append(0, record)
+            .await
+            .expect("Failed to append record");
+        assert_eq!(offset, 0);
+        drop(topic);
+
+        let mut topic = Topic::load_from_disk(config, 0)
+            .await
+            .expect("Failed to create topic");
+
+        let read_record = topic.read_exact(0, 0).await.expect("Failed to read record");
+        assert_eq!(read_record.key, "foo");
+        assert_eq!(read_record.value, "bar");
+        assert_eq!(read_record.offset, 0);
+
+        let read_record = topic.read_exact(1, 0).await;
+        assert!(
+            matches!(read_record, Err(Error::OffsetNotFound)),
+            "expected read_record to be OffsetNotFound, got {:?}",
+            read_record
+        );
+
+        let read_record = topic.read_exact(10, 0).await;
+        assert!(
+            matches!(read_record, Err(Error::PartitionNotFound)),
+            "expected read_record to be PartitionNotFound, got {:?}",
+            read_record
+        );
     }
 }
