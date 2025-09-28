@@ -1,6 +1,7 @@
 #[derive(Debug)]
 pub struct Config {
     pub path: String,
+    pub topic: TopicConfig,
     pub segment: SegmentConfig,
 }
 
@@ -9,10 +10,16 @@ pub struct SegmentConfig {
     pub size: u64,
 }
 
+#[derive(Debug)]
+pub struct TopicConfig {
+    pub num_partitions: u64,
+}
+
 impl Default for Config {
     fn default() -> Self {
         Self {
             path: "data".to_string(),
+            topic: TopicConfig::default(),
             segment: SegmentConfig::default(),
         }
     }
@@ -21,6 +28,12 @@ impl Default for Config {
 impl Default for SegmentConfig {
     fn default() -> Self {
         Self { size: 1024 * 512 } // 512MB
+    }
+}
+
+impl Default for TopicConfig {
+    fn default() -> Self {
+        Self { num_partitions: 10 }
     }
 }
 
