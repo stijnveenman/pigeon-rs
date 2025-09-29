@@ -64,17 +64,6 @@ mod test {
         dur::error::Error,
     };
 
-    //  TODO: move into record behind cfg(test)
-    fn basic_record(key: &str, value: &str) -> Record {
-        Record {
-            headers: vec![],
-            offset: 0,
-            value: value.to_string().into(),
-            key: key.to_string().into(),
-            timestamp: Timestamp::now(),
-        }
-    }
-
     #[tokio::test]
     async fn topic_basic_read_write() {
         let config = Arc::new(Config::default());
@@ -83,7 +72,7 @@ mod test {
             .await
             .expect("Failed to create topic");
 
-        let record = basic_record("foo", "bar");
+        let record = Record::basic("foo", "bar");
         let offset = topic
             .append(0, record)
             .await
@@ -104,7 +93,7 @@ mod test {
             .await
             .expect("Failed to create topic");
 
-        let record = basic_record("foo", "bar");
+        let record = Record::basic("foo", "bar");
         let offset = topic
             .append(0, record)
             .await
@@ -130,7 +119,7 @@ mod test {
             .await
             .expect("Failed to create topic");
 
-        let record = basic_record("foo", "bar");
+        let record = Record::basic("foo", "bar");
         let offset = topic
             .append(0, record)
             .await
