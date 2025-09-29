@@ -218,24 +218,10 @@ mod test {
         dur::error::Error,
     };
 
-    fn create_config() -> (tempfile::TempDir, config::Config) {
-        let dir = tempdir().expect("failed to create tempdir");
-
-        let config = Config {
-            path: dir.path().to_str().unwrap().to_string(),
-            ..Default::default()
-        };
-
-        let partition_path = config.partition_path(0, 0);
-
-        create_dir_all(Path::new(&partition_path)).expect("failed to create partition_path");
-
-        (dir, config)
-    }
-
     #[tokio::test]
     async fn segment_basic_read_write() {
-        let (_dir, config) = create_config();
+        let config = Config::default();
+        create_dir_all(config.partition_path(0, 0));
 
         let mut segment = Segment::load_from_disk(&config, 0, 0, 0)
             .await
@@ -259,7 +245,8 @@ mod test {
 
     #[tokio::test]
     async fn segment_continue_on_existing_segment() {
-        let (_dir, config) = create_config();
+        let config = Config::default();
+        create_dir_all(config.partition_path(0, 0));
 
         let mut segment = Segment::load_from_disk(&config, 0, 0, 0)
             .await
@@ -287,7 +274,9 @@ mod test {
 
     #[tokio::test]
     async fn segment_is_full() {
-        let (_dir, mut config) = create_config();
+        let mut config = Config::default();
+        create_dir_all(config.partition_path(0, 0));
+
         config.segment.size = 1;
 
         let mut segment = Segment::load_from_disk(&config, 0, 0, 0)

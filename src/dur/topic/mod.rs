@@ -75,25 +75,9 @@ mod test {
         }
     }
 
-    // TODO: move into config
-    fn create_config() -> (tempfile::TempDir, Arc<config::Config>) {
-        let dir = tempdir().expect("failed to create tempdir");
-
-        let config = Config {
-            path: dir.path().to_str().unwrap().to_string(),
-            ..Default::default()
-        };
-
-        let partition_path = config.partition_path(0, 0);
-
-        create_dir_all(Path::new(&partition_path)).expect("failed to create partition_path");
-
-        (dir, Arc::new(config))
-    }
-
     #[tokio::test]
     async fn topic_basic_read_write() {
-        let (_dir, config) = create_config();
+        let config = Arc::new(Config::default());
 
         let mut topic = Topic::load_from_disk(config, 0)
             .await
@@ -114,7 +98,7 @@ mod test {
 
     #[tokio::test]
     async fn topic_continue_on_existing() {
-        let (_dir, config) = create_config();
+        let config = Arc::new(Config::default());
 
         let mut topic = Topic::load_from_disk(config.clone(), 0)
             .await
@@ -140,7 +124,7 @@ mod test {
 
     #[tokio::test]
     async fn topic_multiple_partitions() {
-        let (_dir, config) = create_config();
+        let config = Arc::new(Config::default());
 
         let mut topic = Topic::load_from_disk(config.clone(), 0)
             .await
