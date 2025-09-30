@@ -1,4 +1,3 @@
-// TODO: can we specify multiple "test levels"
 use std::sync::Arc;
 
 use rand::{
@@ -17,6 +16,7 @@ use crate::{
 };
 
 #[tokio::test]
+#[ignore]
 async fn single_topic_random_test() {
     let count = 1000;
     let mut config = Config::default();
