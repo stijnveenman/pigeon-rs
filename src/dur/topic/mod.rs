@@ -13,7 +13,7 @@ pub struct Topic {
     topic_id: u64,
     config: Arc<Config>,
 
-    partitions: Vec<Partition>,
+    pub(super) partitions: Vec<Partition>,
 }
 
 impl Topic {
@@ -64,42 +64,15 @@ mod test {
         dur::error::Error,
     };
 
-    //  TODO: move into record behind cfg(test)
-    fn basic_record(key: &str, value: &str) -> Record {
-        Record {
-            headers: vec![],
-            offset: 0,
-            value: value.to_string().into(),
-            key: key.to_string().into(),
-            timestamp: Timestamp::now(),
-        }
-    }
-
-    // TODO: move into config
-    fn create_config() -> (tempfile::TempDir, Arc<config::Config>) {
-        let dir = tempdir().expect("failed to create tempdir");
-
-        let config = Config {
-            path: dir.path().to_str().unwrap().to_string(),
-            ..Default::default()
-        };
-
-        let partition_path = config.partition_path(0, 0);
-
-        create_dir_all(Path::new(&partition_path)).expect("failed to create partition_path");
-
-        (dir, Arc::new(config))
-    }
-
     #[tokio::test]
     async fn topic_basic_read_write() {
-        let (_dir, config) = create_config();
+        let config = Arc::new(Config::default());
 
         let mut topic = Topic::load_from_disk(config, 0)
             .await
             .expect("Failed to create topic");
 
-        let record = basic_record("foo", "bar");
+        let record = Record::basic("foo", "bar");
         let offset = topic
             .append(0, record)
             .await
@@ -114,13 +87,13 @@ mod test {
 
     #[tokio::test]
     async fn topic_continue_on_existing() {
-        let (_dir, config) = create_config();
+        let config = Arc::new(Config::default());
 
         let mut topic = Topic::load_from_disk(config.clone(), 0)
             .await
             .expect("Failed to create topic");
 
-        let record = basic_record("foo", "bar");
+        let record = Record::basic("foo", "bar");
         let offset = topic
             .append(0, record)
             .await
@@ -140,13 +113,13 @@ mod test {
 
     #[tokio::test]
     async fn topic_multiple_partitions() {
-        let (_dir, config) = create_config();
+        let config = Arc::new(Config::default());
 
         let mut topic = Topic::load_from_disk(config.clone(), 0)
             .await
             .expect("Failed to create topic");
 
-        let record = basic_record("foo", "bar");
+        let record = Record::basic("foo", "bar");
         let offset = topic
             .append(0, record)
             .await

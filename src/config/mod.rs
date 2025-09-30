@@ -1,8 +1,13 @@
+#[cfg(test)]
+use tempfile::{tempdir, TempDir};
+
 #[derive(Debug)]
 pub struct Config {
     pub path: String,
     pub topic: TopicConfig,
     pub segment: SegmentConfig,
+    #[cfg(test)]
+    pub tempdir: TempDir,
 }
 
 #[derive(Debug)]
@@ -16,12 +21,27 @@ pub struct TopicConfig {
 }
 
 impl Default for Config {
+    #![allow(unused_mut)]
     fn default() -> Self {
-        Self {
+        let mut result = Self {
             path: "data".to_string(),
             topic: TopicConfig::default(),
             segment: SegmentConfig::default(),
+            #[cfg(test)]
+            tempdir: tempdir().expect("Failed to create tempdir"),
+        };
+
+        #[cfg(test)]
+        {
+            result.path = result
+                .tempdir
+                .path()
+                .to_str()
+                .expect("Failed to convert tempdir to_str")
+                .to_string();
         }
+
+        result
     }
 }
 

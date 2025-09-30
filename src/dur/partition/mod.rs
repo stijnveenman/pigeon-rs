@@ -13,7 +13,7 @@ pub struct Partition {
     config: Arc<Config>,
 
     next_offset: u64,
-    segments: BTreeMap<u64, Segment>,
+    pub(super) segments: BTreeMap<u64, Segment>,
 }
 
 async fn load_segments_form_disk(
@@ -141,48 +141,22 @@ mod test {
         data::{record::Record, timestamp::Timestamp},
     };
 
-    fn basic_record(key: &str, value: &str) -> Record {
-        Record {
-            headers: vec![],
-            offset: 0,
-            value: value.to_string().into(),
-            key: key.to_string().into(),
-            timestamp: Timestamp::now(),
-        }
-    }
-
-    fn create_config() -> (tempfile::TempDir, config::Config) {
-        let dir = tempdir().expect("failed to create tempdir");
-
-        let config = Config {
-            path: dir.path().to_str().unwrap().to_string(),
-            ..Default::default()
-        };
-
-        let partition_path = config.partition_path(0, 0);
-
-        create_dir_all(Path::new(&partition_path)).expect("failed to create partition_path");
-
-        (dir, config)
-    }
-
     #[tokio::test]
     async fn partition_basic_read_write() {
-        let (_dir, config) = create_config();
-        let config = Arc::new(config);
+        let config = Arc::new(Config::default());
 
         let mut partition = Partition::load_from_disk(config, 0, 0)
             .await
             .expect("Failed to load partition");
 
-        let record = basic_record("foo", "bar");
+        let record = Record::basic("foo", "bar");
         let offset = partition
             .append(record)
             .await
             .expect("Failed to append record");
         assert_eq!(offset, 0);
 
-        let record = basic_record("foo", "bar2");
+        let record = Record::basic("foo", "bar2");
         let offset = partition
             .append(record)
             .await
@@ -200,14 +174,13 @@ mod test {
 
     #[tokio::test]
     async fn partition_ocntinue_on_existing() {
-        let (_dir, config) = create_config();
-        let config = Arc::new(config);
+        let config = Arc::new(Config::default());
 
         let mut partition = Partition::load_from_disk(config.clone(), 0, 0)
             .await
             .expect("Failed to load partition");
 
-        let record = basic_record("foo", "bar");
+        let record = Record::basic("foo", "bar");
         let offset = partition
             .append(record)
             .await
@@ -220,7 +193,7 @@ mod test {
             .await
             .expect("Failed to load partition");
 
-        let record = basic_record("foo", "bar2");
+        let record = Record::basic("foo", "bar2");
         let offset = partition
             .append(record)
             .await
@@ -238,7 +211,7 @@ mod test {
 
     #[tokio::test]
     async fn partition_multiple_segments() {
-        let (_dir, mut config) = create_config();
+        let mut config = Config::default();
         config.segment.size = 1;
         let config = Arc::new(config);
 
@@ -246,14 +219,14 @@ mod test {
             .await
             .expect("Failed to load partition");
 
-        let record = basic_record("foo", "bar");
+        let record = Record::basic("foo", "bar");
         let offset = partition
             .append(record)
             .await
             .expect("Failed to append record");
         assert_eq!(offset, 0);
 
-        let record = basic_record("foo", "bar2");
+        let record = Record::basic("foo", "bar2");
         let offset = partition
             .append(record)
             .await

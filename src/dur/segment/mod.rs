@@ -218,40 +218,16 @@ mod test {
         dur::error::Error,
     };
 
-    fn basic_record(offset: u64, key: &str, value: &str) -> Record {
-        Record {
-            headers: vec![],
-            offset,
-            value: value.to_string().into(),
-            key: key.to_string().into(),
-            timestamp: Timestamp::now(),
-        }
-    }
-
-    fn create_config() -> (tempfile::TempDir, config::Config) {
-        let dir = tempdir().expect("failed to create tempdir");
-
-        let config = Config {
-            path: dir.path().to_str().unwrap().to_string(),
-            ..Default::default()
-        };
-
-        let partition_path = config.partition_path(0, 0);
-
-        create_dir_all(Path::new(&partition_path)).expect("failed to create partition_path");
-
-        (dir, config)
-    }
-
     #[tokio::test]
     async fn segment_basic_read_write() {
-        let (_dir, config) = create_config();
+        let config = Config::default();
+        create_dir_all(config.partition_path(0, 0));
 
         let mut segment = Segment::load_from_disk(&config, 0, 0, 0)
             .await
             .expect("Failed to load segment");
 
-        let record = basic_record(0, "Hello", "World");
+        let record = Record::basic_with_offset(0, "Hello", "World");
         segment
             .append(&record)
             .await
@@ -269,13 +245,14 @@ mod test {
 
     #[tokio::test]
     async fn segment_continue_on_existing_segment() {
-        let (_dir, config) = create_config();
+        let config = Config::default();
+        create_dir_all(config.partition_path(0, 0));
 
         let mut segment = Segment::load_from_disk(&config, 0, 0, 0)
             .await
             .expect("Failed to load segment");
 
-        let record = basic_record(0, "Hello", "World");
+        let record = Record::basic_with_offset(0, "Hello", "World");
         segment
             .append(&record)
             .await
@@ -297,7 +274,9 @@ mod test {
 
     #[tokio::test]
     async fn segment_is_full() {
-        let (_dir, mut config) = create_config();
+        let mut config = Config::default();
+        create_dir_all(config.partition_path(0, 0));
+
         config.segment.size = 1;
 
         let mut segment = Segment::load_from_disk(&config, 0, 0, 0)
@@ -306,7 +285,7 @@ mod test {
 
         assert!(!segment.is_full());
 
-        let record = basic_record(0, "Hello", "World");
+        let record = Record::basic_with_offset(0, "Hello", "World");
         segment
             .append(&record)
             .await
@@ -314,7 +293,7 @@ mod test {
 
         assert!(segment.is_full());
 
-        let record = basic_record(1, "Hello", "World");
+        let record = Record::basic_with_offset(1, "Hello", "World");
         let result = segment.append(&record).await;
 
         assert!(matches!(result, Err(Error::SegmentFull)))
