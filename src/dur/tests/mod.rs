@@ -3,7 +3,7 @@ use std::sync::Arc;
 use rand::{
     distr::{Alphanumeric, SampleString},
     rngs::SmallRng,
-    Rng, SeedableRng,
+    SeedableRng,
 };
 
 use crate::{
@@ -29,6 +29,8 @@ async fn single_topic_random_test() {
         .await
         .expect("Failed to create topic");
 
+    let time = Timestamp::now();
+
     for i in 0..count {
         for p in 0..config.topic.num_partitions {
             topic
@@ -36,7 +38,7 @@ async fn single_topic_random_test() {
                     p,
                     Record {
                         offset: 0,
-                        timestamp: Timestamp::from(random.random::<u64>()),
+                        timestamp: time,
                         key: format!("{}:{}", p, i).into(),
                         value: Alphanumeric.sample_string(&mut random, 16).into(),
                         headers: vec![RecordHeader {
@@ -57,5 +59,19 @@ async fn single_topic_random_test() {
             partition.segments.len()
         );
     }
-    // TODO: start asserting on generated data
+
+    for i in 0..count {
+        for p in 0..config.topic.num_partitions {
+            let record = topic
+                .read_exact(p, i)
+                .await
+                .expect("Failed to read message");
+
+            assert_eq!(record.offset, i);
+            assert_eq!(record.timestamp, time);
+            assert_eq!(record.key, format!("{}:{}", p, i));
+            assert!(record.value.len() == 16);
+            assert!(record.headers.len() == 1);
+        }
+    }
 }
