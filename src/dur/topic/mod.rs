@@ -13,7 +13,7 @@ pub struct Topic {
     topic_id: u64,
     config: Arc<Config>,
 
-    partitions: Vec<Partition>,
+    pub(super) partitions: Vec<Partition>,
 }
 
 impl Topic {

@@ -19,7 +19,10 @@ use crate::{
 #[tokio::test]
 async fn single_topic_random_test() {
     let count = 1000;
-    let config = Arc::new(Config::default());
+    let mut config = Config::default();
+    config.segment.size = 1024 * 5;
+    let config = Arc::new(config);
+
     let mut random = SmallRng::seed_from_u64(54323409);
 
     let mut topic = Topic::load_from_disk(config.clone(), 0)
@@ -47,6 +50,12 @@ async fn single_topic_random_test() {
         }
     }
 
-    // TODO: assert that we are creating multiple segments
+    for partition in &topic.partitions {
+        assert!(
+            partition.segments.len() > 2,
+            "Test should generate at least 2 segments of messages, got: {}",
+            partition.segments.len()
+        );
+    }
     // TODO: start asserting on generated data
 }

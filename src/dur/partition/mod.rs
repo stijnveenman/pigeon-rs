@@ -13,7 +13,7 @@ pub struct Partition {
     config: Arc<Config>,
 
     next_offset: u64,
-    segments: BTreeMap<u64, Segment>,
+    pub(super) segments: BTreeMap<u64, Segment>,
 }
 
 async fn load_segments_form_disk(
