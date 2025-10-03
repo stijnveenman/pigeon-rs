@@ -42,6 +42,14 @@
                   pass_filenames = false;
                   args = ["--"];
                 }
+                {
+                  id = "cargo test";
+                  entry = "cargo test";
+                  language = "system";
+                  files = "\\.rs";
+                  pass_filenames = false;
+                  args = ["--" "--ignored"];
+                }
               ];
             }
           ];
@@ -59,6 +67,8 @@
               rust-bin.nightly.latest.default
               rust-analyzer
               cargo-watch
+              nixd
+              alejandra
             ];
           };
       }
