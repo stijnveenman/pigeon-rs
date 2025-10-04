@@ -4,6 +4,7 @@ pub mod server;
 
 pub mod client;
 
+mod app;
 mod cmd;
 mod config;
 mod data;
