@@ -13,9 +13,12 @@ pub struct App {
 }
 
 impl App {
-    pub fn new(app: AppLock) -> Self {
+    pub fn new(config: Config) -> Self {
         Self {
-            app: Arc::new(RwLock::new(app)),
+            app: Arc::new(RwLock::new(AppLock {
+                config: Arc::new(config),
+                topics: HashMap::new(),
+            })),
         }
     }
 
@@ -39,15 +42,6 @@ impl Clone for App {
 pub struct AppLock {
     config: Arc<Config>,
     topics: HashMap<u64, Topic>,
-}
-
-impl AppLock {
-    pub fn new(config: Config) -> Self {
-        Self {
-            config: Arc::new(config),
-            topics: HashMap::new(),
-        }
-    }
 }
 
 #[cfg(test)]
