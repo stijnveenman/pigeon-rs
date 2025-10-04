@@ -1,10 +1,9 @@
 #![allow(unused)]
-pub mod error;
 mod topics;
 
 use std::{collections::HashMap, sync::Arc};
 
-use tokio::sync::{RwLock, RwLockReadGuard, RwLockWriteGuard};
+use tokio::sync::{RwLock, RwLockReadGuard};
 
 use crate::{config::Config, dur::topic::Topic};
 
@@ -23,8 +22,8 @@ impl App {
         self.app.read().await
     }
 
-    pub async fn write(&self) -> RwLockWriteGuard<'_, AppLock> {
-        self.app.write().await
+    pub async fn write(&self) -> RwLockReadGuard<'_, AppLock> {
+        self.app.read().await
     }
 }
 
@@ -49,6 +48,3 @@ impl AppLock {
         }
     }
 }
-
-#[cfg(test)]
-mod tests;

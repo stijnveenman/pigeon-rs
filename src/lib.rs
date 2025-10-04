@@ -6,6 +6,7 @@ pub mod client;
 
 mod app;
 mod cmd;
+pub mod commands;
 mod config;
 mod data;
 mod dur;
