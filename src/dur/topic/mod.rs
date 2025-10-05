@@ -6,6 +6,7 @@ use std::sync::Arc;
 use crate::config::Config;
 use crate::data::record::Record;
 use crate::dur::error::{Error, Result};
+use crate::dur::partition;
 
 use super::partition::Partition;
 
@@ -30,6 +31,28 @@ impl Topic {
             config,
             partitions,
         })
+    }
+
+    pub async fn read_all_from_partition(&mut self, partition_id: u64) -> Result<Vec<Record>> {
+        // TODO: we should batch this as a single read for multiple messages
+        let partition = self
+            .partitions
+            .get(partition_id as usize)
+            .ok_or(Error::PartitionNotFound)?;
+
+        let min_offset = partition.min_offset().unwrap_or(0);
+        let max_offset = partition.max_offset().unwrap_or(0);
+
+        let mut v = vec![];
+        for offset in min_offset..=max_offset {
+            match partition.read_exact(offset).await {
+                Ok(record) => v.push(record),
+                Err(Error::OffsetNotFound) => continue,
+                Err(e) => return Err(e),
+            }
+        }
+
+        Ok(v)
     }
 
     pub async fn append(&mut self, partition_id: u64, record: Record) -> Result<u64> {

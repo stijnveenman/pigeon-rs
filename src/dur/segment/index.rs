@@ -76,4 +76,8 @@ impl Index {
     pub fn max_offset(&self) -> Option<u64> {
         self.index.last_key_value().map(|e| *e.0)
     }
+
+    pub fn min_offset(&self) -> Option<u64> {
+        self.index.first_key_value().map(|e| *e.0)
+    }
 }

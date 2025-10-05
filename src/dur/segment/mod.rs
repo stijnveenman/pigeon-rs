@@ -178,6 +178,10 @@ impl Segment {
         self.index.max_offset()
     }
 
+    pub fn min_offset(&self) -> Option<u64> {
+        self.index.min_offset()
+    }
+
     #[allow(clippy::uninit_vec)]
     async fn read_at(&self, file_offset: u64, length: usize) -> Result<Vec<u8>> {
         let file = self.log_file_r.clone();

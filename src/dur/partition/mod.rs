@@ -87,6 +87,14 @@ impl Partition {
         })
     }
 
+    pub fn min_offset(&self) -> Option<u64> {
+        self.segments.iter().find_map(|e| e.1.min_offset())
+    }
+
+    pub fn max_offset(&self) -> Option<u64> {
+        self.segments.iter().rev().find_map(|e| e.1.max_offset())
+    }
+
     pub async fn read_exact(&self, offset: u64) -> Result<Record> {
         // We want to get the segment with the latest start offset before the offset
         let mut cursor = self.segments.lower_bound(Bound::Excluded(&offset));
