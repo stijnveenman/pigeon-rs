@@ -11,7 +11,7 @@ use super::AppLock;
 
 impl AppLock {
     pub async fn append_metadata(&mut self, entry: MetadataEntry) -> dur::error::Result<u64> {
-        self.metadata
+        self.metadata_topic
             .append(
                 0,
                 Record {
