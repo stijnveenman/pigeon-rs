@@ -1,33 +1,38 @@
 use crate::{
     app::{App, AppLock},
-    commands::{create_topic::CreateTopic, produce::Produce},
+    commands::create_topic::CreateTopic,
     config::Config,
+    data::{record::Record, timestamp::Timestamp},
 };
 
 #[tokio::test]
 async fn test_create_topics() {
     let config = Config::default();
-    let app = App::new(config);
+    let app = App::load_from_disk(config)
+        .await
+        .expect("load_from_disk failed");
 
     let mut lock = app.write().await;
-
-    let topic_id = lock
-        .create_topic(CreateTopic {})
-        .await
-        .expect("Failed to create_topic");
-    assert_eq!(topic_id, 0);
 
     let topic_id = lock
         .create_topic(CreateTopic {})
         .await
         .expect("Failed to create_topic");
     assert_eq!(topic_id, 1);
+
+    let topic_id = lock
+        .create_topic(CreateTopic {})
+        .await
+        .expect("Failed to create_topic");
+    assert_eq!(topic_id, 2);
 }
 
 #[tokio::test]
 async fn test_create_topic_and_append() {
     let config = Config::default();
-    let app = App::new(config);
+    let app = App::load_from_disk(config)
+        .await
+        .expect("load_from_disk failed");
 
     let mut lock = app.write().await;
 
@@ -35,15 +40,20 @@ async fn test_create_topic_and_append() {
         .create_topic(CreateTopic {})
         .await
         .expect("Failed to create_topic");
-    assert_eq!(topic_id, 0);
+    assert_eq!(topic_id, 1);
 
     let offset = lock
-        .produce(Produce {
+        .produce(
             topic_id,
-            partition_id: 1,
-            key: "Hello".into(),
-            value: "World".into(),
-        })
+            1,
+            Record {
+                offset: 0,
+                timestamp: Timestamp::now(),
+                headers: vec![],
+                key: "Hello".into(),
+                value: "World".into(),
+            },
+        )
         .await
         .expect("Failed to produce record");
     assert_eq!(offset, 0);
