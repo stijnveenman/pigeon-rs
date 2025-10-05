@@ -1,0 +1,34 @@
+use axum::{http::StatusCode, response::IntoResponse, Json};
+
+use crate::app::{self};
+
+use super::responses::error_response::ErrorResponse;
+
+#[derive(Debug)]
+pub struct AppError(app::error::Error);
+
+impl From<app::error::Error> for AppError {
+    fn from(value: app::error::Error) -> Self {
+        AppError(value)
+    }
+}
+
+impl IntoResponse for AppError {
+    fn into_response(self) -> axum::response::Response {
+        let (status, message) = match self.0 {
+            app::error::Error::Durrability(error) => todo!(),
+            app::error::Error::TopicIdNotFound(_) => (StatusCode::BAD_REQUEST, self.0.to_string()),
+        };
+
+        (
+            status,
+            Json(ErrorResponse {
+                error: message,
+                status: status.as_u16(),
+            }),
+        )
+            .into_response()
+    }
+}
+
+pub type AppResult<T> = Result<T, AppError>;
