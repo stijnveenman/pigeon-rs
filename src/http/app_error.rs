@@ -16,7 +16,20 @@ impl From<app::error::Error> for AppError {
 impl IntoResponse for AppError {
     fn into_response(self) -> axum::response::Response {
         let (status, message) = match self.0 {
-            app::error::Error::Durrability(error) => todo!(),
+            app::error::Error::Durrability(error) => match error {
+                crate::dur::error::Error::UnderlyingIO(error) => {
+                    (StatusCode::INTERNAL_SERVER_ERROR, error.to_string())
+                }
+                crate::dur::error::Error::OffsetNotFound => {
+                    (StatusCode::BAD_REQUEST, error.to_string())
+                }
+                crate::dur::error::Error::SegmentFull => {
+                    (StatusCode::BAD_REQUEST, error.to_string())
+                }
+                crate::dur::error::Error::PartitionNotFound => {
+                    (StatusCode::BAD_REQUEST, error.to_string())
+                }
+            },
             app::error::Error::TopicIdNotFound(_) => (StatusCode::BAD_REQUEST, self.0.to_string()),
         };
 
