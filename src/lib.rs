@@ -4,10 +4,10 @@ pub mod server;
 
 pub mod client;
 
-mod app;
+pub mod app;
 mod cmd;
 pub mod commands;
-mod config;
+pub mod config;
 mod data;
 mod dur;
 pub mod http;

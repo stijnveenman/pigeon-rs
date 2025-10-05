@@ -1,6 +1,8 @@
 use anyhow::Result;
 use clap::Parser;
-use pigeon_rs::{http::HttpServer, logging::set_up_logging, DEFAULT_PORT};
+use pigeon_rs::{
+    app::App, config::Config, http::HttpServer, logging::set_up_logging, DEFAULT_PORT,
+};
 
 #[derive(Parser, Debug)]
 #[command(name = "pigeon", version, author, about = "Run pegon server")]
@@ -20,9 +22,12 @@ pub async fn main() -> Result<()> {
     let cli = Cli::parse();
     set_up_logging(cli.verbose, cli.quiet)?;
 
+    let config = Config::default();
+    let app = App::new(config);
+
     let port = cli.port.unwrap_or(DEFAULT_PORT);
 
-    let http = HttpServer::new("127.0.0.1", port);
+    let http = HttpServer::new("127.0.0.1", port, app);
 
     http.serve().await.expect("http server failed");
 
