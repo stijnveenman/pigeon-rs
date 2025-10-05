@@ -1,9 +1,10 @@
-use bytes::Bytes;
+use serde::{Deserialize, Serialize};
 
-pub struct Produce {
+#[derive(Serialize, Deserialize)]
+pub struct ProduceString {
     pub topic_id: u64,
     pub partition_id: u64,
-    pub key: Bytes,
-    pub value: Bytes,
+    pub key: String,
+    pub value: String,
     // TODO: support headers
 }
