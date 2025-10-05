@@ -56,7 +56,6 @@ async fn produce(
 impl HttpServer {
     pub fn new(host: &str, port: u16, app: App) -> Self {
         let router = Router::new()
-            .route("/", get(|| async { "Hello world" }))
             .route("/topics", post(create_topic))
             .route("/topics/records", post(produce))
             .with_state(app);
