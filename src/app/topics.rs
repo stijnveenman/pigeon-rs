@@ -8,7 +8,8 @@ use super::AppLock;
 impl AppLock {
     pub async fn create_topic(&mut self, command: CreateTopic) -> Result<u64> {
         // TODO: this will overwrite topoics if we delete topics in the middle
-        let topic_id = self.topics.len() as u64;
+        // metadata topic starts at 0
+        let topic_id = self.topics.len() as u64 + 1;
 
         let topic = Topic::load_from_disk(self.config.clone(), topic_id).await?;
 

@@ -23,7 +23,9 @@ pub async fn main() -> Result<()> {
     set_up_logging(cli.verbose, cli.quiet)?;
 
     let config = Config::default();
-    let app = App::new(config);
+    let app = App::load_from_disk(config)
+        .await
+        .expect("Failed to load app state");
 
     let port = cli.port.unwrap_or(DEFAULT_PORT);
 

@@ -6,20 +6,28 @@ use std::{collections::HashMap, sync::Arc};
 
 use tokio::sync::{RwLock, RwLockReadGuard, RwLockWriteGuard};
 
-use crate::{config::Config, dur::topic::Topic};
+use crate::{
+    config::Config,
+    dur::{self, topic::Topic},
+};
 
 pub struct App {
     app: Arc<RwLock<AppLock>>,
 }
 
 impl App {
-    pub fn new(config: Config) -> Self {
-        Self {
+    pub async fn load_from_disk(config: Config) -> Result<Self, dur::error::Error> {
+        let config = Arc::new(config);
+
+        let metadata = Topic::load_from_disk(config.clone(), 0).await?;
+
+        Ok(Self {
             app: Arc::new(RwLock::new(AppLock {
-                config: Arc::new(config),
+                config,
                 topics: HashMap::new(),
+                metadata,
             })),
-        }
+        })
     }
 
     pub async fn read(&self) -> RwLockReadGuard<'_, AppLock> {
@@ -42,6 +50,7 @@ impl Clone for App {
 pub struct AppLock {
     config: Arc<Config>,
     topics: HashMap<u64, Topic>,
+    metadata: Topic,
 }
 
 #[cfg(test)]
