@@ -3,7 +3,7 @@ pub mod responses;
 
 use app_error::AppResult;
 use axum::extract::State;
-use axum::routing::{get, post};
+use axum::routing::post;
 use axum::{Json, Router};
 use responses::create_topic_response::CreateTopicResponse;
 use responses::produce_response::ProduceResponse;
