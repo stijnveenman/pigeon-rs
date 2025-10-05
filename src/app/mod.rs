@@ -1,5 +1,6 @@
 #![allow(unused)]
 pub mod error;
+mod metadata;
 mod topics;
 
 use std::{collections::HashMap, sync::Arc};
@@ -19,6 +20,7 @@ impl App {
     pub async fn load_from_disk(config: Config) -> Result<Self, dur::error::Error> {
         let config = Arc::new(config);
 
+        // TODO: better bootstrapping of metadata topic having it itself be tracked
         let metadata = Topic::load_from_disk(config.clone(), 0).await?;
 
         Ok(Self {

@@ -11,6 +11,7 @@ pub mod config;
 mod data;
 mod dur;
 pub mod http;
+mod meta;
 pub use cmd::describe_topic;
 pub use cmd::fetch;
 

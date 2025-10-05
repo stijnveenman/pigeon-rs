@@ -1,5 +1,7 @@
 use crate::data::record::Record;
 use crate::data::timestamp::Timestamp;
+use crate::meta::create_topic_entry::CreateTopicEntry;
+use crate::meta::MetadataEntry;
 use crate::{commands::create_topic::CreateTopic, dur::topic::Topic};
 
 use super::error::{Error, Result};
@@ -14,6 +16,9 @@ impl AppLock {
         let topic = Topic::load_from_disk(self.config.clone(), topic_id).await?;
 
         self.topics.insert(topic_id, topic);
+
+        self.append_metadata(MetadataEntry::CreateTopic(CreateTopicEntry { topic_id }))
+            .await?;
 
         Ok(topic_id)
     }
