@@ -10,6 +10,7 @@ pub mod commands;
 mod config;
 mod data;
 mod dur;
+pub mod http;
 pub use cmd::describe_topic;
 pub use cmd::fetch;
 

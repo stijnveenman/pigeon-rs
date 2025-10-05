@@ -1,8 +1,6 @@
 use anyhow::Result;
 use clap::Parser;
-use pigeon_rs::{logging::set_up_logging, server, DEFAULT_PORT};
-use tokio::{net::TcpListener, signal};
-use tracing::info;
+use pigeon_rs::{http::HttpServer, logging::set_up_logging, DEFAULT_PORT};
 
 #[derive(Parser, Debug)]
 #[command(name = "pigeon", version, author, about = "Run pegon server")]
@@ -24,12 +22,9 @@ pub async fn main() -> Result<()> {
 
     let port = cli.port.unwrap_or(DEFAULT_PORT);
 
-    let address = &format!("127.0.0.1:{}", port);
-    let listener = TcpListener::bind(address).await?;
+    let http = HttpServer::new("127.0.0.1", port);
 
-    info!("Starting listener on {}", address);
-
-    server::run(listener, signal::ctrl_c()).await;
+    http.serve().await.expect("http server failed");
 
     Ok(())
 }
