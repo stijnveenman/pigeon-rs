@@ -1,3 +1,5 @@
+use tracing::{debug, warn};
+
 use crate::data::record::Record;
 use crate::data::timestamp::Timestamp;
 use crate::meta::create_topic_entry::CreateTopicEntry;
@@ -13,6 +15,7 @@ impl AppLock {
         // metadata topic starts at 0
         let topic_id = self.topics.len() as u64 + 1;
 
+        debug!("Creating topic with topic_id: {topic_id}");
         let topic = Topic::load_from_disk(self.config.clone(), topic_id).await?;
 
         self.topics.insert(topic_id, topic);
@@ -32,9 +35,15 @@ impl AppLock {
         let mut topic = self
             .topics
             .get_mut(&topic_id)
-            .ok_or(Error::TopicIdNotFound(topic_id))?;
+            .ok_or(Error::TopicIdNotFound(topic_id))
+            .inspect_err(|e| warn!("Produce error: {e}"))?;
 
-        let offset = topic.append(partition_id, record).await?;
+        let offset = topic
+            .append(partition_id, record)
+            .await
+            .inspect_err(|e| warn!("Produce error: {e}"))?;
+
+        debug!("Appended record to topic_id: {topic_id} offset: {offset}",);
 
         Ok(offset)
     }
