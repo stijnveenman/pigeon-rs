@@ -8,9 +8,6 @@ mod dur;
 pub mod http;
 mod meta;
 
-mod db;
-pub use db::Message;
-
 pub mod logging;
 
 pub const DEFAULT_PORT: u16 = 6394;
