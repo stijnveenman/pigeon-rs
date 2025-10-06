@@ -1,5 +1,6 @@
 use super::error::{Error, Result};
 use bytes::Bytes;
+use tracing::{debug, warn};
 
 use crate::{
     data::{record::Record, timestamp::Timestamp},
@@ -25,5 +26,7 @@ impl AppLock {
                 },
             )
             .await
+            .inspect(|offset| debug!("Appended metadata entry {entry:#?} with offset {offset}"))
+            .inspect_err(|e| warn!("Failed to append metadata entry {e}"))
     }
 }

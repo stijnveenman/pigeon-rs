@@ -47,7 +47,8 @@ impl App {
             topics.insert(key, topic);
         }
 
-        debug!("Finished initialising App state from disk");
+        info!("Finished initialising App state from disk");
+        info!("Loaded {} topics", topics.len());
         Ok(Self {
             app: Arc::new(RwLock::new(AppLock {
                 config,

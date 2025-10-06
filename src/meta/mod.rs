@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::data::record::Record;
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub enum MetadataEntry {
     CreateTopic(CreateTopicEntry),
 }
