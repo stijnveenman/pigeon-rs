@@ -25,7 +25,7 @@ async fn single_topic_random_test() {
 
     let mut random = SmallRng::seed_from_u64(54323409);
 
-    let mut topic = Topic::load_from_disk(config.clone(), 0, "foo")
+    let mut topic = Topic::load_from_disk(config.clone(), 0, "foo", 10)
         .await
         .expect("Failed to create topic");
 

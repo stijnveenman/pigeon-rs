@@ -1,9 +1,8 @@
 use crate::{
-    app::error::Error,
-    app::{App, AppLock},
+    app::{error::Error, App, AppLock},
     commands::create_topic::CreateTopic,
     config::Config,
-    data::{record::Record, timestamp::Timestamp},
+    data::{identifier::Identifier, record::Record, timestamp::Timestamp},
 };
 
 #[tokio::test]
@@ -16,13 +15,13 @@ async fn test_create_topics() {
     let mut lock = app.write().await;
 
     let topic_id = lock
-        .create_topic(Some(1), "foo")
+        .create_topic(Some(1), "foo", None)
         .await
         .expect("Failed to create_topic");
     assert_eq!(topic_id, 1);
 
     let topic_id = lock
-        .create_topic(None, "bar")
+        .create_topic(None, "bar", None)
         .await
         .expect("Failed to create_topic");
     assert_eq!(topic_id, 2);
@@ -38,14 +37,14 @@ async fn test_create_topic_and_append() {
     let mut lock = app.write().await;
 
     let topic_id = lock
-        .create_topic(None, "foo")
+        .create_topic(None, "foo", None)
         .await
         .expect("Failed to create_topic");
     assert_eq!(topic_id, 1);
 
     let offset = lock
         .produce(
-            topic_id,
+            Identifier::Id(topic_id),
             1,
             Record {
                 offset: 0,
@@ -70,12 +69,12 @@ async fn test_cannot_create_same_id_twice() {
     let mut lock = app.write().await;
 
     let topic_id = lock
-        .create_topic(Some(1), "foo")
+        .create_topic(Some(1), "foo", None)
         .await
         .expect("Failed to create_topic");
     assert_eq!(topic_id, 1);
 
-    let result = lock.create_topic(Some(1), "bar").await;
+    let result = lock.create_topic(Some(1), "bar", None).await;
     assert!(
         matches!(result, Err(Error::TopicIdInUse(1))),
         "Expected Error::TopicIdInUse(1) but got {result:?}"
@@ -92,11 +91,11 @@ async fn test_cannot_create_same_name_twice() {
     let mut lock = app.write().await;
 
     let topic_id = lock
-        .create_topic(None, "foo")
+        .create_topic(None, "foo", None)
         .await
         .expect("Failed to create_topic");
     assert_eq!(topic_id, 1);
 
-    let result = lock.create_topic(None, "foo").await;
+    let result = lock.create_topic(None, "foo", None).await;
     assert!(matches!(result, Err(Error::TopicNameInUse(_))));
 }
