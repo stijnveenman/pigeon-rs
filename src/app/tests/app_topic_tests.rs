@@ -99,3 +99,28 @@ async fn test_cannot_create_same_name_twice() {
     let result = lock.create_topic(None, "foo", None).await;
     assert!(matches!(result, Err(Error::TopicNameInUse(_))));
 }
+
+#[tokio::test]
+async fn test_cannot_produce_on_internal_topics() {
+    let config = Config::default();
+    let app = App::load_from_disk(config)
+        .await
+        .expect("load_from_disk failed");
+
+    let mut lock = app.write().await;
+
+    let result = lock
+        .produce(
+            Identifier::Name("__metadata".to_string()),
+            0,
+            Record {
+                offset: 0,
+                timestamp: Timestamp::now(),
+                headers: vec![],
+                key: "Hello".into(),
+                value: "World".into(),
+            },
+        )
+        .await;
+    assert!(matches!(result, Err(Error::InternalTopicName(_))));
+}

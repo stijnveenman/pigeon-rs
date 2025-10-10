@@ -113,6 +113,10 @@ impl AppLock {
     ) -> Result<u64> {
         let mut topic = self.get_topic_mut(&identifier)?;
 
+        if topic.name().starts_with("__") {
+            return Err(Error::InternalTopicName(topic.name().to_string()));
+        }
+
         let offset = topic
             .append(partition_id, record)
             .await

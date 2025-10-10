@@ -13,6 +13,7 @@ use super::partition::Partition;
 
 pub struct Topic {
     topic_id: u64,
+    name: String,
     config: Arc<Config>,
 
     pub(super) partitions: Vec<Partition>,
@@ -35,6 +36,7 @@ impl Topic {
         Ok(Self {
             topic_id,
             config,
+            name: name.to_string(),
             partitions,
         })
     }
@@ -81,6 +83,7 @@ impl Topic {
 
     pub fn state(&self) -> TopicState {
         TopicState {
+            name: self.name.to_string(),
             topic_id: self.topic_id,
             partitions: self
                 .partitions
@@ -88,6 +91,10 @@ impl Topic {
                 .map(|partition| partition.state())
                 .collect(),
         }
+    }
+
+    pub fn name(&self) -> &str {
+        &self.name
     }
 }
 

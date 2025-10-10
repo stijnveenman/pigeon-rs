@@ -17,6 +17,8 @@ pub enum Error {
     TopicIdInUse(u64),
     #[error("Topic name ({0}) is already in use")]
     TopicNameInUse(String),
+    #[error("Topic with name ({0}) is internal")]
+    InternalTopicName(String),
 }
 
 pub type Result<T> = std::result::Result<T, Error>;
