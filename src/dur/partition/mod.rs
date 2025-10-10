@@ -5,7 +5,11 @@ use std::{collections::BTreeMap, ops::Bound, path::Path, sync::Arc};
 use tokio::fs::{self, create_dir_all};
 
 use super::{error::Result, segment::Segment};
-use crate::{config::Config, data::record::Record, dur::error::Error};
+use crate::{
+    config::Config,
+    data::{record::Record, state::partition_state::PartitionState},
+    dur::error::Error,
+};
 
 pub struct Partition {
     topic_id: u64,
@@ -101,6 +105,14 @@ impl Partition {
         let segment = cursor.prev().ok_or(Error::OffsetNotFound)?.1;
 
         segment.read_exact(offset).await
+    }
+
+    pub fn state(&self) -> PartitionState {
+        PartitionState {
+            partition_id: self.partition_id,
+            current_offset: self.next_offset,
+            segment_count: self.segments.len(),
+        }
     }
 
     pub async fn append(&mut self, mut record: Record) -> Result<u64> {

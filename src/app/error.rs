@@ -9,6 +9,8 @@ pub enum Error {
     Durrability(#[from] dur::error::Error),
     #[error("Topic with id ({0}) not found")]
     TopicIdNotFound(u64),
+    #[error("Topic with name ({0}) not found")]
+    TopicNameNotFound(String),
     #[error("Max Topic id reached")]
     MaxTopicIdReached,
     #[error("Topic id ({0}) is already in use")]

@@ -5,6 +5,7 @@ use std::sync::Arc;
 
 use crate::config::Config;
 use crate::data::record::Record;
+use crate::data::state::topic_state::TopicState;
 use crate::dur::error::{Error, Result};
 use crate::dur::partition;
 
@@ -71,6 +72,17 @@ impl Topic {
             .ok_or(Error::PartitionNotFound)?;
 
         partition.read_exact(offset).await
+    }
+
+    pub fn state(&self) -> TopicState {
+        TopicState {
+            topic_id: self.topic_id,
+            partitions: self
+                .partitions
+                .iter()
+                .map(|partition| partition.state())
+                .collect(),
+        }
     }
 }
 

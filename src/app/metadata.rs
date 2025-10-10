@@ -13,7 +13,7 @@ use super::AppLock;
 impl AppLock {
     pub async fn append_metadata(&mut self, entry: MetadataEntry) -> dur::error::Result<u64> {
         let mut topic = self
-            .get_topic_mut(0)
+            .get_topic_by_id_mut(0)
             .expect("Metadata topic id 0 does not exist");
 
         topic

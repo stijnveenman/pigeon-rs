@@ -1,5 +1,7 @@
 use tracing::{debug, warn};
+use tracing_subscriber::layer::Identity;
 
+use crate::data::identifier::Identifier;
 use crate::data::record::Record;
 use crate::data::timestamp::Timestamp;
 use crate::meta::create_topic_entry::CreateTopicEntry;
@@ -49,11 +51,33 @@ impl AppLock {
         Ok(topic_id)
     }
 
-    pub fn get_topic_mut(&mut self, topic_id: u64) -> Result<&mut Topic> {
+    pub fn get_topic(&self, identifer: Identifier) -> Result<&Topic> {
+        match identifer {
+            Identifier::Name(name) => self.get_topic_by_name(&name),
+            Identifier::Id(topic_id) => self.get_topic_by_id(topic_id),
+        }
+    }
+
+    pub fn get_topic_by_id_mut(&mut self, topic_id: u64) -> Result<&mut Topic> {
         self.topics
             .get_mut(&topic_id)
             .ok_or(Error::TopicIdNotFound(topic_id))
             .inspect_err(|e| warn!("get_topic_mut {e}"))
+    }
+
+    pub fn get_topic_by_id(&self, topic_id: u64) -> Result<&Topic> {
+        self.topics
+            .get(&topic_id)
+            .ok_or(Error::TopicIdNotFound(topic_id))
+            .inspect_err(|e| warn!("get_topic {e}"))
+    }
+
+    pub fn get_topic_by_name(&self, name: &str) -> Result<&Topic> {
+        self.topic_ids
+            .get(name)
+            .ok_or(Error::TopicNameNotFound(name.to_string()))
+            .and_then(|topic_id| self.get_topic_by_id(*topic_id))
+            .inspect_err(|e| warn!("get_topic_by_name {e}"))
     }
 
     pub async fn produce(
@@ -62,7 +86,7 @@ impl AppLock {
         partition_id: u64,
         record: Record,
     ) -> Result<u64> {
-        let mut topic = self.get_topic_mut(topic_id)?;
+        let mut topic = self.get_topic_by_id_mut(topic_id)?;
 
         let offset = topic
             .append(partition_id, record)

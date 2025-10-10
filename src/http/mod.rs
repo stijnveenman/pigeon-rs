@@ -2,8 +2,8 @@ mod app_error;
 pub mod responses;
 
 use app_error::AppResult;
-use axum::extract::State;
-use axum::routing::post;
+use axum::extract::{Path, State};
+use axum::routing::{get, post};
 use axum::{Json, Router};
 use responses::create_topic_response::CreateTopicResponse;
 use responses::produce_response::ProduceResponse;
@@ -14,6 +14,7 @@ use crate::app::App;
 use crate::commands::create_topic::CreateTopic;
 use crate::commands::produce::ProduceString;
 use crate::data::record::Record;
+use crate::data::state::topic_state::TopicState;
 use crate::data::timestamp::Timestamp;
 
 pub struct HttpServer {
@@ -55,11 +56,23 @@ async fn produce(
     Ok(Json(ProduceResponse { offset }))
 }
 
+async fn get_state(
+    State(app): State<App>,
+    Path(name): Path<String>,
+) -> AppResult<Json<TopicState>> {
+    let lock = app.read().await;
+
+    let state = lock.get_topic_by_name(&name)?.state();
+
+    Ok(Json(state))
+}
+
 impl HttpServer {
     pub fn new(host: &str, port: u16, app: App) -> Self {
         let router = Router::new()
             .route("/topics", post(create_topic))
             .route("/topics/records", post(produce))
+            .route("/topics/{identifier}/state", get(get_state))
             .with_state(app);
 
         let address = format!("{}:{}", host, port);
