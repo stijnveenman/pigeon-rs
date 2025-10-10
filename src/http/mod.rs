@@ -1,6 +1,8 @@
 mod app_error;
 pub mod responses;
 
+use std::collections::HashMap;
+
 use app_error::AppResult;
 use axum::extract::{Path, State};
 use axum::routing::{get, post};
@@ -60,7 +62,10 @@ async fn produce(
     Ok(Json(ProduceResponse { offset }))
 }
 
-async fn get_state(State(app): State<App>, Path(name): Path<String>) -> AppResult<TopicState> {
+async fn get_topic_state(
+    State(app): State<App>,
+    Path(name): Path<String>,
+) -> AppResult<TopicState> {
     let lock = app.read().await;
 
     let state = lock.get_topic_by_name(&name)?.state();
@@ -68,12 +73,19 @@ async fn get_state(State(app): State<App>, Path(name): Path<String>) -> AppResul
     Ok(Json(state))
 }
 
+async fn get_all_topics_state(State(app): State<App>) -> AppResult<HashMap<u64, TopicState>> {
+    let lock = app.read().await;
+
+    Ok(Json(lock.topic_states()))
+}
+
 impl HttpServer {
     pub fn new(host: &str, port: u16, app: App) -> Self {
         let router = Router::new()
             .route("/topics", post(create_topic))
+            .route("/topics", get(get_all_topics_state))
+            .route("/topics/{name}/state", get(get_topic_state))
             .route("/topics/records", post(produce))
-            .route("/topics/{name}/state", get(get_state))
             .with_state(app);
 
         let address = format!("{}:{}", host, port);

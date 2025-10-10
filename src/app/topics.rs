@@ -1,8 +1,11 @@
+use std::collections::HashMap;
+
 use tracing::{debug, warn};
 use tracing_subscriber::layer::Identity;
 
 use crate::data::identifier::Identifier;
 use crate::data::record::Record;
+use crate::data::state::topic_state::TopicState;
 use crate::data::timestamp::Timestamp;
 use crate::meta::create_topic_entry::CreateTopicEntry;
 use crate::meta::MetadataEntry;
@@ -125,5 +128,12 @@ impl AppLock {
         debug!("Appended record to {identifier} offset: {offset}",);
 
         Ok(offset)
+    }
+
+    pub fn topic_states(&self) -> HashMap<u64, TopicState> {
+        self.topics
+            .iter()
+            .map(|entry| (*entry.0, entry.1.state()))
+            .collect()
     }
 }
