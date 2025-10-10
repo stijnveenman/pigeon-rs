@@ -50,7 +50,7 @@ async fn produce(
     };
 
     let offset = lock
-        .produce(produce.topic_id, produce.partition_id, record)
+        .produce(produce.topic, produce.partition_id, record)
         .await?;
 
     Ok(Json(ProduceResponse { offset }))

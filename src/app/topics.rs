@@ -51,10 +51,17 @@ impl AppLock {
         Ok(topic_id)
     }
 
-    pub fn get_topic(&self, identifer: Identifier) -> Result<&Topic> {
+    pub fn get_topic(&self, identifer: &Identifier) -> Result<&Topic> {
         match identifer {
-            Identifier::Name(name) => self.get_topic_by_name(&name),
-            Identifier::Id(topic_id) => self.get_topic_by_id(topic_id),
+            Identifier::Name(name) => self.get_topic_by_name(name),
+            Identifier::Id(topic_id) => self.get_topic_by_id(*topic_id),
+        }
+    }
+
+    pub fn get_topic_mut(&mut self, identifer: &Identifier) -> Result<&mut Topic> {
+        match identifer {
+            Identifier::Name(name) => self.get_topic_by_name_mut(name),
+            Identifier::Id(topic_id) => self.get_topic_by_id_mut(*topic_id),
         }
     }
 
@@ -80,20 +87,29 @@ impl AppLock {
             .inspect_err(|e| warn!("get_topic_by_name {e}"))
     }
 
+    pub fn get_topic_by_name_mut(&mut self, name: &str) -> Result<&mut Topic> {
+        self.topic_ids
+            .get(name)
+            .ok_or(Error::TopicNameNotFound(name.to_string()))
+            .cloned()
+            .and_then(|topic_id| self.get_topic_by_id_mut(topic_id))
+            .inspect_err(|e| warn!("get_topic_by_name {e}"))
+    }
+
     pub async fn produce(
         &mut self,
-        topic_id: u64,
+        identifier: Identifier,
         partition_id: u64,
         record: Record,
     ) -> Result<u64> {
-        let mut topic = self.get_topic_by_id_mut(topic_id)?;
+        let mut topic = self.get_topic_mut(&identifier)?;
 
         let offset = topic
             .append(partition_id, record)
             .await
             .inspect_err(|e| warn!("Produce error: {e}"))?;
 
-        debug!("Appended record to topic_id: {topic_id} offset: {offset}",);
+        debug!("Appended record to {identifier} offset: {offset}",);
 
         Ok(offset)
     }
