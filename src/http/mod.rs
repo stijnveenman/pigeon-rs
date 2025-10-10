@@ -76,7 +76,7 @@ impl HttpServer {
         let router = Router::new()
             .route("/topics", post(create_topic))
             .route("/topics/records", post(produce))
-            .route("/topics/{identifier}/state", get(get_state))
+            .route("/topics/{name}/state", get(get_state))
             .with_state(app);
 
         let address = format!("{}:{}", host, port);
