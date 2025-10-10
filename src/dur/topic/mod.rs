@@ -18,7 +18,7 @@ pub struct Topic {
 }
 
 impl Topic {
-    pub async fn load_from_disk(config: Arc<Config>, topic_id: u64) -> Result<Self> {
+    pub async fn load_from_disk(config: Arc<Config>, topic_id: u64, name: &str) -> Result<Self> {
         let mut partitions = Vec::with_capacity(config.topic.num_partitions as usize);
         for partition_id in (0..config.topic.num_partitions) {
             let partition =
@@ -91,7 +91,7 @@ mod test {
     async fn topic_basic_read_write() {
         let config = Arc::new(Config::default());
 
-        let mut topic = Topic::load_from_disk(config, 0)
+        let mut topic = Topic::load_from_disk(config, 0, "foo")
             .await
             .expect("Failed to create topic");
 
@@ -112,7 +112,7 @@ mod test {
     async fn topic_continue_on_existing() {
         let config = Arc::new(Config::default());
 
-        let mut topic = Topic::load_from_disk(config.clone(), 0)
+        let mut topic = Topic::load_from_disk(config.clone(), 0, "foo")
             .await
             .expect("Failed to create topic");
 
@@ -124,7 +124,7 @@ mod test {
         assert_eq!(offset, 0);
         drop(topic);
 
-        let mut topic = Topic::load_from_disk(config, 0)
+        let mut topic = Topic::load_from_disk(config.clone(), 0, "foo")
             .await
             .expect("Failed to create topic");
 
@@ -138,7 +138,7 @@ mod test {
     async fn topic_multiple_partitions() {
         let config = Arc::new(Config::default());
 
-        let mut topic = Topic::load_from_disk(config.clone(), 0)
+        let mut topic = Topic::load_from_disk(config.clone(), 0, "foo")
             .await
             .expect("Failed to create topic");
 
@@ -150,7 +150,7 @@ mod test {
         assert_eq!(offset, 0);
         drop(topic);
 
-        let mut topic = Topic::load_from_disk(config, 0)
+        let mut topic = Topic::load_from_disk(config.clone(), 0, "foo")
             .await
             .expect("Failed to create topic");
 

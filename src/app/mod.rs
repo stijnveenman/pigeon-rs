@@ -25,7 +25,7 @@ impl App {
 
         // TODO: better bootstrapping of metadata topic having it itself be tracked
         debug!("Loading metadata topic from disk");
-        let mut metadata_topic = Topic::load_from_disk(config.clone(), 0).await?;
+        let mut metadata_topic = Topic::load_from_disk(config.clone(), 0, "foo").await?;
 
         debug!("Loading metadata records");
         let metadata_messages = metadata_topic
@@ -39,13 +39,15 @@ impl App {
 
         // TODO: remove existing on disks topics if not in metadata
         debug!("Loading {} topics from disk", metadata.topics.len());
-        let mut topics = HashMap::new();
+        let mut topics = HashMap::from([(0, metadata_topic)]);
         for (key, topic) in metadata.topics {
-            let topic = Topic::load_from_disk(config.clone(), topic.topic_id)
+            let topic = Topic::load_from_disk(config.clone(), topic.topic_id, "foo")
                 .await
                 .expect("Failed to load topic during startup");
             topics.insert(key, topic);
         }
+
+        let next_topic_id = *topics.keys().max().unwrap_or(&0);
 
         info!("Finished initialising App state from disk");
         info!("Loaded {} topics", topics.len());
@@ -53,7 +55,7 @@ impl App {
             app: Arc::new(RwLock::new(AppLock {
                 config,
                 topics,
-                metadata_topic,
+                next_topic_id,
             })),
         })
     }
@@ -77,8 +79,8 @@ impl Clone for App {
 
 pub struct AppLock {
     config: Arc<Config>,
+    next_topic_id: u64,
     topics: HashMap<u64, Topic>,
-    metadata_topic: Topic,
 }
 
 #[cfg(test)]

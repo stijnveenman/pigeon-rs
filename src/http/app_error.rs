@@ -31,6 +31,9 @@ impl IntoResponse for AppError {
                 }
             },
             app::error::Error::TopicIdNotFound(_) => (StatusCode::BAD_REQUEST, self.0.to_string()),
+            app::error::Error::MaxTopicIdReached => (StatusCode::BAD_REQUEST, self.0.to_string()),
+            app::error::Error::TopicIdInUse(_) => (StatusCode::BAD_REQUEST, self.0.to_string()),
+            app::error::Error::TopicNameInUse(_) => (StatusCode::BAD_REQUEST, self.0.to_string()),
         };
 
         (

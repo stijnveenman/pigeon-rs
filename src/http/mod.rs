@@ -27,7 +27,9 @@ async fn create_topic(
 ) -> AppResult<Json<CreateTopicResponse>> {
     let mut lock = app.write().await;
 
-    let topic_id = lock.create_topic(create_topic).await?;
+    let topic_id = lock
+        .create_topic(create_topic.topic_id, &create_topic.name)
+        .await?;
 
     Ok(Json(CreateTopicResponse { topic_id }))
 }
