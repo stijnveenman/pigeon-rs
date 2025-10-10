@@ -29,7 +29,11 @@ async fn create_topic(
     let mut lock = app.write().await;
 
     let topic_id = lock
-        .create_topic(create_topic.topic_id, &create_topic.name)
+        .create_topic(
+            create_topic.topic_id,
+            &create_topic.name,
+            create_topic.partitions,
+        )
         .await?;
 
     Ok(Json(CreateTopicResponse { topic_id }))

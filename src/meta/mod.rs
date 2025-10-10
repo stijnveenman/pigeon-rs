@@ -22,6 +22,7 @@ pub struct Metadata {
 pub struct TopicMetadata {
     pub topic_id: u64,
     pub name: String,
+    pub partitions: u64,
 }
 
 impl Metadata {
@@ -41,6 +42,7 @@ impl Metadata {
                         TopicMetadata {
                             topic_id: entry.topic_id,
                             name: entry.name,
+                            partitions: entry.partitions,
                         },
                     );
                 }

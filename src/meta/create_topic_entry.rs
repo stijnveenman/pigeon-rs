@@ -4,4 +4,5 @@ use serde::{Deserialize, Serialize};
 pub struct CreateTopicEntry {
     pub topic_id: u64,
     pub name: String,
+    pub partitions: u64,
 }

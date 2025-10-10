@@ -19,9 +19,14 @@ pub struct Topic {
 }
 
 impl Topic {
-    pub async fn load_from_disk(config: Arc<Config>, topic_id: u64, name: &str) -> Result<Self> {
-        let mut partitions = Vec::with_capacity(config.topic.num_partitions as usize);
-        for partition_id in (0..config.topic.num_partitions) {
+    pub async fn load_from_disk(
+        config: Arc<Config>,
+        topic_id: u64,
+        name: &str,
+        partition_count: u64,
+    ) -> Result<Self> {
+        let mut partitions = Vec::with_capacity(partition_count as usize);
+        for partition_id in (0..partition_count) {
             let partition =
                 Partition::load_from_disk(config.clone(), topic_id, partition_id).await?;
             partitions.push(partition);

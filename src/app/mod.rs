@@ -10,7 +10,10 @@ use tracing::{debug, info};
 
 use crate::{
     config::Config,
-    dur::{self, topic::Topic},
+    dur::{
+        self,
+        topic::{self, Topic},
+    },
     meta::Metadata,
 };
 
@@ -25,7 +28,7 @@ impl App {
 
         // TODO: better bootstrapping of metadata topic having it itself be tracked
         debug!("Loading metadata topic from disk");
-        let mut metadata_topic = Topic::load_from_disk(config.clone(), 0, "foo").await?;
+        let mut metadata_topic = Topic::load_from_disk(config.clone(), 0, "__metadata", 1).await?;
 
         debug!("Loading metadata records");
         let metadata_messages = metadata_topic
@@ -46,6 +49,7 @@ impl App {
                 config.clone(),
                 topic_metadata.topic_id,
                 &topic_metadata.name,
+                topic_metadata.partitions,
             )
             .await
             .expect("Failed to load topic during startup");
@@ -67,7 +71,7 @@ impl App {
 
         if app.topics.is_empty() {
             info!("No metadata topic found, creating __metadata");
-            app.create_topic(Some(0), "__metadata")
+            app.create_topic(Some(0), "__metadata", Some(1))
                 .await
                 .expect("Failed to initialise __metadata");
         }

@@ -12,7 +12,12 @@ use super::error::{Error, Result};
 use super::AppLock;
 
 impl AppLock {
-    pub async fn create_topic(&mut self, topic_id: Option<u64>, name: &str) -> Result<u64> {
+    pub async fn create_topic(
+        &mut self,
+        topic_id: Option<u64>,
+        name: &str,
+        partition_count: Option<u64>,
+    ) -> Result<u64> {
         let topic_id = match topic_id {
             Some(topic_id) => topic_id,
             None => loop {
@@ -36,8 +41,11 @@ impl AppLock {
             return Err(Error::TopicNameInUse(name.to_string()));
         }
 
+        let partition_count = partition_count.unwrap_or(self.config.topic.num_partitions);
+
         debug!("Creating topic with topic_id: {topic_id} and name {name}");
-        let topic = Topic::load_from_disk(self.config.clone(), topic_id, name).await?;
+        let topic =
+            Topic::load_from_disk(self.config.clone(), topic_id, name, partition_count).await?;
 
         self.topics.insert(topic_id, topic);
         self.topic_ids.insert(name.to_string(), topic_id);
@@ -45,6 +53,7 @@ impl AppLock {
         self.append_metadata(MetadataEntry::CreateTopic(CreateTopicEntry {
             topic_id,
             name: name.to_string(),
+            partitions: partition_count,
         }))
         .await?;
 
