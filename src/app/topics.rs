@@ -11,8 +11,6 @@ use super::AppLock;
 
 impl AppLock {
     pub async fn create_topic(&mut self, topic_id: Option<u64>, name: &str) -> Result<u64> {
-        // TODO: this will overwrite topoics if we delete topics in the middle
-        // metadata topic starts at 0
         let topic_id = match topic_id {
             Some(topic_id) => topic_id,
             None => loop {
@@ -32,13 +30,21 @@ impl AppLock {
             return Err(Error::TopicIdInUse(topic_id));
         }
 
+        if self.topic_ids.contains_key(name) {
+            return Err(Error::TopicNameInUse(name.to_string()));
+        }
+
         debug!("Creating topic with topic_id: {topic_id} and name {name}");
         let topic = Topic::load_from_disk(self.config.clone(), topic_id, name).await?;
 
         self.topics.insert(topic_id, topic);
+        self.topic_ids.insert(name.to_string(), topic_id);
 
-        self.append_metadata(MetadataEntry::CreateTopic(CreateTopicEntry { topic_id }))
-            .await?;
+        self.append_metadata(MetadataEntry::CreateTopic(CreateTopicEntry {
+            topic_id,
+            name: name.to_string(),
+        }))
+        .await?;
 
         Ok(topic_id)
     }

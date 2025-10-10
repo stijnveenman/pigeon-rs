@@ -39,24 +39,41 @@ impl App {
 
         // TODO: remove existing on disks topics if not in metadata
         debug!("Loading {} topics from disk", metadata.topics.len());
-        let mut topics = HashMap::from([(0, metadata_topic)]);
-        for (key, topic) in metadata.topics {
-            let topic = Topic::load_from_disk(config.clone(), topic.topic_id, "foo")
-                .await
-                .expect("Failed to load topic during startup");
+        let mut topics = HashMap::new();
+        let mut topic_ids = HashMap::new();
+        for (key, topic_metadata) in metadata.topics {
+            let topic = Topic::load_from_disk(
+                config.clone(),
+                topic_metadata.topic_id,
+                &topic_metadata.name,
+            )
+            .await
+            .expect("Failed to load topic during startup");
+
             topics.insert(key, topic);
+            topic_ids.insert(topic_metadata.name, topic_metadata.topic_id);
         }
 
         let next_topic_id = *topics.keys().max().unwrap_or(&0);
 
         info!("Finished initialising App state from disk");
         info!("Loaded {} topics", topics.len());
+        let mut app = AppLock {
+            config,
+            topics,
+            topic_ids,
+            next_topic_id,
+        };
+
+        if app.topics.is_empty() {
+            info!("No metadata topic found, creating __metadata");
+            app.create_topic(Some(0), "__metadata")
+                .await
+                .expect("Failed to initialise __metadata");
+        }
+
         Ok(Self {
-            app: Arc::new(RwLock::new(AppLock {
-                config,
-                topics,
-                next_topic_id,
-            })),
+            app: Arc::new(RwLock::new(app)),
         })
     }
 
@@ -81,6 +98,7 @@ pub struct AppLock {
     config: Arc<Config>,
     next_topic_id: u64,
     topics: HashMap<u64, Topic>,
+    topic_ids: HashMap<String, u64>,
 }
 
 #[cfg(test)]

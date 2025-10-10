@@ -21,6 +21,7 @@ pub struct Metadata {
 #[derive(Debug)]
 pub struct TopicMetadata {
     pub topic_id: u64,
+    pub name: String,
 }
 
 impl Metadata {
@@ -39,6 +40,7 @@ impl Metadata {
                         entry.topic_id,
                         TopicMetadata {
                             topic_id: entry.topic_id,
+                            name: entry.name,
                         },
                     );
                 }
