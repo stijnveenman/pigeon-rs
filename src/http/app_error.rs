@@ -53,4 +53,4 @@ impl IntoResponse for AppError {
     }
 }
 
-pub type AppResult<T> = Result<T, AppError>;
+pub type AppResult<T> = Result<Json<T>, AppError>;

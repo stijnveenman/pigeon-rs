@@ -25,7 +25,7 @@ pub struct HttpServer {
 async fn create_topic(
     State(app): State<App>,
     Json(create_topic): Json<CreateTopic>,
-) -> AppResult<Json<CreateTopicResponse>> {
+) -> AppResult<CreateTopicResponse> {
     let mut lock = app.write().await;
 
     let topic_id = lock
@@ -42,7 +42,7 @@ async fn create_topic(
 async fn produce(
     State(app): State<App>,
     Json(produce): Json<ProduceString>,
-) -> AppResult<Json<ProduceResponse>> {
+) -> AppResult<ProduceResponse> {
     let mut lock = app.write().await;
 
     let record = Record {
@@ -60,10 +60,7 @@ async fn produce(
     Ok(Json(ProduceResponse { offset }))
 }
 
-async fn get_state(
-    State(app): State<App>,
-    Path(name): Path<String>,
-) -> AppResult<Json<TopicState>> {
+async fn get_state(State(app): State<App>, Path(name): Path<String>) -> AppResult<TopicState> {
     let lock = app.read().await;
 
     let state = lock.get_topic_by_name(&name)?.state();
