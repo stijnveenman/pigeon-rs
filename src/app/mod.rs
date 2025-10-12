@@ -39,7 +39,6 @@ impl App {
         let metadata = Metadata::from_records(metadata_messages);
         debug!("Loaded metadata: {metadata:#?}");
 
-        // TODO: remove existing on disks topics if not in metadata
         debug!("Loading {} topics from disk", metadata.topics.len());
         let mut topics = HashMap::new();
         let mut topic_ids = HashMap::new();
