@@ -1,6 +1,9 @@
+use std::collections::hash_map::Entry;
 use std::collections::HashMap;
+use std::sync::Arc;
 
 use bytes::Bytes;
+use tokio::sync::broadcast;
 use tracing::{debug, warn};
 use tracing_subscriber::layer::Identity;
 
@@ -146,12 +149,30 @@ impl AppLock {
         let notify_count = self
             .listeners
             .get(&topic_id)
-            .map(|sender| sender.send(record).unwrap_or(0))
+            .map(|sender| sender.send(Arc::new(record)).unwrap_or(0))
             .unwrap_or(0);
 
         debug!("Notified {notify_count} listeners for topic {topic_id}");
 
         Ok(offset)
+    }
+
+    pub fn subscribe(
+        &mut self,
+        identifer: &Identifier,
+    ) -> Result<broadcast::Receiver<Arc<Record>>> {
+        let topic_id = self.get_topic(identifer)?.id();
+
+        let rx = match self.listeners.entry(topic_id) {
+            Entry::Occupied(occupied_entry) => occupied_entry.get().subscribe(),
+            Entry::Vacant(vacant_entry) => {
+                let (tx, rx) = broadcast::channel(8);
+                vacant_entry.insert(tx);
+                rx
+            }
+        };
+
+        Ok(rx)
     }
 
     pub fn topic_states(&self) -> HashMap<u64, TopicState> {

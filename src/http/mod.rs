@@ -11,15 +11,16 @@ use responses::create_topic_response::CreateTopicResponse;
 use responses::produce_response::ProduceResponse;
 use responses::record_response::RecordResponse;
 use tokio::net::TcpListener;
-use tracing::info;
+use tracing::{info, warn};
 
-use crate::app::App;
+use crate::app::{self, App};
 use crate::commands::create_topic::CreateTopic;
 use crate::commands::fetch::Fetch;
 use crate::commands::produce::Produce;
 use crate::data::encoding;
 use crate::data::record::RecordHeader;
 use crate::data::state::topic_state::TopicState;
+use crate::dur;
 
 pub struct HttpServer {
     router: Router,
@@ -92,9 +93,27 @@ async fn fetch(State(app): State<App>, Json(fetch): Json<Fetch>) -> AppResult<Re
 
     let record = lock
         .read_exact(&fetch.topic, fetch.partition_id, fetch.offset)
-        .await?;
+        .await;
 
-    Ok(Json(RecordResponse::from(record, fetch.encoding)?))
+    drop(lock);
+
+    match record {
+        Ok(record) => Ok(Json(RecordResponse::from(&record, fetch.encoding)?)),
+        Err(app::error::Error::Durrability(dur::error::Error::OffsetNotFound)) => {
+            let mut lock = app.write().await;
+            let mut rx = lock.subscribe(&fetch.topic)?;
+            drop(lock);
+
+            match rx.recv().await {
+                Ok(record) => Ok(Json(RecordResponse::from(&record, fetch.encoding)?)),
+                Err(_) => {
+                    warn!("Recv error on rx channel, returning original result");
+                    Err(app::error::Error::Durrability(dur::error::Error::OffsetNotFound).into())
+                }
+            }
+        }
+        Err(e) => Err(e.into()),
+    }
 }
 
 impl HttpServer {

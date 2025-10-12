@@ -23,7 +23,7 @@ pub struct HeaderResponse {
 }
 
 impl RecordResponse {
-    pub fn from(value: Record, encoding: Encoding) -> Result<Self, encoding::Error> {
+    pub fn from(value: &Record, encoding: Encoding) -> Result<Self, encoding::Error> {
         Ok(Self {
             offset: value.offset,
             key: encoding.encode(&value.key)?,
