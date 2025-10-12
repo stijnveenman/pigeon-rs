@@ -16,7 +16,7 @@ use tracing::info;
 use crate::app::App;
 use crate::commands::create_topic::CreateTopic;
 use crate::commands::fetch::Fetch;
-use crate::commands::produce::ProduceString;
+use crate::commands::produce::Produce;
 use crate::data::record::Record;
 use crate::data::state::topic_state::TopicState;
 use crate::data::timestamp::Timestamp;
@@ -45,13 +45,13 @@ async fn create_topic(
 
 async fn produce(
     State(app): State<App>,
-    Json(produce): Json<ProduceString>,
+    Json(produce): Json<Produce>,
 ) -> AppResult<ProduceResponse> {
     let mut lock = app.write().await;
 
     let record = Record {
-        key: produce.key.into(),
-        value: produce.value.into(),
+        key: produce.encoding.decode(&produce.key)?,
+        value: produce.encoding.decode(&produce.value)?,
         timestamp: Timestamp::now(),
         offset: 0,
         headers: vec![],

@@ -1,12 +1,12 @@
 use serde::{Deserialize, Serialize};
 
-use crate::data::identifier::Identifier;
+use crate::data::{encoding::Encoding, identifier::Identifier};
 
 #[derive(Serialize, Deserialize)]
-pub struct ProduceString {
+pub struct Produce {
     pub topic: Identifier,
     pub partition_id: u64,
     pub key: String,
     pub value: String,
-    // TODO: support headers
+    pub encoding: Encoding, // TODO: support headers
 }

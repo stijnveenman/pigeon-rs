@@ -20,8 +20,8 @@ impl RecordResponse {
     pub fn from(value: Record, encoding: Encoding) -> Result<Self, encoding::Error> {
         Ok(Self {
             offset: value.offset,
-            key: encoding.decode(value.key)?,
-            value: encoding.decode(value.value)?,
+            key: encoding.encode(value.key)?,
+            value: encoding.encode(value.value)?,
             timestamp: value.timestamp,
         })
     }

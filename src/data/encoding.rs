@@ -16,13 +16,22 @@ pub enum Encoding {
 pub enum Error {
     #[error("UTF8 Decoding Error")]
     UTF8Decode(#[from] Utf8Error),
+    #[error("Base64 decoding error")]
+    B64Decode(#[from] base64::DecodeError),
 }
 
 impl Encoding {
-    pub fn decode(&self, bytes: Bytes) -> Result<String, Error> {
+    pub fn encode(&self, bytes: Bytes) -> Result<String, Error> {
         Ok(match self {
             Encoding::Utf8 => std::str::from_utf8(&bytes)?.to_string(),
             Encoding::B64 => BASE64_STANDARD.encode(&bytes),
+        })
+    }
+
+    pub fn decode(&self, value: &str) -> Result<Bytes, Error> {
+        Ok(match self {
+            Encoding::Utf8 => value.to_string().into(),
+            Encoding::B64 => BASE64_STANDARD.decode(value)?.into(),
         })
     }
 }
