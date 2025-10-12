@@ -17,7 +17,8 @@ use crate::app::App;
 use crate::commands::create_topic::CreateTopic;
 use crate::commands::fetch::Fetch;
 use crate::commands::produce::Produce;
-use crate::data::record::Record;
+use crate::data::encoding;
+use crate::data::record::{Record, RecordHeader};
 use crate::data::state::topic_state::TopicState;
 use crate::data::timestamp::Timestamp;
 
@@ -54,7 +55,17 @@ async fn produce(
         value: produce.encoding.decode(&produce.value)?,
         timestamp: Timestamp::now(),
         offset: 0,
-        headers: vec![],
+        headers: produce
+            .headers
+            .unwrap_or(vec![])
+            .iter()
+            .map(|header| {
+                Ok(RecordHeader {
+                    key: header.key.to_string(),
+                    value: produce.encoding.decode(&header.value)?,
+                })
+            })
+            .collect::<Result<_, encoding::Error>>()?,
     };
 
     let offset = lock

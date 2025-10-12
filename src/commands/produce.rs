@@ -8,5 +8,12 @@ pub struct Produce {
     pub partition_id: u64,
     pub key: String,
     pub value: String,
-    pub encoding: Encoding, // TODO: support headers
+    pub encoding: Encoding,
+    pub headers: Option<Vec<ProduceHeader>>,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct ProduceHeader {
+    pub key: String,
+    pub value: String,
 }
