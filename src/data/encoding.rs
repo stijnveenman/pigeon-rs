@@ -21,10 +21,10 @@ pub enum Error {
 }
 
 impl Encoding {
-    pub fn encode(&self, bytes: Bytes) -> Result<String, Error> {
+    pub fn encode(&self, bytes: &Bytes) -> Result<String, Error> {
         Ok(match self {
-            Encoding::Utf8 => std::str::from_utf8(&bytes)?.to_string(),
-            Encoding::B64 => BASE64_STANDARD.encode(&bytes),
+            Encoding::Utf8 => std::str::from_utf8(bytes)?.to_string(),
+            Encoding::B64 => BASE64_STANDARD.encode(bytes),
         })
     }
 
