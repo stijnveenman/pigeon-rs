@@ -1,7 +1,9 @@
 use std::sync::Arc;
 
+use bytes::Bytes;
+
 use crate::config::Config;
-use crate::data::record::Record;
+use crate::data::record::{Record, RecordHeader};
 use crate::data::state::topic_state::TopicState;
 use crate::dur::error::{Error, Result};
 
@@ -57,13 +59,19 @@ impl Topic {
         Ok(v)
     }
 
-    pub async fn append(&mut self, partition_id: u64, record: Record) -> Result<u64> {
+    pub async fn append(
+        &mut self,
+        partition_id: u64,
+        key: Bytes,
+        value: Bytes,
+        headers: Vec<RecordHeader>,
+    ) -> Result<Record> {
         let partition = self
             .partitions
             .get_mut(partition_id as usize)
             .ok_or(Error::PartitionNotFound)?;
 
-        partition.append(record).await
+        partition.append(key, value, headers).await
     }
 
     pub async fn read_exact(&self, partition_id: u64, offset: u64) -> Result<Record> {
@@ -97,7 +105,7 @@ mod test {
     use super::Topic;
     use std::sync::Arc;
 
-    use crate::{config::Config, data::record::Record, dur::error::Error};
+    use crate::{config::Config, dur::error::Error};
 
     #[tokio::test]
     async fn topic_basic_read_write() {
@@ -107,12 +115,11 @@ mod test {
             .await
             .expect("Failed to create topic");
 
-        let record = Record::basic("foo", "bar");
-        let offset = topic
-            .append(0, record)
+        let record = topic
+            .append(0, "foo".into(), "bar".into(), vec![])
             .await
             .expect("Failed to append record");
-        assert_eq!(offset, 0);
+        assert_eq!(record.offset, 0);
 
         let read_record = topic.read_exact(0, 0).await.expect("Failed to read record");
         assert_eq!(read_record.key, "foo");
@@ -128,12 +135,11 @@ mod test {
             .await
             .expect("Failed to create topic");
 
-        let record = Record::basic("foo", "bar");
-        let offset = topic
-            .append(0, record)
+        let record = topic
+            .append(0, "foo".into(), "bar".into(), vec![])
             .await
             .expect("Failed to append record");
-        assert_eq!(offset, 0);
+        assert_eq!(record.offset, 0);
         drop(topic);
 
         let topic = Topic::load_from_disk(config.clone(), 0, "foo", 10)
@@ -154,12 +160,11 @@ mod test {
             .await
             .expect("Failed to create topic");
 
-        let record = Record::basic("foo", "bar");
-        let offset = topic
-            .append(0, record)
+        let record = topic
+            .append(0, "foo".into(), "bar".into(), vec![])
             .await
             .expect("Failed to append record");
-        assert_eq!(offset, 0);
+        assert_eq!(record.offset, 0);
         drop(topic);
 
         let topic = Topic::load_from_disk(config.clone(), 0, "foo", 10)

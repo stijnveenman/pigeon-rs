@@ -42,21 +42,17 @@ async fn test_create_topic_and_append() {
         .expect("Failed to create_topic");
     assert_eq!(topic_id, 1);
 
-    let offset = lock
+    let record = lock
         .produce(
             Identifier::Id(topic_id),
             1,
-            Record {
-                offset: 0,
-                timestamp: Timestamp::now(),
-                headers: vec![],
-                key: "Hello".into(),
-                value: "World".into(),
-            },
+            "Hello".into(),
+            "World".into(),
+            vec![],
         )
         .await
         .expect("Failed to produce record");
-    assert_eq!(offset, 0);
+    assert_eq!(record.offset, 0);
 }
 
 #[tokio::test]
@@ -113,13 +109,9 @@ async fn test_cannot_produce_on_internal_topics() {
         .produce(
             Identifier::Name("__metadata".to_string()),
             0,
-            Record {
-                offset: 0,
-                timestamp: Timestamp::now(),
-                headers: vec![],
-                key: "Hello".into(),
-                value: "World".into(),
-            },
+            "Hello".into(),
+            "World".into(),
+            vec![],
         )
         .await;
     assert!(matches!(result, Err(Error::InternalTopicName(_))));

@@ -18,9 +18,8 @@ use crate::commands::create_topic::CreateTopic;
 use crate::commands::fetch::Fetch;
 use crate::commands::produce::Produce;
 use crate::data::encoding;
-use crate::data::record::{Record, RecordHeader};
+use crate::data::record::RecordHeader;
 use crate::data::state::topic_state::TopicState;
-use crate::data::timestamp::Timestamp;
 
 pub struct HttpServer {
     router: Router,
@@ -50,29 +49,27 @@ async fn produce(
 ) -> AppResult<ProduceResponse> {
     let mut lock = app.write().await;
 
-    let record = Record {
-        key: produce.encoding.decode(&produce.key)?,
-        value: produce.encoding.decode(&produce.value)?,
-        timestamp: Timestamp::now(),
-        offset: 0,
-        headers: produce
-            .headers
-            .unwrap_or(vec![])
-            .iter()
-            .map(|header| {
-                Ok(RecordHeader {
-                    key: header.key.to_string(),
-                    value: produce.encoding.decode(&header.value)?,
-                })
+    let key = produce.encoding.decode(&produce.key)?;
+    let value = produce.encoding.decode(&produce.value)?;
+    let headers = produce
+        .headers
+        .unwrap_or(vec![])
+        .iter()
+        .map(|header| {
+            Ok(RecordHeader {
+                key: header.key.to_string(),
+                value: produce.encoding.decode(&header.value)?,
             })
-            .collect::<Result<_, encoding::Error>>()?,
-    };
+        })
+        .collect::<Result<_, encoding::Error>>()?;
 
-    let offset = lock
-        .produce(produce.topic, produce.partition_id, record)
+    let record = lock
+        .produce(produce.topic, produce.partition_id, key, value, headers)
         .await?;
 
-    Ok(Json(ProduceResponse { offset }))
+    Ok(Json(ProduceResponse {
+        offset: record.offset,
+    }))
 }
 
 async fn get_topic_state(

@@ -1,10 +1,11 @@
 use std::collections::HashMap;
 
+use bytes::Bytes;
 use tracing::{debug, warn};
 use tracing_subscriber::layer::Identity;
 
 use crate::data::identifier::Identifier;
-use crate::data::record::Record;
+use crate::data::record::{Record, RecordHeader};
 use crate::data::state::topic_state::TopicState;
 use crate::data::timestamp::Timestamp;
 use crate::meta::create_topic_entry::CreateTopicEntry;
@@ -123,22 +124,24 @@ impl AppLock {
         &mut self,
         identifier: Identifier,
         partition_id: u64,
-        record: Record,
-    ) -> Result<u64> {
+        key: Bytes,
+        value: Bytes,
+        headers: Vec<RecordHeader>,
+    ) -> Result<Record> {
         let mut topic = self.get_topic_mut(&identifier)?;
 
         if topic.name().starts_with("__") {
             return Err(Error::InternalTopicName(topic.name().to_string()));
         }
 
-        let offset = topic
-            .append(partition_id, record)
+        let record = topic
+            .append(partition_id, key, value, headers)
             .await
             .inspect_err(|e| warn!("Produce error: {e}"))?;
 
-        debug!("Appended record to {identifier} offset: {offset}",);
+        debug!("Appended record to {identifier} offset: {}", record.offset);
 
-        Ok(offset)
+        Ok(record)
     }
 
     pub fn topic_states(&self) -> HashMap<u64, TopicState> {

@@ -6,14 +6,7 @@ use rand::{
     SeedableRng,
 };
 
-use crate::{
-    config::Config,
-    data::{
-        record::{Record, RecordHeader},
-        timestamp::Timestamp,
-    },
-    dur::topic::Topic,
-};
+use crate::{config::Config, data::record::RecordHeader, dur::topic::Topic};
 
 #[tokio::test]
 #[ignore]
@@ -29,23 +22,17 @@ async fn single_topic_random_test() {
         .await
         .expect("Failed to create topic");
 
-    let time = Timestamp::now();
-
     for i in 0..count {
         for p in 0..config.topic.num_partitions {
             topic
                 .append(
                     p,
-                    Record {
-                        offset: 0,
-                        timestamp: time,
-                        key: format!("{}:{}", p, i).into(),
+                    format!("{}:{}", p, i).into(),
+                    Alphanumeric.sample_string(&mut random, 16).into(),
+                    vec![RecordHeader {
+                        key: Alphanumeric.sample_string(&mut random, 16),
                         value: Alphanumeric.sample_string(&mut random, 16).into(),
-                        headers: vec![RecordHeader {
-                            key: Alphanumeric.sample_string(&mut random, 16),
-                            value: Alphanumeric.sample_string(&mut random, 16).into(),
-                        }],
-                    },
+                    }],
                 )
                 .await
                 .expect("Failed to append record to topic");
@@ -68,7 +55,6 @@ async fn single_topic_random_test() {
                 .expect("Failed to read message");
 
             assert_eq!(record.offset, i);
-            assert_eq!(record.timestamp, time);
             assert_eq!(record.key, format!("{}:{}", p, i));
             assert!(record.value.len() == 16);
             assert!(record.headers.len() == 1);

@@ -1,11 +1,16 @@
 use std::{collections::BTreeMap, ops::Bound, path::Path, sync::Arc};
 
+use bytes::Bytes;
 use tokio::fs::{self, create_dir_all};
 
 use super::{error::Result, segment::Segment};
 use crate::{
     config::Config,
-    data::{record::Record, state::partition_state::PartitionState},
+    data::{
+        record::{Record, RecordHeader},
+        state::partition_state::PartitionState,
+        timestamp::Timestamp,
+    },
     dur::error::Error,
 };
 
@@ -112,7 +117,12 @@ impl Partition {
         }
     }
 
-    pub async fn append(&mut self, mut record: Record) -> Result<u64> {
+    pub async fn append(
+        &mut self,
+        key: Bytes,
+        value: Bytes,
+        headers: Vec<RecordHeader>,
+    ) -> Result<Record> {
         if self
             .segments
             .last_entry()
@@ -132,7 +142,14 @@ impl Partition {
             );
         }
 
-        record.offset = self.next_offset;
+        let record = Record {
+            timestamp: Timestamp::now(),
+            key,
+            value,
+            headers,
+            offset: self.next_offset,
+        };
+
         self.next_offset += 1;
 
         self.segments
@@ -142,7 +159,7 @@ impl Partition {
             .append(&record)
             .await?;
 
-        Ok(record.offset)
+        Ok(record)
     }
 }
 
@@ -151,7 +168,7 @@ mod test {
     use crate::dur::partition::Partition;
     use std::sync::Arc;
 
-    use crate::{config::Config, data::record::Record};
+    use crate::config::Config;
 
     #[tokio::test]
     async fn partition_basic_read_write() {
@@ -161,19 +178,17 @@ mod test {
             .await
             .expect("Failed to load partition");
 
-        let record = Record::basic("foo", "bar");
-        let offset = partition
-            .append(record)
+        let record = partition
+            .append("foo".into(), "bar".into(), vec![])
             .await
             .expect("Failed to append record");
-        assert_eq!(offset, 0);
+        assert_eq!(record.offset, 0);
 
-        let record = Record::basic("foo", "bar2");
-        let offset = partition
-            .append(record)
+        let record = partition
+            .append("foo".into(), "bar2".into(), vec![])
             .await
             .expect("Failed to append record");
-        assert_eq!(offset, 1);
+        assert_eq!(record.offset, 1);
 
         let read_record = partition
             .read_exact(1)
@@ -192,12 +207,11 @@ mod test {
             .await
             .expect("Failed to load partition");
 
-        let record = Record::basic("foo", "bar");
-        let offset = partition
-            .append(record)
+        let record = partition
+            .append("foo".into(), "bar".into(), vec![])
             .await
             .expect("Failed to append record");
-        assert_eq!(offset, 0);
+        assert_eq!(record.offset, 0);
 
         drop(partition);
 
@@ -205,12 +219,11 @@ mod test {
             .await
             .expect("Failed to load partition");
 
-        let record = Record::basic("foo", "bar2");
-        let offset = partition
-            .append(record)
+        let record = partition
+            .append("foo".into(), "bar2".into(), vec![])
             .await
             .expect("Failed to append record");
-        assert_eq!(offset, 1);
+        assert_eq!(record.offset, 1);
 
         let read_record = partition
             .read_exact(1)
@@ -231,19 +244,17 @@ mod test {
             .await
             .expect("Failed to load partition");
 
-        let record = Record::basic("foo", "bar");
-        let offset = partition
-            .append(record)
+        let record = partition
+            .append("foo".into(), "bar".into(), vec![])
             .await
             .expect("Failed to append record");
-        assert_eq!(offset, 0);
+        assert_eq!(record.offset, 0);
 
-        let record = Record::basic("foo", "bar2");
-        let offset = partition
-            .append(record)
+        let record = partition
+            .append("foo".into(), "bar2".into(), vec![])
             .await
             .expect("Failed to append record");
-        assert_eq!(offset, 1);
+        assert_eq!(record.offset, 1);
 
         assert_eq!(partition.segments.len(), 2);
 
