@@ -8,6 +8,7 @@ use tracing::{debug, warn};
 use tracing_subscriber::layer::Identity;
 
 use crate::data::identifier::Identifier;
+use crate::data::offset_selection::OffsetSelection;
 use crate::data::record::{Record, RecordHeader};
 use crate::data::state::topic_state::TopicState;
 use crate::data::timestamp::Timestamp;
@@ -76,6 +77,17 @@ impl AppLock {
         let topic = self.get_topic(identifer)?;
 
         Ok(topic.read_exact(partition_id, offset).await?)
+    }
+
+    pub async fn read(
+        &self,
+        identifer: &Identifier,
+        partition_id: u64,
+        offset: OffsetSelection,
+    ) -> Result<Record> {
+        let topic = self.get_topic(identifer)?;
+
+        Ok(topic.read(partition_id, offset).await?)
     }
 
     pub fn get_topic(&self, identifer: &Identifier) -> Result<&Topic> {

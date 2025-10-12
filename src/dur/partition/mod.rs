@@ -7,6 +7,7 @@ use super::{error::Result, segment::Segment};
 use crate::{
     config::Config,
     data::{
+        offset_selection::OffsetSelection,
         record::{Record, RecordHeader},
         state::partition_state::PartitionState,
         timestamp::Timestamp,
@@ -107,6 +108,25 @@ impl Partition {
         let segment = cursor.prev().ok_or(Error::OffsetNotFound)?.1;
 
         segment.read_exact(offset).await
+    }
+
+    // TODO: unit test
+    pub async fn read(&self, offset: OffsetSelection) -> Result<Record> {
+        // We want to get the segment with the latest start offset before the offset
+        let mut cursor = self.segments.upper_bound(Bound::Unbounded);
+
+        while let Some((_, segment)) = cursor.prev() {
+            let mut range = match offset {
+                OffsetSelection::Exact(offset) => segment.index().range(offset..=offset),
+                OffsetSelection::From(offset) => segment.index().range(offset..),
+            };
+
+            if let Some((offset, _)) = range.next() {
+                return segment.read_exact(*offset).await;
+            }
+        }
+
+        Err(Error::OffsetNotFound)
     }
 
     pub fn state(&self) -> PartitionState {

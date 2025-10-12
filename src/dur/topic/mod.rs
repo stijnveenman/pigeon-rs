@@ -3,6 +3,7 @@ use std::sync::Arc;
 use bytes::Bytes;
 
 use crate::config::Config;
+use crate::data::offset_selection::OffsetSelection;
 use crate::data::record::{Record, RecordHeader};
 use crate::data::state::topic_state::TopicState;
 use crate::dur::error::{Error, Result};
@@ -72,6 +73,15 @@ impl Topic {
             .ok_or(Error::PartitionNotFound)?;
 
         partition.append(key, value, headers).await
+    }
+
+    pub async fn read(&self, partition_id: u64, offset: OffsetSelection) -> Result<Record> {
+        let partition = self
+            .partitions
+            .get(partition_id as usize)
+            .ok_or(Error::PartitionNotFound)?;
+
+        partition.read(offset).await
     }
 
     pub async fn read_exact(&self, partition_id: u64, offset: u64) -> Result<Record> {

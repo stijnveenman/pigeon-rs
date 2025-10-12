@@ -92,11 +92,12 @@ async fn fetch(State(app): State<App>, Json(fetch): Json<Fetch>) -> AppResult<Re
     let lock = app.read().await;
 
     let record = lock
-        .read_exact(&fetch.topic, fetch.partition_id, fetch.offset)
+        .read(&fetch.topic, fetch.partition_id, fetch.offset)
         .await;
 
     drop(lock);
 
+    // TODO: test if this actually matches the offset selection
     match record {
         Ok(record) => Ok(Json(RecordResponse::from(&record, fetch.encoding)?)),
         Err(app::error::Error::Durrability(dur::error::Error::OffsetNotFound)) => {
