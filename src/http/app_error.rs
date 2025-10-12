@@ -38,6 +38,9 @@ impl IntoResponse for AppError {
                 crate::dur::error::Error::PartitionNotFound => {
                     (StatusCode::BAD_REQUEST, error.to_string())
                 }
+                crate::dur::error::Error::InvalidLogFilename(_) => {
+                    (StatusCode::INTERNAL_SERVER_ERROR, error.to_string())
+                }
             },
             app::error::Error::TopicIdNotFound(_) => (StatusCode::BAD_REQUEST, self.0.to_string()),
             app::error::Error::MaxTopicIdReached => (StatusCode::BAD_REQUEST, self.0.to_string()),

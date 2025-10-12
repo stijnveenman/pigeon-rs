@@ -32,15 +32,14 @@ async fn load_segments_form_disk(
             continue;
         }
 
-        // TODO: error handling
         let start_offset = entry
             .path()
             .file_stem()
-            .expect("Log file has invalid file name format")
+            .ok_or(Error::InvalidLogFilename(entry.file_name()))?
             .to_str()
-            .expect("start_offset string conversion invalid")
+            .ok_or(Error::InvalidLogFilename(entry.file_name()))?
             .parse::<u64>()
-            .expect("start_offset of log file is invalid");
+            .map_err(|_| Error::InvalidLogFilename(entry.file_name()))?;
 
         let segment = Segment::load_from_disk(config, topic_id, partition_id, start_offset).await?;
 
