@@ -5,11 +5,12 @@ mod topics;
 
 use std::{collections::HashMap, sync::Arc};
 
-use tokio::sync::{RwLock, RwLockReadGuard, RwLockWriteGuard};
+use tokio::sync::{broadcast, RwLock, RwLockReadGuard, RwLockWriteGuard};
 use tracing::{debug, info};
 
 use crate::{
     config::Config,
+    data::record::Record,
     dur::{
         self,
         topic::{self, Topic},
@@ -65,6 +66,7 @@ impl App {
             topics,
             topic_ids,
             next_topic_id,
+            listeners: HashMap::new(),
         };
 
         if app.topics.is_empty() {
@@ -101,6 +103,7 @@ pub struct AppLock {
     next_topic_id: u64,
     topics: HashMap<u64, Topic>,
     topic_ids: HashMap<String, u64>,
+    listeners: HashMap<u64, broadcast::Sender<Record>>,
 }
 
 #[cfg(test)]

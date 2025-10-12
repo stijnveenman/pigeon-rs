@@ -63,13 +63,11 @@ async fn produce(
         })
         .collect::<Result<_, encoding::Error>>()?;
 
-    let record = lock
+    let offset = lock
         .produce(produce.topic, produce.partition_id, key, value, headers)
         .await?;
 
-    Ok(Json(ProduceResponse {
-        offset: record.offset,
-    }))
+    Ok(Json(ProduceResponse { offset }))
 }
 
 async fn get_topic_state(

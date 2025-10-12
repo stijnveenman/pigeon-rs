@@ -98,6 +98,10 @@ impl Topic {
     pub fn name(&self) -> &str {
         &self.name
     }
+
+    pub fn id(&self) -> u64 {
+        self.topic_id
+    }
 }
 
 #[cfg(test)]

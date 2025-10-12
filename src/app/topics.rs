@@ -127,7 +127,7 @@ impl AppLock {
         key: Bytes,
         value: Bytes,
         headers: Vec<RecordHeader>,
-    ) -> Result<Record> {
+    ) -> Result<u64> {
         let mut topic = self.get_topic_mut(&identifier)?;
 
         if topic.name().starts_with("__") {
@@ -141,7 +141,17 @@ impl AppLock {
 
         debug!("Appended record to {identifier} offset: {}", record.offset);
 
-        Ok(record)
+        let topic_id = topic.id();
+        let offset = record.offset;
+        let notify_count = self
+            .listeners
+            .get(&topic_id)
+            .map(|sender| sender.send(record).unwrap_or(0))
+            .unwrap_or(0);
+
+        debug!("Notified {notify_count} listeners for topic {topic_id}");
+
+        Ok(offset)
     }
 
     pub fn topic_states(&self) -> HashMap<u64, TopicState> {

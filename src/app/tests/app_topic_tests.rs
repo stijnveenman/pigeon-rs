@@ -42,7 +42,7 @@ async fn test_create_topic_and_append() {
         .expect("Failed to create_topic");
     assert_eq!(topic_id, 1);
 
-    let record = lock
+    let offset = lock
         .produce(
             Identifier::Id(topic_id),
             1,
@@ -52,7 +52,7 @@ async fn test_create_topic_and_append() {
         )
         .await
         .expect("Failed to produce record");
-    assert_eq!(record.offset, 0);
+    assert_eq!(offset, 0);
 }
 
 #[tokio::test]
