@@ -111,7 +111,7 @@ impl Partition {
     }
 
     // TODO: unit test
-    pub async fn read(&self, offset: OffsetSelection) -> Result<Record> {
+    pub async fn read(&self, offset: &OffsetSelection) -> Result<Record> {
         // We want to get the segment with the latest start offset before the offset
         let mut cursor = self.segments.upper_bound(Bound::Unbounded);
 

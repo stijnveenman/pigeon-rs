@@ -75,7 +75,7 @@ impl Topic {
         partition.append(key, value, headers).await
     }
 
-    pub async fn read(&self, partition_id: u64, offset: OffsetSelection) -> Result<Record> {
+    pub async fn read(&self, partition_id: u64, offset: &OffsetSelection) -> Result<Record> {
         let partition = self
             .partitions
             .get(partition_id as usize)

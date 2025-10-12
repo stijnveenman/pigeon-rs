@@ -83,7 +83,7 @@ impl AppLock {
         &self,
         identifer: &Identifier,
         partition_id: u64,
-        offset: OffsetSelection,
+        offset: &OffsetSelection,
     ) -> Result<Record> {
         let topic = self.get_topic(identifer)?;
 

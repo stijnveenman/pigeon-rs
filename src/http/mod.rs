@@ -92,7 +92,7 @@ async fn fetch(State(app): State<App>, Json(fetch): Json<Fetch>) -> AppResult<Re
     let lock = app.read().await;
 
     let record = lock
-        .read(&fetch.topic, fetch.partition_id, fetch.offset)
+        .read(&fetch.topic, fetch.partition_id, &fetch.offset)
         .await;
 
     drop(lock);
@@ -105,12 +105,20 @@ async fn fetch(State(app): State<App>, Json(fetch): Json<Fetch>) -> AppResult<Re
             let mut rx = lock.subscribe(&fetch.topic)?;
             drop(lock);
 
-            match rx.recv().await {
-                Ok(record) => Ok(Json(RecordResponse::from(&record, fetch.encoding)?)),
-                Err(_) => {
-                    warn!("Recv error on rx channel, returning original result");
-                    Err(app::error::Error::Durrability(dur::error::Error::OffsetNotFound).into())
-                }
+            loop {
+                match rx.recv().await {
+                    Ok(record) if fetch.offset.matches(record.offset) => {
+                        return Ok(Json(RecordResponse::from(&record, fetch.encoding)?))
+                    }
+                    Ok(_) => continue,
+                    Err(_) => {
+                        warn!("Recv error on rx channel, returning original result");
+                        return Err(app::error::Error::Durrability(
+                            dur::error::Error::OffsetNotFound,
+                        )
+                        .into());
+                    }
+                };
             }
         }
         Err(e) => Err(e.into()),
