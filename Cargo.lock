@@ -799,6 +799,7 @@ dependencies = [
  "async-stream",
  "atoi",
  "axum",
+ "base64",
  "bson",
  "bytes",
  "chrono",

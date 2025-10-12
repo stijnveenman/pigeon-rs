@@ -1,6 +1,9 @@
 use axum::{http::StatusCode, response::IntoResponse, Json};
 
-use crate::app::{self};
+use crate::{
+    app::{self},
+    data::encoding,
+};
 
 use super::responses::error_response::ErrorResponse;
 
@@ -10,6 +13,12 @@ pub struct AppError(app::error::Error);
 impl From<app::error::Error> for AppError {
     fn from(value: app::error::Error) -> Self {
         AppError(value)
+    }
+}
+
+impl From<encoding::Error> for AppError {
+    fn from(value: encoding::Error) -> Self {
+        AppError(value.into())
     }
 }
 
@@ -40,6 +49,7 @@ impl IntoResponse for AppError {
             app::error::Error::InternalTopicName(_) => {
                 (StatusCode::BAD_REQUEST, self.0.to_string())
             }
+            app::error::Error::EncodingError(_) => (StatusCode::BAD_REQUEST, self.0.to_string()),
         };
 
         (

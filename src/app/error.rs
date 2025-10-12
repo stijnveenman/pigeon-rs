@@ -1,7 +1,7 @@
 use axum::{http::StatusCode, response::IntoResponse};
 use thiserror::Error;
 
-use crate::dur;
+use crate::{data::encoding, dur};
 
 #[derive(Debug, Error)]
 pub enum Error {
@@ -19,6 +19,8 @@ pub enum Error {
     TopicNameInUse(String),
     #[error("Topic with name ({0}) is internal")]
     InternalTopicName(String),
+    #[error("Error encoding or decoding bytes")]
+    EncodingError(#[from] encoding::Error),
 }
 
 pub type Result<T> = std::result::Result<T, Error>;

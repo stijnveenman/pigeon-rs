@@ -88,7 +88,7 @@ async fn fetch(State(app): State<App>, Json(fetch): Json<Fetch>) -> AppResult<Re
         .read_exact(&fetch.topic, fetch.partition_id, fetch.offset)
         .await?;
 
-    Ok(Json(record.into()))
+    Ok(Json(RecordResponse::from(record, fetch.encoding)?))
 }
 
 impl HttpServer {
