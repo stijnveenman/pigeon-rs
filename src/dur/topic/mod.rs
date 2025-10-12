@@ -95,15 +95,9 @@ impl Topic {
 #[cfg(test)]
 mod test {
     use super::Topic;
-    use std::{fs::create_dir_all, path::Path, sync::Arc};
+    use std::sync::Arc;
 
-    use tempfile::tempdir;
-
-    use crate::{
-        config::{self, Config},
-        data::{record::Record, timestamp::Timestamp},
-        dur::error::Error,
-    };
+    use crate::{config::Config, data::record::Record, dur::error::Error};
 
     #[tokio::test]
     async fn topic_basic_read_write() {
@@ -142,7 +136,7 @@ mod test {
         assert_eq!(offset, 0);
         drop(topic);
 
-        let mut topic = Topic::load_from_disk(config.clone(), 0, "foo", 10)
+        let topic = Topic::load_from_disk(config.clone(), 0, "foo", 10)
             .await
             .expect("Failed to create topic");
 
@@ -168,7 +162,7 @@ mod test {
         assert_eq!(offset, 0);
         drop(topic);
 
-        let mut topic = Topic::load_from_disk(config.clone(), 0, "foo", 10)
+        let topic = Topic::load_from_disk(config.clone(), 0, "foo", 10)
             .await
             .expect("Failed to create topic");
 

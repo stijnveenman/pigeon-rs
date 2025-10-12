@@ -115,7 +115,7 @@ impl Segment {
         let mut index_range = self.index.range(offset..);
 
         let record_file_offset = index_range.next().ok_or(Error::OffsetNotFound)?;
-        if (*record_file_offset.0 != offset) {
+        if *record_file_offset.0 != offset {
             return Err(Error::OffsetNotFound);
         }
 
@@ -205,21 +205,15 @@ impl Display for Segment {
 
 #[cfg(test)]
 mod test {
-    use std::{fs::create_dir_all, path::Path};
-
-    use tempfile::tempdir;
+    use std::fs::create_dir_all;
 
     use super::Segment;
-    use crate::{
-        config::{self, Config},
-        data::{record::Record, timestamp::Timestamp},
-        dur::error::Error,
-    };
+    use crate::{config::Config, data::record::Record, dur::error::Error};
 
     #[tokio::test]
     async fn segment_basic_read_write() {
         let config = Config::default();
-        create_dir_all(config.partition_path(0, 0));
+        create_dir_all(config.partition_path(0, 0)).unwrap();
 
         let mut segment = Segment::load_from_disk(&config, 0, 0, 0)
             .await
@@ -244,7 +238,7 @@ mod test {
     #[tokio::test]
     async fn segment_continue_on_existing_segment() {
         let config = Config::default();
-        create_dir_all(config.partition_path(0, 0));
+        create_dir_all(config.partition_path(0, 0)).unwrap();
 
         let mut segment = Segment::load_from_disk(&config, 0, 0, 0)
             .await
@@ -273,7 +267,7 @@ mod test {
     #[tokio::test]
     async fn segment_is_full() {
         let mut config = Config::default();
-        create_dir_all(config.partition_path(0, 0));
+        create_dir_all(config.partition_path(0, 0)).unwrap();
 
         config.segment.size = 1;
 

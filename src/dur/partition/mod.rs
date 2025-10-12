@@ -149,15 +149,10 @@ impl Partition {
 
 #[cfg(test)]
 mod test {
-    use crate::dur::{partition::Partition, segment};
-    use std::{fs::create_dir_all, path::Path, sync::Arc};
+    use crate::dur::partition::Partition;
+    use std::sync::Arc;
 
-    use tempfile::tempdir;
-
-    use crate::{
-        config::{self, Config},
-        data::{record::Record, timestamp::Timestamp},
-    };
+    use crate::{config::Config, data::record::Record};
 
     #[tokio::test]
     async fn partition_basic_read_write() {
