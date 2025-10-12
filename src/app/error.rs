@@ -21,6 +21,8 @@ pub enum Error {
     InternalTopicName(String),
     #[error("Error encoding or decoding bytes")]
     EncodingError(#[from] encoding::Error),
+    #[error("Fetch timed out waiting for records")]
+    FetchTimeout,
 }
 
 pub type Result<T> = std::result::Result<T, Error>;

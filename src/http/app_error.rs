@@ -53,6 +53,7 @@ impl IntoResponse for AppError {
                 (StatusCode::BAD_REQUEST, self.0.to_string())
             }
             app::error::Error::EncodingError(_) => (StatusCode::BAD_REQUEST, self.0.to_string()),
+            app::error::Error::FetchTimeout => (StatusCode::REQUEST_TIMEOUT, self.0.to_string()),
         };
 
         (

@@ -2,6 +2,7 @@ mod app_error;
 pub mod responses;
 
 use std::collections::HashMap;
+use std::time::Duration;
 
 use app_error::AppResult;
 use axum::extract::{Path, State};
@@ -11,6 +12,8 @@ use responses::create_topic_response::CreateTopicResponse;
 use responses::produce_response::ProduceResponse;
 use responses::record_response::RecordResponse;
 use tokio::net::TcpListener;
+use tokio::time::Instant;
+use tokio::{select, time};
 use tracing::{info, warn};
 
 use crate::app::{self, App};
@@ -105,20 +108,26 @@ async fn fetch(State(app): State<App>, Json(fetch): Json<Fetch>) -> AppResult<Re
             let mut rx = lock.subscribe(&fetch.topic)?;
             drop(lock);
 
+            let until = Instant::now() + Duration::from_millis(fetch.timeout_ms);
             loop {
-                match rx.recv().await {
-                    Ok(record) if fetch.offset.matches(record.offset) => {
-                        return Ok(Json(RecordResponse::from(&record, fetch.encoding)?))
+                select! {
+                    _ = time::sleep_until(until) => return Err(app::error::Error::FetchTimeout.into()),
+                    record = rx.recv() => {
+                        match record{
+                            Ok(record) if fetch.offset.matches(record.offset) => {
+                                return Ok(Json(RecordResponse::from(&record, fetch.encoding)?))
+                            }
+                            Ok(_) => continue,
+                            Err(_) => {
+                                warn!("Recv error on rx channel, returning original result");
+                                return Err(app::error::Error::Durrability(
+                                    dur::error::Error::OffsetNotFound,
+                                )
+                                .into());
+                            }
+                        };
                     }
-                    Ok(_) => continue,
-                    Err(_) => {
-                        warn!("Recv error on rx channel, returning original result");
-                        return Err(app::error::Error::Durrability(
-                            dur::error::Error::OffsetNotFound,
-                        )
-                        .into());
-                    }
-                };
+                }
             }
         }
         Err(e) => Err(e.into()),

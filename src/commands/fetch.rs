@@ -8,4 +8,5 @@ pub struct Fetch {
     pub partition_id: u64,
     pub offset: OffsetSelection,
     pub encoding: Encoding,
+    pub timeout_ms: u64,
 }
