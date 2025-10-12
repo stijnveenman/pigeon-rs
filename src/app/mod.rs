@@ -26,7 +26,6 @@ impl App {
         debug!("Loading App with config: {:#?}", config);
         let config = Arc::new(config);
 
-        // TODO: better bootstrapping of metadata topic having it itself be tracked
         debug!("Loading metadata topic from disk");
         let mut metadata_topic = Topic::load_from_disk(config.clone(), 0, "__metadata", 1).await?;
 

@@ -1,5 +1,3 @@
-// TODO: remove
-#![allow(unused)]
 use std::{collections::BTreeMap, ops::Bound, path::Path, sync::Arc};
 
 use tokio::fs::{self, create_dir_all};

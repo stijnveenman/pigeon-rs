@@ -1,22 +1,16 @@
-// TODO: remove
-#![allow(unused)]
-
 mod index;
 
-use std::collections::BTreeMap;
 use std::fmt::Display;
-use std::io::ErrorKind;
 use std::os::unix::fs::{FileExt, MetadataExt};
 use std::sync::Arc;
 
 use bytes::{Buf, Bytes};
 use index::Index;
 use std::fs::File as StdFile;
-use tokio::io::{AsyncReadExt, BufReader};
 use tokio::task::spawn_blocking;
 use tokio::{
     fs::{File, OpenOptions},
-    io::{self, AsyncSeekExt, AsyncWriteExt, BufWriter},
+    io::{AsyncSeekExt, AsyncWriteExt, BufWriter},
 };
 
 use crate::data::record::RecordHeader;

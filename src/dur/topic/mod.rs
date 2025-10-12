@@ -1,20 +1,15 @@
-// TODO: remove
-#![allow(unused)]
-use std::future::Future;
 use std::sync::Arc;
 
 use crate::config::Config;
 use crate::data::record::Record;
 use crate::data::state::topic_state::TopicState;
 use crate::dur::error::{Error, Result};
-use crate::dur::partition;
 
 use super::partition::Partition;
 
 pub struct Topic {
     topic_id: u64,
     name: String,
-    config: Arc<Config>,
 
     pub(super) partitions: Vec<Partition>,
 }
@@ -27,7 +22,7 @@ impl Topic {
         partition_count: u64,
     ) -> Result<Self> {
         let mut partitions = Vec::with_capacity(partition_count as usize);
-        for partition_id in (0..partition_count) {
+        for partition_id in 0..partition_count {
             let partition =
                 Partition::load_from_disk(config.clone(), topic_id, partition_id).await?;
             partitions.push(partition);
@@ -35,7 +30,6 @@ impl Topic {
 
         Ok(Self {
             topic_id,
-            config,
             name: name.to_string(),
             partitions,
         })
