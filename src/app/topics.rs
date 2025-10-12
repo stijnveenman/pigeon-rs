@@ -63,6 +63,17 @@ impl AppLock {
         Ok(topic_id)
     }
 
+    pub async fn read_exact(
+        &self,
+        identifer: &Identifier,
+        partition_id: u64,
+        offset: u64,
+    ) -> Result<Record> {
+        let topic = self.get_topic(identifer)?;
+
+        Ok(topic.read_exact(partition_id, offset).await?)
+    }
+
     pub fn get_topic(&self, identifer: &Identifier) -> Result<&Topic> {
         match identifer {
             Identifier::Name(name) => self.get_topic_by_name(name),

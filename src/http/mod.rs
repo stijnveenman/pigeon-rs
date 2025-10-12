@@ -9,11 +9,13 @@ use axum::routing::{get, post};
 use axum::{Json, Router};
 use responses::create_topic_response::CreateTopicResponse;
 use responses::produce_response::ProduceResponse;
+use responses::record_response::RecordResponse;
 use tokio::net::TcpListener;
 use tracing::info;
 
 use crate::app::App;
 use crate::commands::create_topic::CreateTopic;
+use crate::commands::fetch::Fetch;
 use crate::commands::produce::ProduceString;
 use crate::data::record::Record;
 use crate::data::state::topic_state::TopicState;
@@ -79,6 +81,16 @@ async fn get_all_topics_state(State(app): State<App>) -> AppResult<HashMap<u64, 
     Ok(Json(lock.topic_states()))
 }
 
+async fn fetch(State(app): State<App>, Json(fetch): Json<Fetch>) -> AppResult<RecordResponse> {
+    let lock = app.read().await;
+
+    let record = lock
+        .read_exact(&fetch.topic, fetch.partition_id, fetch.offset)
+        .await?;
+
+    Ok(Json(record.into()))
+}
+
 impl HttpServer {
     pub fn new(host: &str, port: u16, app: App) -> Self {
         let router = Router::new()
@@ -86,6 +98,7 @@ impl HttpServer {
             .route("/topics", get(get_all_topics_state))
             .route("/topics/{name}/state", get(get_topic_state))
             .route("/topics/records", post(produce))
+            .route("/topics/records", get(fetch))
             .with_state(app);
 
         let address = format!("{}:{}", host, port);

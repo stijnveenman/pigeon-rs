@@ -2,6 +2,7 @@ use core::fmt;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use chrono::{DateTime, Utc};
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub struct Timestamp(SystemTime);
@@ -23,6 +24,25 @@ impl Timestamp {
 
     pub fn as_micros(&self) -> u64 {
         self.0.duration_since(UNIX_EPOCH).unwrap().as_micros() as u64
+    }
+}
+
+impl Serialize for Timestamp {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        serializer.serialize_u64(self.as_micros())
+    }
+}
+
+impl<'de> Deserialize<'de> for Timestamp {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let micros = u64::deserialize(deserializer)?;
+        Ok(Timestamp::from(micros))
     }
 }
 
