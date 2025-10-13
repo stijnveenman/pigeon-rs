@@ -111,12 +111,15 @@ impl Segment {
         self.log_size >= self.max_log_size
     }
 
-    pub async fn read_exact(&self, offset: u64) -> Result<Record> {
+    pub async fn read_exact(&self, offset: u64) -> Result<Option<Record>> {
         let mut index_range = self.index.range(offset..);
 
-        let record_file_offset = index_range.next().ok_or(Error::OffsetNotFound)?;
+        let Some(record_file_offset) = index_range.next() else {
+            return Ok(None);
+        };
+
         if *record_file_offset.0 != offset {
-            return Err(Error::OffsetNotFound);
+            return Ok(None);
         }
 
         let record_file_offset = *record_file_offset.1;
@@ -159,13 +162,13 @@ impl Segment {
             })
             .collect::<Vec<_>>();
 
-        Ok(Record {
+        Ok(Some(Record {
             offset,
             timestamp,
             key,
             value,
             headers,
-        })
+        }))
     }
 
     pub fn max_offset(&self) -> Option<u64> {

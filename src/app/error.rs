@@ -1,5 +1,6 @@
 use axum::{http::StatusCode, response::IntoResponse};
 use thiserror::Error;
+use tokio::sync::broadcast::error::RecvError;
 
 use crate::{data::encoding, dur};
 
@@ -23,6 +24,8 @@ pub enum Error {
     EncodingError(#[from] encoding::Error),
     #[error("Fetch timed out waiting for records")]
     FetchTimeout,
+    #[error("Error receiving from internal channel")]
+    RecvError(#[from] RecvError),
 }
 
 pub type Result<T> = std::result::Result<T, Error>;

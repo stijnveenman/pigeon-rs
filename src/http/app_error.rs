@@ -1,4 +1,5 @@
 use axum::{http::StatusCode, response::IntoResponse, Json};
+use tokio::sync::broadcast::error::RecvError;
 
 use crate::{
     app::{self},
@@ -22,15 +23,18 @@ impl From<encoding::Error> for AppError {
     }
 }
 
+impl From<RecvError> for AppError {
+    fn from(value: RecvError) -> Self {
+        AppError(value.into())
+    }
+}
+
 impl IntoResponse for AppError {
     fn into_response(self) -> axum::response::Response {
         let (status, message) = match self.0 {
             app::error::Error::Durrability(error) => match error {
                 crate::dur::error::Error::UnderlyingIO(error) => {
                     (StatusCode::INTERNAL_SERVER_ERROR, error.to_string())
-                }
-                crate::dur::error::Error::OffsetNotFound => {
-                    (StatusCode::BAD_REQUEST, error.to_string())
                 }
                 crate::dur::error::Error::SegmentFull => {
                     (StatusCode::BAD_REQUEST, error.to_string())
@@ -54,6 +58,9 @@ impl IntoResponse for AppError {
             }
             app::error::Error::EncodingError(_) => (StatusCode::BAD_REQUEST, self.0.to_string()),
             app::error::Error::FetchTimeout => (StatusCode::REQUEST_TIMEOUT, self.0.to_string()),
+            app::error::Error::RecvError(recv_error) => {
+                (StatusCode::INTERNAL_SERVER_ERROR, recv_error.to_string())
+            }
         };
 
         (

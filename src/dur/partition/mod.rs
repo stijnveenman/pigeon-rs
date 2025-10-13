@@ -102,16 +102,18 @@ impl Partition {
         self.segments.iter().rev().find_map(|e| e.1.max_offset())
     }
 
-    pub async fn read_exact(&self, offset: u64) -> Result<Record> {
+    pub async fn read_exact(&self, offset: u64) -> Result<Option<Record>> {
         // We want to get the segment with the latest start offset before the offset
         let mut cursor = self.segments.lower_bound(Bound::Excluded(&offset));
-        let segment = cursor.prev().ok_or(Error::OffsetNotFound)?.1;
+        let Some((_, segment)) = cursor.prev() else {
+            return Ok(None);
+        };
 
         segment.read_exact(offset).await
     }
 
     // TODO: unit test
-    pub async fn read(&self, offset: &OffsetSelection) -> Result<Record> {
+    pub async fn read(&self, offset: &OffsetSelection) -> Result<Option<Record>> {
         // We want to get the segment with the latest start offset before the offset
         let mut cursor = self.segments.upper_bound(Bound::Unbounded);
 
@@ -126,7 +128,7 @@ impl Partition {
             }
         }
 
-        Err(Error::OffsetNotFound)
+        Ok(None)
     }
 
     pub fn state(&self) -> PartitionState {

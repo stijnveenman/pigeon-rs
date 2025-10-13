@@ -73,7 +73,7 @@ impl AppLock {
         identifer: &Identifier,
         partition_id: u64,
         offset: u64,
-    ) -> Result<Record> {
+    ) -> Result<Option<Record>> {
         let topic = self.get_topic(identifer)?;
 
         Ok(topic.read_exact(partition_id, offset).await?)
@@ -84,7 +84,7 @@ impl AppLock {
         identifer: &Identifier,
         partition_id: u64,
         offset: &OffsetSelection,
-    ) -> Result<Record> {
+    ) -> Result<Option<Record>> {
         let topic = self.get_topic(identifer)?;
 
         Ok(topic.read(partition_id, offset).await?)

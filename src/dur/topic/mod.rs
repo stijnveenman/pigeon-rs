@@ -51,8 +51,8 @@ impl Topic {
         let mut v = vec![];
         for offset in min_offset..=max_offset {
             match partition.read_exact(offset).await {
-                Ok(record) => v.push(record),
-                Err(Error::OffsetNotFound) => continue,
+                Ok(Some(record)) => v.push(record),
+                Ok(None) => continue,
                 Err(e) => return Err(e),
             }
         }
@@ -75,7 +75,11 @@ impl Topic {
         partition.append(key, value, headers).await
     }
 
-    pub async fn read(&self, partition_id: u64, offset: &OffsetSelection) -> Result<Record> {
+    pub async fn read(
+        &self,
+        partition_id: u64,
+        offset: &OffsetSelection,
+    ) -> Result<Option<Record>> {
         let partition = self
             .partitions
             .get(partition_id as usize)
@@ -84,7 +88,7 @@ impl Topic {
         partition.read(offset).await
     }
 
-    pub async fn read_exact(&self, partition_id: u64, offset: u64) -> Result<Record> {
+    pub async fn read_exact(&self, partition_id: u64, offset: u64) -> Result<Option<Record>> {
         let partition = self
             .partitions
             .get(partition_id as usize)

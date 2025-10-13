@@ -14,7 +14,7 @@ use responses::record_response::RecordResponse;
 use tokio::net::TcpListener;
 use tokio::time::Instant;
 use tokio::{select, time};
-use tracing::{info, warn};
+use tracing::info;
 
 use crate::app::{self, App};
 use crate::commands::create_topic::CreateTopic;
@@ -23,7 +23,6 @@ use crate::commands::produce::Produce;
 use crate::data::encoding;
 use crate::data::record::RecordHeader;
 use crate::data::state::topic_state::TopicState;
-use crate::dur;
 
 pub struct HttpServer {
     router: Router,
@@ -102,8 +101,8 @@ async fn fetch(State(app): State<App>, Json(fetch): Json<Fetch>) -> AppResult<Re
 
     // TODO: test if this actually matches the offset selection
     match record {
-        Ok(record) => Ok(Json(RecordResponse::from(&record, fetch.encoding)?)),
-        Err(app::error::Error::Durrability(dur::error::Error::OffsetNotFound)) => {
+        Ok(Some(record)) => Ok(Json(RecordResponse::from(&record, fetch.encoding)?)),
+        Ok(None) => {
             let mut lock = app.write().await;
             let mut rx = lock.subscribe(&fetch.topic)?;
             drop(lock);
@@ -118,13 +117,7 @@ async fn fetch(State(app): State<App>, Json(fetch): Json<Fetch>) -> AppResult<Re
                                 return Ok(Json(RecordResponse::from(&record, fetch.encoding)?))
                             }
                             Ok(_) => continue,
-                            Err(_) => {
-                                warn!("Recv error on rx channel, returning original result");
-                                return Err(app::error::Error::Durrability(
-                                    dur::error::Error::OffsetNotFound,
-                                )
-                                .into());
-                            }
+                            Err(e) => return Err(e.into())
                         };
                     }
                 }
