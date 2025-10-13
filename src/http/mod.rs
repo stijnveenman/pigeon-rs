@@ -4,6 +4,7 @@ pub mod responses;
 use std::collections::HashMap;
 use std::pin::Pin;
 use std::sync::Arc;
+use std::time::Duration;
 
 use app_error::AppResult;
 use axum::extract::{Path, State};
@@ -13,6 +14,7 @@ use responses::create_topic_response::CreateTopicResponse;
 use responses::produce_response::ProduceResponse;
 use responses::record_response::RecordResponse;
 use tokio::net::TcpListener;
+use tokio::time::{self, Instant};
 use tokio::{pin, select};
 use tokio_stream::{Stream, StreamExt, StreamMap};
 use tracing::info;
@@ -92,6 +94,8 @@ async fn get_all_topics_state(State(app): State<App>) -> AppResult<HashMap<u64, 
 }
 
 async fn fetch(State(app): State<App>, Json(fetch): Json<Fetch>) -> AppResult<RecordResponse> {
+    let until = Instant::now() + Duration::from_millis(fetch.timeout_ms);
+
     let lock = app.read().await;
 
     for topic in &fetch.topics {
@@ -133,6 +137,7 @@ async fn fetch(State(app): State<App>, Json(fetch): Json<Fetch>) -> AppResult<Re
 
     loop {
         select! {
+             _ = time::sleep_until(until) => return Err(app::error::Error::FetchTimeout.into()),
             record = map.next() => {
                 if let Some((_, record)) = record {
                     return Ok(Json(RecordResponse::from(&record, fetch.encoding)?));
@@ -140,28 +145,6 @@ async fn fetch(State(app): State<App>, Json(fetch): Json<Fetch>) -> AppResult<Re
             }
         };
     }
-
-    // Err(app::error::Error::FetchTimeout.into())
-
-    // let mut lock = app.write().await;
-    // let mut rx = lock.subscribe(&fetch.topic)?;
-    // drop(lock);
-    //
-    // let until = Instant::now() + Duration::from_millis(fetch.timeout_ms);
-    // loop {
-    //     select! {
-    //         _ = time::sleep_until(until) => return Err(app::error::Error::FetchTimeout.into()),
-    //         record = rx.recv() => {
-    //             match record{
-    //                 Ok(record) if fetch.offset.matches(record.offset) => {
-    //                     return Ok(Json(RecordResponse::from(&record, fetch.encoding)?))
-    //                 }
-    //                 Ok(_) => continue,
-    //                 Err(e) => return Err(e.into())
-    //             };
-    //         }
-    //     }
-    // }
 }
 
 impl HttpServer {
