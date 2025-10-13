@@ -2,7 +2,8 @@ mod app_error;
 pub mod responses;
 
 use std::collections::HashMap;
-use std::time::Duration;
+use std::pin::Pin;
+use std::sync::Arc;
 
 use app_error::AppResult;
 use axum::extract::{Path, State};
@@ -12,8 +13,8 @@ use responses::create_topic_response::CreateTopicResponse;
 use responses::produce_response::ProduceResponse;
 use responses::record_response::RecordResponse;
 use tokio::net::TcpListener;
-use tokio::time::Instant;
-use tokio::{select, time};
+use tokio::{pin, select};
+use tokio_stream::{Stream, StreamExt, StreamMap};
 use tracing::info;
 
 use crate::app::{self, App};
@@ -21,7 +22,7 @@ use crate::commands::create_topic::CreateTopic;
 use crate::commands::fetch::Fetch;
 use crate::commands::produce::Produce;
 use crate::data::encoding;
-use crate::data::record::RecordHeader;
+use crate::data::record::{Record, RecordHeader};
 use crate::data::state::topic_state::TopicState;
 
 pub struct HttpServer {
@@ -104,7 +105,43 @@ async fn fetch(State(app): State<App>, Json(fetch): Json<Fetch>) -> AppResult<Re
         }
     }
 
-    Err(app::error::Error::FetchTimeout.into())
+    drop(lock);
+
+    let mut lock = app.write().await;
+    let mut map = StreamMap::new();
+
+    for topic in &fetch.topics {
+        let topic_id = lock.get_topic(&topic.identifier)?.id();
+        let mut rx = lock.subscribe(&topic.identifier)?;
+
+        let rx = Box::pin(async_stream::stream! {
+            while let Ok((partition_id, record)) = rx.recv().await {
+                let Some(partition) = topic.partitions.iter().find(|p| p.id == partition_id) else {
+                    continue;
+                };
+
+                if partition.offset.matches(record.offset) {
+                    yield record;
+                }
+            }
+        }) as Pin<Box<dyn Stream<Item = Arc<Record>> + Send>>;
+
+        map.insert(topic_id, rx);
+    }
+
+    drop(lock);
+
+    loop {
+        select! {
+            record = map.next() => {
+                if let Some((_, record)) = record {
+                    return Ok(Json(RecordResponse::from(&record, fetch.encoding)?));
+                }
+            }
+        };
+    }
+
+    // Err(app::error::Error::FetchTimeout.into())
 
     // let mut lock = app.write().await;
     // let mut rx = lock.subscribe(&fetch.topic)?;

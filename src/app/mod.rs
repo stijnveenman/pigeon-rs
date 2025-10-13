@@ -103,7 +103,7 @@ pub struct AppLock {
     next_topic_id: u64,
     topics: HashMap<u64, Topic>,
     topic_ids: HashMap<String, u64>,
-    listeners: HashMap<u64, broadcast::Sender<Arc<Record>>>,
+    listeners: HashMap<u64, broadcast::Sender<(u64, Arc<Record>)>>,
 }
 
 #[cfg(test)]

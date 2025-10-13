@@ -161,7 +161,7 @@ impl AppLock {
         let notify_count = self
             .listeners
             .get(&topic_id)
-            .map(|sender| sender.send(Arc::new(record)).unwrap_or(0))
+            .map(|sender| sender.send((partition_id, Arc::new(record))).unwrap_or(0))
             .unwrap_or(0);
 
         debug!("Notified {notify_count} listeners for topic {topic_id}");
@@ -172,7 +172,7 @@ impl AppLock {
     pub fn subscribe(
         &mut self,
         identifer: &Identifier,
-    ) -> Result<broadcast::Receiver<Arc<Record>>> {
+    ) -> Result<broadcast::Receiver<(u64, Arc<Record>)>> {
         let topic_id = self.get_topic(identifer)?.id();
 
         let rx = match self.listeners.entry(topic_id) {
