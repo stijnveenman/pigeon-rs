@@ -93,38 +93,38 @@ async fn get_all_topics_state(State(app): State<App>) -> AppResult<HashMap<u64, 
 async fn fetch(State(app): State<App>, Json(fetch): Json<Fetch>) -> AppResult<RecordResponse> {
     let lock = app.read().await;
 
-    let record = lock
-        .read(&fetch.topic, fetch.partition_id, &fetch.offset)
-        .await;
-
-    drop(lock);
-
-    // TODO: test if this actually matches the offset selection
-    match record {
-        Ok(Some(record)) => Ok(Json(RecordResponse::from(&record, fetch.encoding)?)),
-        Ok(None) => {
-            let mut lock = app.write().await;
-            let mut rx = lock.subscribe(&fetch.topic)?;
-            drop(lock);
-
-            let until = Instant::now() + Duration::from_millis(fetch.timeout_ms);
-            loop {
-                select! {
-                    _ = time::sleep_until(until) => return Err(app::error::Error::FetchTimeout.into()),
-                    record = rx.recv() => {
-                        match record{
-                            Ok(record) if fetch.offset.matches(record.offset) => {
-                                return Ok(Json(RecordResponse::from(&record, fetch.encoding)?))
-                            }
-                            Ok(_) => continue,
-                            Err(e) => return Err(e.into())
-                        };
-                    }
-                }
+    for topic in &fetch.topics {
+        for partition in &topic.partitions {
+            if let Some(record) = lock
+                .read(&topic.identifier, partition.id, &partition.offset)
+                .await?
+            {
+                return Ok(Json(RecordResponse::from(&record, fetch.encoding)?));
             }
         }
-        Err(e) => Err(e.into()),
     }
+
+    Err(app::error::Error::FetchTimeout.into())
+
+    // let mut lock = app.write().await;
+    // let mut rx = lock.subscribe(&fetch.topic)?;
+    // drop(lock);
+    //
+    // let until = Instant::now() + Duration::from_millis(fetch.timeout_ms);
+    // loop {
+    //     select! {
+    //         _ = time::sleep_until(until) => return Err(app::error::Error::FetchTimeout.into()),
+    //         record = rx.recv() => {
+    //             match record{
+    //                 Ok(record) if fetch.offset.matches(record.offset) => {
+    //                     return Ok(Json(RecordResponse::from(&record, fetch.encoding)?))
+    //                 }
+    //                 Ok(_) => continue,
+    //                 Err(e) => return Err(e.into())
+    //             };
+    //         }
+    //     }
+    // }
 }
 
 impl HttpServer {
