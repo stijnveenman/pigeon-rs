@@ -18,6 +18,20 @@ pub struct Record {
     // pub crc: u32,
 }
 
+impl RecordHeader {
+    pub fn size(&self) -> usize {
+        self.key.len() + self.value.len()
+    }
+}
+
+impl Record {
+    pub fn size(&self) -> usize {
+        self.key.len()
+            + self.value.len()
+            + self.headers.iter().map(RecordHeader::size).sum::<usize>()
+    }
+}
+
 #[cfg(test)]
 impl Record {
     pub fn basic(key: impl Into<String>, value: impl Into<String>) -> Self {

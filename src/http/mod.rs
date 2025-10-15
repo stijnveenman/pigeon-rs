@@ -14,8 +14,8 @@ use responses::create_topic_response::CreateTopicResponse;
 use responses::produce_response::ProduceResponse;
 use responses::record_response::RecordResponse;
 use tokio::net::TcpListener;
+use tokio::select;
 use tokio::time::{self, Instant};
-use tokio::{pin, select};
 use tokio_stream::{Stream, StreamExt, StreamMap};
 use tracing::info;
 
