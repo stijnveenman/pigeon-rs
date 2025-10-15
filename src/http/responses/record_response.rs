@@ -22,8 +22,14 @@ pub struct HeaderResponse {
     pub value: String,
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+pub struct FetchResponse {
+    pub total_size: usize,
+    pub records: Vec<RecordResponse>,
+}
+
 impl RecordResponse {
-    pub fn from(value: &Record, encoding: Encoding) -> Result<Self, encoding::Error> {
+    pub fn from(value: &Record, encoding: &Encoding) -> Result<Self, encoding::Error> {
         Ok(Self {
             offset: value.offset,
             key: encoding.encode(&value.key)?,

@@ -6,6 +6,7 @@ use crate::data::{encoding::Encoding, identifier::Identifier, offset_selection::
 pub struct Fetch {
     pub encoding: Encoding,
     pub timeout_ms: u64,
+    pub min_bytes: usize,
     pub topics: Vec<FetchTopic>,
 }
 

@@ -12,7 +12,7 @@ use axum::routing::{get, post};
 use axum::{Json, Router};
 use responses::create_topic_response::CreateTopicResponse;
 use responses::produce_response::ProduceResponse;
-use responses::record_response::RecordResponse;
+use responses::record_response::{FetchResponse, RecordResponse};
 use tokio::net::TcpListener;
 use tokio::select;
 use tokio::time::{self, Instant};
@@ -25,6 +25,7 @@ use crate::commands::fetch::Fetch;
 use crate::commands::produce::Produce;
 use crate::data::encoding;
 use crate::data::record::{Record, RecordHeader};
+use crate::data::record_batch::RecordBatch;
 use crate::data::state::topic_state::TopicState;
 
 pub struct HttpServer {
@@ -93,18 +94,27 @@ async fn get_all_topics_state(State(app): State<App>) -> AppResult<HashMap<u64, 
     Ok(Json(lock.topic_states()))
 }
 
-async fn fetch(State(app): State<App>, Json(fetch): Json<Fetch>) -> AppResult<RecordResponse> {
+async fn fetch(State(app): State<App>, Json(fetch): Json<Fetch>) -> AppResult<FetchResponse> {
     let until = Instant::now() + Duration::from_millis(fetch.timeout_ms);
+    let mut batch = RecordBatch::new(fetch.min_bytes);
 
     let lock = app.read().await;
 
     for topic in &fetch.topics {
         for partition in &topic.partitions {
-            if let Some(record) = lock
-                .read(&topic.identifier, partition.id, &partition.offset)
-                .await?
-            {
-                return Ok(Json(RecordResponse::from(&record, fetch.encoding)?));
+            let mut offset = partition.offset;
+            while let Some(record) = lock.read(&topic.identifier, partition.id, &offset).await? {
+                let record_offset = record.offset;
+                batch.push(Arc::new(record));
+
+                match offset.narrow(record_offset) {
+                    Some(next) => offset = next,
+                    None => break,
+                }
+
+                if batch.is_full() {
+                    return Ok(Json(batch.into_response(&fetch.encoding)?));
+                }
             }
         }
     }
@@ -137,10 +147,14 @@ async fn fetch(State(app): State<App>, Json(fetch): Json<Fetch>) -> AppResult<Re
 
     loop {
         select! {
-             _ = time::sleep_until(until) => return Err(app::error::Error::FetchTimeout.into()),
+             _ = time::sleep_until(until) => return Ok(Json(batch.into_response(&fetch.encoding)?)),
             record = map.next() => {
                 if let Some((_, record)) = record {
-                    return Ok(Json(RecordResponse::from(&record, fetch.encoding)?));
+                    batch.push(record);
+
+                    if batch.is_full() {
+                        return Ok(Json(batch.into_response(&fetch.encoding)?));
+                    }
                 }
             }
         };
