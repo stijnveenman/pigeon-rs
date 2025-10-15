@@ -1,9 +1,11 @@
 pub mod create_topic_entry;
+pub mod delete_topic_entry;
 use core::str;
 
 use std::collections::HashMap;
 
 use create_topic_entry::CreateTopicEntry;
+use delete_topic_entry::DeleteTopicEntry;
 use serde::{Deserialize, Serialize};
 
 use crate::data::record::Record;
@@ -11,6 +13,7 @@ use crate::data::record::Record;
 #[derive(Serialize, Deserialize, Debug)]
 pub enum MetadataEntry {
     CreateTopic(CreateTopicEntry),
+    DeleteTopic(DeleteTopicEntry),
 }
 
 #[derive(Default, Debug)]
@@ -45,6 +48,9 @@ impl Metadata {
                             partitions: entry.partitions,
                         },
                     );
+                }
+                MetadataEntry::DeleteTopic(entry) => {
+                    metadata.topics.remove(&entry.topic_id);
                 }
             }
         }

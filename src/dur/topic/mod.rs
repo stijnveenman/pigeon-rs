@@ -113,6 +113,10 @@ impl Topic {
         &self.name
     }
 
+    pub fn is_internal(&self) -> bool {
+        self.name.starts_with("__")
+    }
+
     pub fn id(&self) -> u64 {
         self.topic_id
     }

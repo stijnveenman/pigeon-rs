@@ -57,6 +57,8 @@ impl App {
             topic_ids.insert(topic_metadata.name, topic_metadata.topic_id);
         }
 
+        // TODO: remove topics on disk that are no longer in metadata
+
         let next_topic_id = *topics.keys().max().unwrap_or(&0);
 
         info!("Finished initialising App state from disk");

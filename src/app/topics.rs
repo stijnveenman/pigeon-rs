@@ -4,7 +4,7 @@ use std::sync::Arc;
 
 use bytes::Bytes;
 use tokio::sync::broadcast;
-use tracing::{debug, warn};
+use tracing::{debug, info, warn};
 use tracing_subscriber::layer::Identity;
 
 use crate::data::identifier::Identifier;
@@ -13,6 +13,7 @@ use crate::data::record::{Record, RecordHeader};
 use crate::data::state::topic_state::TopicState;
 use crate::data::timestamp::Timestamp;
 use crate::meta::create_topic_entry::CreateTopicEntry;
+use crate::meta::delete_topic_entry::DeleteTopicEntry;
 use crate::meta::MetadataEntry;
 use crate::{commands::create_topic::CreateTopic, dur::topic::Topic};
 
@@ -26,6 +27,10 @@ impl AppLock {
         name: &str,
         partition_count: Option<u64>,
     ) -> Result<u64> {
+        if name.starts_with("__") {
+            return Err(Error::ReservedTopicName);
+        }
+
         let topic_id = match topic_id {
             Some(topic_id) => topic_id,
             None => loop {
@@ -51,7 +56,7 @@ impl AppLock {
 
         let partition_count = partition_count.unwrap_or(self.config.topic.num_partitions);
 
-        debug!("Creating topic with topic_id: {topic_id} and name {name}");
+        info!("Creating topic with topic_id: {topic_id} and name {name}");
         let topic =
             Topic::load_from_disk(self.config.clone(), topic_id, name, partition_count).await?;
 
@@ -66,6 +71,29 @@ impl AppLock {
         .await?;
 
         Ok(topic_id)
+    }
+
+    pub async fn delete_topic(&mut self, identifer: &Identifier) -> Result<()> {
+        let topic = self.get_topic(identifer)?;
+
+        if topic.is_internal() {
+            return Err(Error::InternalTopicName(topic.name().to_string()));
+        }
+
+        let topic_id = topic.id();
+        let topic_name = topic.name().to_string();
+
+        info!("Deleting topic with topic_id: {topic_id}");
+
+        self.append_metadata(MetadataEntry::DeleteTopic(DeleteTopicEntry { topic_id }))
+            .await?;
+
+        // TODO: actually remove the topic from disk
+
+        self.topic_ids.remove(&topic_name);
+        self.topics.remove(&topic_id);
+
+        Ok(())
     }
 
     pub async fn read_exact(
@@ -145,7 +173,7 @@ impl AppLock {
     ) -> Result<u64> {
         let mut topic = self.get_topic_mut(&identifier)?;
 
-        if topic.name().starts_with("__") {
+        if topic.is_internal() {
             return Err(Error::InternalTopicName(topic.name().to_string()));
         }
 

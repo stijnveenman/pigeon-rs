@@ -20,6 +20,8 @@ pub enum Error {
     TopicNameInUse(String),
     #[error("Topic with name ({0}) is internal")]
     InternalTopicName(String),
+    #[error("Topics starting with __ are reserved")]
+    ReservedTopicName,
     #[error("Error encoding or decoding bytes")]
     EncodingError(#[from] encoding::Error),
     #[error("Fetch timed out waiting for records")]

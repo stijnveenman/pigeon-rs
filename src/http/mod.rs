@@ -6,24 +6,25 @@ use std::pin::Pin;
 use std::sync::Arc;
 use std::time::Duration;
 
-use app_error::AppResult;
+use app_error::{AppError, AppResult};
 use axum::extract::{Path, State};
-use axum::routing::{get, post};
+use axum::routing::{delete, get, post};
 use axum::{Json, Router};
 use responses::create_topic_response::CreateTopicResponse;
 use responses::produce_response::ProduceResponse;
-use responses::record_response::{FetchResponse, RecordResponse};
+use responses::record_response::FetchResponse;
 use tokio::net::TcpListener;
 use tokio::select;
 use tokio::time::{self, Instant};
 use tokio_stream::{Stream, StreamExt, StreamMap};
 use tracing::info;
 
-use crate::app::{self, App};
+use crate::app::App;
 use crate::commands::create_topic::CreateTopic;
 use crate::commands::fetch::Fetch;
 use crate::commands::produce::Produce;
 use crate::data::encoding;
+use crate::data::identifier::Identifier;
 use crate::data::record::{Record, RecordHeader};
 use crate::data::record_batch::RecordBatch;
 use crate::data::state::topic_state::TopicState;
@@ -92,6 +93,14 @@ async fn get_all_topics_state(State(app): State<App>) -> AppResult<HashMap<u64, 
     let lock = app.read().await;
 
     Ok(Json(lock.topic_states()))
+}
+
+async fn delete_topic(State(app): State<App>, Path(name): Path<String>) -> Result<(), AppError> {
+    let mut lock = app.write().await;
+
+    lock.delete_topic(&Identifier::Name(name)).await?;
+
+    Ok(())
 }
 
 async fn fetch(State(app): State<App>, Json(fetch): Json<Fetch>) -> AppResult<FetchResponse> {
@@ -167,6 +176,7 @@ impl HttpServer {
             .route("/topics", post(create_topic))
             .route("/topics", get(get_all_topics_state))
             .route("/topics/{name}/state", get(get_topic_state))
+            .route("/topics/{name}", delete(delete_topic))
             .route("/topics/records", post(produce))
             .route("/topics/records", get(fetch))
             .with_state(app);
