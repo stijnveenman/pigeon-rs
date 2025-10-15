@@ -143,7 +143,11 @@ mod test {
             .expect("Failed to append record");
         assert_eq!(record.offset, 0);
 
-        let read_record = topic.read_exact(0, 0).await.expect("Failed to read record");
+        let read_record = topic
+            .read_exact(0, 0)
+            .await
+            .expect("Failed to read record")
+            .expect("Did not recieve a record");
         assert_eq!(read_record.key, "foo");
         assert_eq!(read_record.value, "bar");
         assert_eq!(read_record.offset, 0);
@@ -168,7 +172,11 @@ mod test {
             .await
             .expect("Failed to create topic");
 
-        let read_record = topic.read_exact(0, 0).await.expect("Failed to read record");
+        let read_record = topic
+            .read_exact(0, 0)
+            .await
+            .expect("Failed to read record")
+            .expect("Did not receive a record");
         assert_eq!(read_record.key, "foo");
         assert_eq!(read_record.value, "bar");
         assert_eq!(read_record.offset, 0);
@@ -193,15 +201,19 @@ mod test {
             .await
             .expect("Failed to create topic");
 
-        let read_record = topic.read_exact(0, 0).await.expect("Failed to read record");
+        let read_record = topic
+            .read_exact(0, 0)
+            .await
+            .expect("Failed to read record")
+            .expect("Did not receive a record");
         assert_eq!(read_record.key, "foo");
         assert_eq!(read_record.value, "bar");
         assert_eq!(read_record.offset, 0);
 
         let read_record = topic.read_exact(1, 0).await;
         assert!(
-            matches!(read_record, Err(Error::OffsetNotFound)),
-            "expected read_record to be OffsetNotFound, got {:?}",
+            matches!(read_record, Ok(None)),
+            "expected read_record to be Ok(None), got {:?}",
             read_record
         );
 

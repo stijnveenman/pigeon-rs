@@ -237,7 +237,8 @@ mod test {
         let read_record = segment
             .read_exact(record.offset)
             .await
-            .expect("Read of record failed");
+            .expect("Read of record failed")
+            .expect("Did not recieve a record");
 
         assert_eq!(record, read_record);
     }
@@ -267,7 +268,8 @@ mod test {
         let read_record = segment
             .read_exact(record.offset)
             .await
-            .expect("Read record failed");
+            .expect("Read record failed")
+            .expect("Did not recieve a record");
         assert_eq!(record, read_record);
     }
 

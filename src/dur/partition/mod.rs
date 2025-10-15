@@ -215,7 +215,8 @@ mod test {
         let read_record = partition
             .read_exact(1)
             .await
-            .expect("Failed to read record");
+            .expect("Failed to read record")
+            .expect("Did not recieve a record");
         assert_eq!(read_record.key, "foo");
         assert_eq!(read_record.value, "bar2");
         assert_eq!(read_record.offset, 1);
@@ -250,7 +251,8 @@ mod test {
         let read_record = partition
             .read_exact(1)
             .await
-            .expect("Failed to read record");
+            .expect("Failed to read record")
+            .expect("Did not recieve a record");
         assert_eq!(read_record.key, "foo");
         assert_eq!(read_record.value, "bar2");
         assert_eq!(read_record.offset, 1);
@@ -283,7 +285,8 @@ mod test {
         let read_record = partition
             .read_exact(0)
             .await
-            .expect("Failed to read record");
+            .expect("Failed to read record")
+            .expect("Did not recieve a record");
         assert_eq!(read_record.key, "foo");
         assert_eq!(read_record.value, "bar");
         assert_eq!(read_record.offset, 0);

@@ -21,16 +21,12 @@ use super::error::{Error, Result};
 use super::AppLock;
 
 impl AppLock {
-    pub async fn create_topic(
+    pub(super) async fn create_topic_internal(
         &mut self,
         topic_id: Option<u64>,
         name: &str,
         partition_count: Option<u64>,
     ) -> Result<u64> {
-        if name.starts_with("__") {
-            return Err(Error::ReservedTopicName);
-        }
-
         let topic_id = match topic_id {
             Some(topic_id) => topic_id,
             None => loop {
@@ -71,6 +67,20 @@ impl AppLock {
         .await?;
 
         Ok(topic_id)
+    }
+
+    pub async fn create_topic(
+        &mut self,
+        topic_id: Option<u64>,
+        name: &str,
+        partition_count: Option<u64>,
+    ) -> Result<u64> {
+        if name.starts_with("__") {
+            return Err(Error::ReservedTopicName);
+        }
+
+        self.create_topic_internal(topic_id, name, partition_count)
+            .await
     }
 
     pub async fn delete_topic(&mut self, identifer: &Identifier) -> Result<()> {

@@ -73,7 +73,7 @@ impl App {
 
         if app.topics.is_empty() {
             info!("No metadata topic found, creating __metadata");
-            app.create_topic(Some(0), "__metadata", Some(1))
+            app.create_topic_internal(Some(0), "__metadata", Some(1))
                 .await
                 .expect("Failed to initialise __metadata");
         }

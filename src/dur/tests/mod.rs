@@ -52,7 +52,8 @@ async fn single_topic_random_test() {
             let record = topic
                 .read_exact(p, i)
                 .await
-                .expect("Failed to read message");
+                .expect("Failed to read message")
+                .expect("Did not receive a record");
 
             assert_eq!(record.offset, i);
             assert_eq!(record.key, format!("{}:{}", p, i));

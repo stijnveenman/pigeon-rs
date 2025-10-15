@@ -47,8 +47,7 @@
                   entry = "cargo test";
                   language = "system";
                   pass_filenames = false;
-                  args = ["--" "--ignored"];
-                  stages = ["pre-merge-commit"];
+                  args = ["--"];
                 }
               ];
             }
