@@ -98,10 +98,10 @@ impl AppLock {
         self.append_metadata(MetadataEntry::DeleteTopic(DeleteTopicEntry { topic_id }))
             .await?;
 
-        // TODO: actually remove the topic from disk
-
         self.topic_ids.remove(&topic_name);
-        self.topics.remove(&topic_id);
+        if let Some(topic) = self.topics.remove(&topic_id) {
+            topic.delete().await?;
+        }
 
         Ok(())
     }

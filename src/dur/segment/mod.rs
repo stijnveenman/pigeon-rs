@@ -7,6 +7,7 @@ use std::sync::Arc;
 use bytes::{Buf, Bytes};
 use index::Index;
 use std::fs::File as StdFile;
+use tokio::fs::remove_file;
 use tokio::task::spawn_blocking;
 use tokio::{
     fs::{File, OpenOptions},
@@ -24,6 +25,7 @@ pub struct Segment {
     topic_id: u64,
     partition_id: u64,
     start_offset: u64,
+    log_file_path: String,
     log_file_r: Arc<StdFile>,
     log_file_w: File,
     log_size: u64,
@@ -62,6 +64,7 @@ impl Segment {
             start_offset,
             topic_id,
             partition_id,
+            log_file_path,
 
             index: Index::load_from_disk(&index_file_path).await?,
             log_file_w: log_file_write,
@@ -181,6 +184,24 @@ impl Segment {
 
     pub fn index(&self) -> &Index {
         &self.index
+    }
+
+    pub async fn delete(self) -> Result<()> {
+        let Self {
+            log_file_path,
+            log_file_r,
+            log_file_w,
+            index,
+            ..
+        } = self;
+
+        drop(log_file_w);
+        drop(log_file_r);
+
+        index.delete().await?;
+        remove_file(log_file_path).await?;
+
+        Ok(())
     }
 
     #[allow(clippy::uninit_vec)]

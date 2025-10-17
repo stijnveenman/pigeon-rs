@@ -131,6 +131,14 @@ impl Partition {
         Ok(None)
     }
 
+    pub async fn delete(self) -> Result<()> {
+        for (_, segment) in self.segments.into_iter() {
+            segment.delete().await?;
+        }
+
+        Ok(())
+    }
+
     pub fn state(&self) -> PartitionState {
         PartitionState {
             partition_id: self.partition_id,

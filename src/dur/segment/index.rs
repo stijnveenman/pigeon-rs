@@ -5,7 +5,7 @@ use std::{
 };
 
 use tokio::{
-    fs::{File, OpenOptions},
+    fs::{remove_file, File, OpenOptions},
     io::{self, AsyncReadExt, AsyncWriteExt, BufReader, BufWriter},
 };
 
@@ -14,6 +14,7 @@ use crate::dur::error::Result;
 pub struct Index {
     index: BTreeMap<u64, u64>,
     file: File,
+    path: String,
 }
 
 impl Index {
@@ -52,7 +53,11 @@ impl Index {
             .open(&path)
             .await?;
 
-        Ok(Self { file, index })
+        Ok(Self {
+            file,
+            index,
+            path: path.to_string(),
+        })
     }
 
     pub async fn append(&mut self, offset: u64, file_offset: u64) -> Result<()> {
@@ -79,5 +84,15 @@ impl Index {
 
     pub fn min_offset(&self) -> Option<u64> {
         self.index.first_key_value().map(|e| *e.0)
+    }
+
+    pub async fn delete(self) -> Result<()> {
+        let Self { file, path, .. } = self;
+
+        drop(file);
+
+        remove_file(path).await?;
+
+        Ok(())
     }
 }

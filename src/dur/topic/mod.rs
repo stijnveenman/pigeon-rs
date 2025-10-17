@@ -60,6 +60,14 @@ impl Topic {
         Ok(v)
     }
 
+    pub async fn delete(self) -> Result<()> {
+        for partition in self.partitions.into_iter() {
+            partition.delete().await?;
+        }
+
+        Ok(())
+    }
+
     pub async fn append(
         &mut self,
         partition_id: u64,
