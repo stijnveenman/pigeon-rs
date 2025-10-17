@@ -1,7 +1,7 @@
 use std::{collections::BTreeMap, ops::Bound, path::Path, sync::Arc};
 
 use bytes::Bytes;
-use tokio::fs::{self, create_dir_all};
+use tokio::fs::{self, create_dir_all, remove_dir};
 
 use super::{error::Result, segment::Segment};
 use crate::{
@@ -135,6 +135,8 @@ impl Partition {
         for (_, segment) in self.segments.into_iter() {
             segment.delete().await?;
         }
+
+        remove_dir(self.config.partition_path(self.topic_id, self.partition_id)).await?;
 
         Ok(())
     }

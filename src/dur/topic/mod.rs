@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use bytes::Bytes;
+use tokio::fs::remove_dir;
 
 use crate::config::Config;
 use crate::data::offset_selection::OffsetSelection;
@@ -13,6 +14,7 @@ use super::partition::Partition;
 pub struct Topic {
     topic_id: u64,
     name: String,
+    config: Arc<Config>,
 
     pub(super) partitions: Vec<Partition>,
 }
@@ -34,6 +36,7 @@ impl Topic {
         Ok(Self {
             topic_id,
             name: name.to_string(),
+            config,
             partitions,
         })
     }
@@ -64,6 +67,9 @@ impl Topic {
         for partition in self.partitions.into_iter() {
             partition.delete().await?;
         }
+
+        remove_dir(self.config.partitions_path(self.topic_id)).await?;
+        remove_dir(self.config.topic_path(self.topic_id)).await?;
 
         Ok(())
     }
