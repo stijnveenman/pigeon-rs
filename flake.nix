@@ -68,6 +68,7 @@
               cargo-watch
               nixd
               alejandra
+              openssl
             ];
           };
       }
