@@ -100,7 +100,7 @@ impl AppLock {
 
         self.topic_ids.remove(&topic_name);
         if let Some(topic) = self.topics.remove(&topic_id) {
-            topic.delete().await?;
+            // topic.delete().await?;
         }
 
         Ok(())

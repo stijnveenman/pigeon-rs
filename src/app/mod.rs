@@ -3,10 +3,16 @@ pub mod error;
 mod metadata;
 mod topics;
 
-use std::{collections::HashMap, sync::Arc};
+use std::{
+    collections::HashMap,
+    fs::{self, remove_dir_all},
+    path::Component,
+    sync::Arc,
+};
 
+use bson::serde_helpers::u64_as_f64;
 use tokio::sync::{broadcast, RwLock, RwLockReadGuard, RwLockWriteGuard};
-use tracing::{debug, info};
+use tracing::{debug, info, warn};
 
 use crate::{
     config::Config,
@@ -57,7 +63,35 @@ impl App {
             topic_ids.insert(topic_metadata.name, topic_metadata.topic_id);
         }
 
-        // TODO: remove topics on disk that are no longer in metadata
+        let mut topic_folders = fs::read_dir(config.topics_path())?;
+        for folder in topic_folders {
+            let folder = folder?;
+
+            let path = folder.path();
+            let component = path
+                .components()
+                .next_back()
+                .expect("Expected at least some components in path");
+
+            if let Component::Normal(dir_name) = component {
+                let id: u64 = dir_name
+                    .to_str()
+                    .expect("OsStr contained unexpected characters")
+                    .parse()
+                    .expect("Invalid path in topics path");
+
+                if !topics.contains_key(&id) {
+                    warn!(
+                        "Found path without corresponding topic, removing {}",
+                        path.display()
+                    );
+
+                    remove_dir_all(path);
+                }
+            } else {
+                warn!("unexpected path component {component:?}");
+            }
+        }
 
         let next_topic_id = *topics.keys().max().unwrap_or(&0);
 
