@@ -3,7 +3,7 @@
 pub mod app;
 pub mod commands;
 pub mod config;
-mod data;
+pub mod data;
 mod dur;
 pub mod http;
 mod meta;
