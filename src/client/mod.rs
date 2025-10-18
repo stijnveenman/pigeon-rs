@@ -5,11 +5,11 @@ use serde::{de::DeserializeOwned, Serialize};
 use thiserror::Error;
 
 use crate::{
-    commands::{create_topic::CreateTopic, produce::Produce},
+    commands::{create_topic::CreateTopic, fetch::Fetch, produce::Produce},
     data::state::topic_state::TopicState,
     http::responses::{
         create_topic_response::CreateTopicResponse, error_response::ErrorResponse,
-        produce_response::ProduceResponse,
+        produce_response::ProduceResponse, record_response::FetchResponse,
     },
 };
 
@@ -60,6 +60,18 @@ impl HttpClient {
         let response = self.client.delete(url).send().await?;
 
         self.get_unit_response(response).await
+    }
+
+    async fn get_with_body<T: DeserializeOwned, TBody: Serialize>(
+        &self,
+        url: &str,
+        body: TBody,
+    ) -> Result<T, Error> {
+        let url = self.get_url(url)?;
+
+        let response = self.client.get(url).json(&body).send().await?;
+
+        self.get_response(response).await
     }
 
     async fn get<T: DeserializeOwned>(&self, url: &str) -> Result<T, Error> {
@@ -131,5 +143,9 @@ impl HttpClient {
 
     pub async fn produce(&self, produce: Produce) -> Result<ProduceResponse, Error> {
         self.post("/topics/records", produce).await
+    }
+
+    pub async fn fetch(&self, fetch: Fetch) -> Result<FetchResponse, Error> {
+        self.get_with_body("/topics/records", fetch).await
     }
 }

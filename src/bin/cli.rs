@@ -2,8 +2,11 @@ use anyhow::Result;
 use clap::{Parser, Subcommand};
 use pigeon_rs::{
     client::HttpClient,
-    commands::produce::Produce,
-    data::{encoding::Encoding, identifier::Identifier},
+    commands::{
+        fetch::{Fetch, FetchPartition, FetchTopic},
+        produce::Produce,
+    },
+    data::{encoding::Encoding, identifier::Identifier, offset_selection::OffsetSelection},
     logging::set_up_logging,
     DEFAULT_PORT,
 };
@@ -33,6 +36,13 @@ enum Command {
         partition_id: u64,
         key: String,
         value: String,
+    },
+    Fetch {
+        topic: String,
+        partition: u64,
+        start_offset: u64,
+        #[arg(default_value_t = 10000)]
+        timeout_ms: u64,
     },
 }
 
@@ -97,6 +107,29 @@ pub async fn main() -> Result<()> {
                 .await?;
 
             info!("Produced offset {}", response.offset);
+        }
+        Command::Fetch {
+            topic,
+            partition,
+            start_offset,
+            timeout_ms,
+        } => {
+            let response = client
+                .fetch(Fetch {
+                    encoding: Encoding::Utf8,
+                    timeout_ms,
+                    min_bytes: 0,
+                    topics: vec![FetchTopic {
+                        identifier: Identifier::Name(topic),
+                        partitions: vec![FetchPartition {
+                            id: partition,
+                            offset: OffsetSelection::From(start_offset),
+                        }],
+                    }],
+                })
+                .await;
+
+            info!("{:#?}", response);
         }
     };
 
