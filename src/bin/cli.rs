@@ -18,7 +18,7 @@ struct Cli {
 
 #[derive(Subcommand, Debug)]
 enum Command {
-    Topic {
+    Topics {
         #[clap(subcommand)]
         subcommand: TopicCommand,
     },
@@ -27,6 +27,8 @@ enum Command {
 #[derive(Subcommand, Debug)]
 enum TopicCommand {
     State { topic: String },
+    List,
+    Delete { topic: String },
 }
 
 #[tokio::main]
@@ -37,12 +39,18 @@ pub async fn main() -> Result<()> {
     let client = HttpClient::new(format!("http://127.0.0.1:{}", DEFAULT_PORT))?;
 
     match cli.command {
-        Command::Topic { subcommand } => {
+        Command::Topics { subcommand } => {
             match subcommand {
                 TopicCommand::State { topic } => {
                     let state = client.get_topic(&topic).await?;
-
-                    info!("{state:#?}")
+                    info!("{state:#?}");
+                }
+                TopicCommand::Delete { topic } => {
+                    client.delete_topic(&topic).await?;
+                }
+                TopicCommand::List => {
+                    let state = client.get_topics().await?;
+                    info!("{state:#?}");
                 }
             };
         }
