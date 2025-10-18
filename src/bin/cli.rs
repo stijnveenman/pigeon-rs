@@ -82,7 +82,7 @@ async fn listen_to_topic(
     let state = client.get_topic(name).await?;
 
     debug!("Got existing topic state {state:#?}");
-    let partition_offsets = state
+    let mut partition_offsets = state
         .partitions
         .iter()
         .map(|partition| {
@@ -117,10 +117,16 @@ async fn listen_to_topic(
             .await?;
 
         for record in response.records {
-            // TODO: we need partition to updat offset and add to log
+            let partition_offset = partition_offsets
+                .get(&record.partition_id)
+                .cloned()
+                .unwrap_or_default()
+                .max(record.offset + 1);
+            partition_offsets.insert(record.partition_id, partition_offset);
+
             info!(
                 "{} {}:{} - {} - {}",
-                name, 0, record.offset, record.key, record.value
+                name, record.partition_id, record.offset, record.key, record.value
             );
         }
     }

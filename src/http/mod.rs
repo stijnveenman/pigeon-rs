@@ -121,7 +121,7 @@ async fn fetch(State(app): State<App>, Json(fetch): Json<Fetch>) -> AppResult<Fe
                     None => break,
                 }
 
-                if response.total_size >= fetch.min_bytes {
+                if response.total_size > fetch.min_bytes {
                     return Ok(Json(response));
                 }
             }
@@ -161,7 +161,7 @@ async fn fetch(State(app): State<App>, Json(fetch): Json<Fetch>) -> AppResult<Fe
                 if let Some((topic_id, (partition_id, record))) = record {
                     response.push(&record, topic_id, partition_id)?;
 
-                    if response.total_size >= fetch.min_bytes {
+                    if response.total_size > fetch.min_bytes {
                         return Ok(Json(response));
                     }
                 }
