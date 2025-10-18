@@ -26,7 +26,6 @@ use crate::commands::produce::Produce;
 use crate::data::encoding;
 use crate::data::identifier::Identifier;
 use crate::data::record::{Record, RecordHeader};
-use crate::data::record_batch::RecordBatch;
 use crate::data::state::topic_state::TopicState;
 
 pub struct HttpServer {
@@ -105,24 +104,25 @@ async fn delete_topic(State(app): State<App>, Path(name): Path<String>) -> Resul
 
 async fn fetch(State(app): State<App>, Json(fetch): Json<Fetch>) -> AppResult<FetchResponse> {
     let until = Instant::now() + Duration::from_millis(fetch.timeout_ms);
-    let mut batch = RecordBatch::new(fetch.min_bytes);
+    let mut response = FetchResponse::from(&fetch);
 
     let lock = app.read().await;
 
     for topic in &fetch.topics {
+        let topic_id = lock.get_topic(&topic.identifier)?.id();
         for partition in &topic.partitions {
             let mut offset = partition.offset;
             while let Some(record) = lock.read(&topic.identifier, partition.id, &offset).await? {
                 let record_offset = record.offset;
-                batch.push(Arc::new(record));
+                response.push(&record, topic_id, partition.id)?;
 
                 match offset.narrow(record_offset) {
                     Some(next) => offset = next,
                     None => break,
                 }
 
-                if batch.is_full() {
-                    return Ok(Json(batch.into_response(&fetch.encoding)?));
+                if response.total_size >= fetch.min_bytes {
+                    return Ok(Json(response));
                 }
             }
         }
@@ -144,10 +144,10 @@ async fn fetch(State(app): State<App>, Json(fetch): Json<Fetch>) -> AppResult<Fe
                 };
 
                 if partition.offset.matches(record.offset) {
-                    yield record;
+                    yield (partition_id, record);
                 }
             }
-        }) as Pin<Box<dyn Stream<Item = Arc<Record>> + Send>>;
+        }) as Pin<Box<dyn Stream<Item = (u64, Arc<Record>)> + Send>>;
 
         map.insert(topic_id, rx);
     }
@@ -156,13 +156,13 @@ async fn fetch(State(app): State<App>, Json(fetch): Json<Fetch>) -> AppResult<Fe
 
     loop {
         select! {
-             _ = time::sleep_until(until) => return Ok(Json(batch.into_response(&fetch.encoding)?)),
+             _ = time::sleep_until(until) => return Ok(Json(response)),
             record = map.next() => {
-                if let Some((_, record)) = record {
-                    batch.push(record);
+                if let Some((topic_id, (partition_id, record))) = record {
+                    response.push(&record, topic_id, partition_id)?;
 
-                    if batch.is_full() {
-                        return Ok(Json(batch.into_response(&fetch.encoding)?));
+                    if response.total_size >= fetch.min_bytes {
+                        return Ok(Json(response));
                     }
                 }
             }

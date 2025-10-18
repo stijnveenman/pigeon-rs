@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use std::str::Utf8Error;
 use thiserror::Error;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone, Copy)]
 pub enum Encoding {
     #[serde(rename = "utf8")]
     Utf8,

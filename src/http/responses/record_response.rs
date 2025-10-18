@@ -1,14 +1,19 @@
 use serde::{Deserialize, Serialize};
 use std::str;
 
-use crate::data::{
-    encoding::{self, Encoding},
-    record::Record,
-    timestamp::Timestamp,
+use crate::{
+    commands::fetch::Fetch,
+    data::{
+        encoding::{self, Encoding},
+        record::Record,
+        timestamp::Timestamp,
+    },
 };
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct RecordResponse {
+    pub topic_id: u64,
+    pub partition_id: u64,
     pub offset: u64,
     pub timestamp: Timestamp,
     pub key: String,
@@ -25,13 +30,50 @@ pub struct HeaderResponse {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct FetchResponse {
     pub total_size: usize,
+    pub encoding: Encoding,
     pub records: Vec<RecordResponse>,
 }
 
+impl From<&Fetch> for FetchResponse {
+    fn from(value: &Fetch) -> Self {
+        Self {
+            total_size: 0,
+            records: vec![],
+            encoding: value.encoding,
+        }
+    }
+}
+
+impl FetchResponse {
+    pub fn push(
+        &mut self,
+        record: &Record,
+        topic_id: u64,
+        partition_id: u64,
+    ) -> Result<(), encoding::Error> {
+        self.records.push(RecordResponse::from(
+            record,
+            &self.encoding,
+            topic_id,
+            partition_id,
+        )?);
+        self.total_size += record.size();
+
+        Ok(())
+    }
+}
+
 impl RecordResponse {
-    pub fn from(value: &Record, encoding: &Encoding) -> Result<Self, encoding::Error> {
+    pub fn from(
+        value: &Record,
+        encoding: &Encoding,
+        topic_id: u64,
+        partition_id: u64,
+    ) -> Result<Self, encoding::Error> {
         Ok(Self {
             offset: value.offset,
+            topic_id,
+            partition_id,
             key: encoding.encode(&value.key)?,
             value: encoding.encode(&value.value)?,
             timestamp: value.timestamp,
