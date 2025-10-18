@@ -1,16 +1,52 @@
 use anyhow::Result;
+use clap::{Parser, Subcommand};
 use pigeon_rs::{client::HttpClient, logging::set_up_logging, DEFAULT_PORT};
 use tracing::info;
 
+#[derive(Parser, Debug)]
+#[command(name = "pigeon-cli", version, author, about = "Run pegon server")]
+struct Cli {
+    #[clap(subcommand)]
+    command: Command,
+
+    #[arg(long, short, action = clap::ArgAction::Count)]
+    verbose: u8,
+
+    #[arg(long, short, action = clap::ArgAction::Count)]
+    quiet: u8,
+}
+
+#[derive(Subcommand, Debug)]
+enum Command {
+    Topic {
+        #[clap(subcommand)]
+        subcommand: TopicCommand,
+    },
+}
+
+#[derive(Subcommand, Debug)]
+enum TopicCommand {
+    State { topic: String },
+}
+
 #[tokio::main]
 pub async fn main() -> Result<()> {
-    set_up_logging(0, 0)?;
+    let cli = Cli::parse();
+    set_up_logging(cli.verbose, cli.quiet)?;
 
     let client = HttpClient::new(format!("http://127.0.0.1:{}", DEFAULT_PORT))?;
 
-    let topic = client.get_topic("foo").await?;
+    match cli.command {
+        Command::Topic { subcommand } => {
+            match subcommand {
+                TopicCommand::State { topic } => {
+                    let state = client.get_topic(&topic).await?;
 
-    info!("{topic:#?}");
+                    info!("{state:#?}")
+                }
+            };
+        }
+    };
 
     Ok(())
 }
