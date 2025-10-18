@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use anyhow::Result;
 use clap::{Parser, Subcommand};
 use pigeon_rs::{
@@ -10,7 +12,7 @@ use pigeon_rs::{
     logging::set_up_logging,
     DEFAULT_PORT,
 };
-use tracing::info;
+use tracing::{debug, info};
 
 #[derive(Parser, Debug)]
 #[command(name = "pigeon-cli", version, author, about = "Run pegon server")]
@@ -59,6 +61,69 @@ enum TopicCommand {
         name: String,
         partitions: Option<u64>,
     },
+    Listen {
+        topic: String,
+        #[arg(default_value_t = 10000)]
+        timeout_ms: u64,
+        #[arg(default_value_t = 20)]
+        min_bytes: usize,
+        #[arg(short = 'b', long)]
+        from_beginning: bool,
+    },
+}
+
+async fn listen_to_topic(
+    client: &HttpClient,
+    name: &str,
+    from_beginning: bool,
+    timeout_ms: u64,
+    min_bytes: usize,
+) -> Result<()> {
+    let state = client.get_topic(name).await?;
+
+    debug!("Got existing topic state {state:#?}");
+    let partition_offsets = state
+        .partitions
+        .iter()
+        .map(|partition| {
+            (
+                partition.partition_id,
+                match from_beginning {
+                    true => 0,
+                    false => partition.current_offset,
+                },
+            )
+        })
+        .collect::<HashMap<_, _>>();
+    debug!("Partition offset: {partition_offsets:#?}");
+
+    loop {
+        let response = client
+            .fetch(Fetch {
+                encoding: Encoding::Utf8,
+                topics: vec![FetchTopic {
+                    identifier: Identifier::Id(state.topic_id),
+                    partitions: partition_offsets
+                        .iter()
+                        .map(|p| FetchPartition {
+                            id: *p.0,
+                            offset: OffsetSelection::From(*p.1),
+                        })
+                        .collect(),
+                }],
+                timeout_ms,
+                min_bytes,
+            })
+            .await?;
+
+        for record in response.records {
+            // TODO: we need partition to updat offset and add to log
+            info!(
+                "{} {}:{} - {} - {}",
+                name, 0, record.offset, record.key, record.value
+            );
+        }
+    }
 }
 
 #[tokio::main]
@@ -86,6 +151,14 @@ pub async fn main() -> Result<()> {
                     let result = client.create_topic(&name, partitions).await?;
 
                     info!("Created topic with id {}", result.topic_id);
+                }
+                TopicCommand::Listen {
+                    topic,
+                    timeout_ms,
+                    min_bytes,
+                    from_beginning,
+                } => {
+                    listen_to_topic(&client, &topic, from_beginning, timeout_ms, min_bytes).await?;
                 }
             };
         }
