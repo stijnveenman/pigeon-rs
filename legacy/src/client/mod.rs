@@ -7,14 +7,13 @@ use shared::{
         create_topic_command::CreateTopicCommand, fetch_command::FetchCommand,
         produce_command::ProduceCommand,
     },
+    response::{
+        create_topic_response::CreateTopicResponse, error_response::ErrorResponse,
+        produce_response::ProduceResponse, record_response::FetchResponse,
+    },
     state::topic_state::TopicState,
 };
 use thiserror::Error;
-
-use crate::http::responses::{
-    create_topic_response::CreateTopicResponse, error_response::ErrorResponse,
-    produce_response::ProduceResponse, record_response::FetchResponse,
-};
 
 #[derive(Debug, Error)]
 pub enum Error {

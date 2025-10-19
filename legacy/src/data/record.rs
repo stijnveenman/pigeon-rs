@@ -1,5 +1,11 @@
 use bytes::Bytes;
-use shared::data::timestamp::Timestamp;
+use shared::{
+    data::{
+        encoding::{self, Encoding},
+        timestamp::Timestamp,
+    },
+    response::record_response::{HeaderResponse, RecordResponse},
+};
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct RecordHeader {
@@ -28,6 +34,32 @@ impl Record {
         self.key.len()
             + self.value.len()
             + self.headers.iter().map(RecordHeader::size).sum::<usize>()
+    }
+
+    pub fn into_response(
+        &self,
+        encoding: &Encoding,
+        topic_id: u64,
+        partition_id: u64,
+    ) -> Result<RecordResponse, encoding::Error> {
+        Ok(RecordResponse {
+            offset: self.offset,
+            topic_id,
+            partition_id,
+            key: encoding.encode(&self.key)?,
+            value: encoding.encode(&self.value)?,
+            timestamp: self.timestamp,
+            headers: self
+                .headers
+                .iter()
+                .map(|header| {
+                    Ok(HeaderResponse {
+                        key: header.key.to_string(),
+                        value: encoding.encode(&header.value)?,
+                    })
+                })
+                .collect::<Result<_, encoding::Error>>()?,
+        })
     }
 }
 

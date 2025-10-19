@@ -1,5 +1,4 @@
 mod app_error;
-pub mod responses;
 
 use std::collections::HashMap;
 use std::pin::Pin;
@@ -10,14 +9,14 @@ use app_error::{AppError, AppResult};
 use axum::extract::{Path, State};
 use axum::routing::{delete, get, post};
 use axum::{Json, Router};
-use responses::create_topic_response::CreateTopicResponse;
-use responses::produce_response::ProduceResponse;
-use responses::record_response::FetchResponse;
 use shared::commands::create_topic_command::CreateTopicCommand;
 use shared::commands::fetch_command::FetchCommand;
 use shared::commands::produce_command::ProduceCommand;
 use shared::data::encoding;
 use shared::data::identifier::Identifier;
+use shared::response::create_topic_response::CreateTopicResponse;
+use shared::response::produce_response::ProduceResponse;
+use shared::response::record_response::FetchResponse;
 use shared::state::topic_state::TopicState;
 use tokio::net::TcpListener;
 use tokio::select;
@@ -117,7 +116,10 @@ async fn fetch(
             let mut offset = partition.offset;
             while let Some(record) = lock.read(&topic.identifier, partition.id, &offset).await? {
                 let record_offset = record.offset;
-                response.push(&record, topic_id, partition.id)?;
+                response.push(
+                    record.into_response(&fetch.encoding, topic_id, partition.id)?,
+                    record.size(),
+                );
 
                 match offset.narrow(record_offset) {
                     Some(next) => offset = next,
@@ -162,7 +164,7 @@ async fn fetch(
              _ = time::sleep_until(until) => return Ok(Json(response)),
             record = map.next() => {
                 if let Some((topic_id, (partition_id, record))) = record {
-                    response.push(&record, topic_id, partition_id)?;
+                    response.push(record.into_response(&fetch.encoding, topic_id, partition_id)?, record.size());
 
                     if response.total_size > fetch.min_bytes {
                         return Ok(Json(response));
