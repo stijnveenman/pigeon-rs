@@ -1,4 +1,4 @@
-use axum::{http::StatusCode, response::IntoResponse, Json};
+use axum::{Json, http::StatusCode, response::IntoResponse};
 use shared::{data::encoding, response::error_response::ErrorResponse};
 use tokio::sync::broadcast::error::RecvError;
 

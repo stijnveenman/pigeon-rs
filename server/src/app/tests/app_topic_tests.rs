@@ -1,7 +1,7 @@
 use shared::data::identifier::Identifier;
 
 use crate::{
-    app::{error::Error, App},
+    app::{App, error::Error},
     config::Config,
 };
 

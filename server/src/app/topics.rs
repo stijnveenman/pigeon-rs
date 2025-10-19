@@ -1,5 +1,5 @@
-use std::collections::hash_map::Entry;
 use std::collections::HashMap;
+use std::collections::hash_map::Entry;
 use std::sync::Arc;
 
 use bytes::Bytes;
@@ -11,12 +11,12 @@ use tracing::{debug, info, warn};
 
 use crate::dur::record::{Record, RecordHeader};
 use crate::dur::topic::Topic;
+use crate::meta::MetadataEntry;
 use crate::meta::create_topic_entry::CreateTopicEntry;
 use crate::meta::delete_topic_entry::DeleteTopicEntry;
-use crate::meta::MetadataEntry;
 
-use super::error::{Error, Result};
 use super::AppLock;
+use super::error::{Error, Result};
 
 impl AppLock {
     pub(super) async fn create_topic_internal(

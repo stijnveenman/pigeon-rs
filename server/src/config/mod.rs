@@ -1,5 +1,5 @@
 #[cfg(test)]
-use tempfile::{tempdir, TempDir};
+use tempfile::{TempDir, tempdir};
 
 #[derive(Debug)]
 pub struct Config {

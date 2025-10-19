@@ -1,9 +1,9 @@
 use std::sync::Arc;
 
 use rand::{
+    SeedableRng,
     distr::{Alphanumeric, SampleString},
     rngs::SmallRng,
-    SeedableRng,
 };
 
 use crate::{

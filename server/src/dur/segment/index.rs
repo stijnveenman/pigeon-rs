@@ -1,11 +1,11 @@
 use std::{
-    collections::{btree_map::Range, BTreeMap},
+    collections::{BTreeMap, btree_map::Range},
     io::ErrorKind,
     ops::RangeBounds,
 };
 
 use tokio::{
-    fs::{remove_file, File, OpenOptions},
+    fs::{File, OpenOptions, remove_file},
     io::{self, AsyncReadExt, AsyncWriteExt, BufReader, BufWriter},
 };
 
@@ -22,7 +22,7 @@ impl Index {
         let index_file = match OpenOptions::new().read(true).open(path).await {
             Ok(file) => file,
             Err(err) if err.kind() == io::ErrorKind::NotFound => {
-                return Self::new(path, BTreeMap::default()).await
+                return Self::new(path, BTreeMap::default()).await;
             }
             Err(err) => return Err(err.into()),
         };

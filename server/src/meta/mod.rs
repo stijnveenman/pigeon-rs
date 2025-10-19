@@ -40,14 +40,11 @@ impl Metadata {
 
             match entry {
                 MetadataEntry::CreateTopic(entry) => {
-                    metadata.topics.insert(
-                        entry.topic_id,
-                        TopicMetadata {
-                            topic_id: entry.topic_id,
-                            name: entry.name,
-                            partitions: entry.partitions,
-                        },
-                    );
+                    metadata.topics.insert(entry.topic_id, TopicMetadata {
+                        topic_id: entry.topic_id,
+                        name: entry.name,
+                        partitions: entry.partitions,
+                    });
                 }
                 MetadataEntry::DeleteTopic(entry) => {
                     metadata.topics.remove(&entry.topic_id);

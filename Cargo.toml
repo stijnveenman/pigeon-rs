@@ -1,3 +1,3 @@
 [workspace]
 resolver = "3"
-members = [ "cli", "client","legacy", "shared"]
+members = ["cli", "client", "server", "shared"]

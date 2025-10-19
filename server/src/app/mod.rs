@@ -9,7 +9,7 @@ use std::{
     sync::Arc,
 };
 
-use tokio::sync::{broadcast, RwLock, RwLockReadGuard, RwLockWriteGuard};
+use tokio::sync::{RwLock, RwLockReadGuard, RwLockWriteGuard, broadcast};
 use tracing::{debug, info, warn};
 
 use crate::{

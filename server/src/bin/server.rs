@@ -1,6 +1,6 @@
 use anyhow::Result;
 use clap::Parser;
-use pigeon_rs::{app::App, config::Config, http::HttpServer};
+use server::{app::App, config::Config, http::HttpServer};
 use shared::{consts::DEFAULT_PORT, logging::set_up_logging};
 
 #[derive(Parser, Debug)]
