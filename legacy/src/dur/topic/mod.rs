@@ -6,10 +6,10 @@ use shared::state::topic_state::TopicState;
 use tokio::fs::remove_dir;
 
 use crate::config::Config;
-use crate::data::record::{Record, RecordHeader};
 use crate::dur::error::{Error, Result};
 
 use super::partition::Partition;
+use super::record::{Record, RecordHeader};
 
 pub struct Topic {
     topic_id: u64,

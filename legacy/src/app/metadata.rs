@@ -1,7 +1,10 @@
 use bytes::Bytes;
 use tracing::{debug, warn};
 
-use crate::{data::record::Record, dur, meta::MetadataEntry};
+use crate::{
+    dur::{self, record::Record},
+    meta::MetadataEntry,
+};
 
 use super::AppLock;
 

@@ -6,7 +6,10 @@ use rand::{
     SeedableRng,
 };
 
-use crate::{config::Config, data::record::RecordHeader, dur::topic::Topic};
+use crate::{
+    config::Config,
+    dur::{record::RecordHeader, topic::Topic},
+};
 
 #[tokio::test]
 #[ignore]

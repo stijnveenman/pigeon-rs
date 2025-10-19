@@ -8,7 +8,7 @@ use create_topic_entry::CreateTopicEntry;
 use delete_topic_entry::DeleteTopicEntry;
 use serde::{Deserialize, Serialize};
 
-use crate::data::record::Record;
+use crate::dur::record::Record;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub enum MetadataEntry {

@@ -14,8 +14,7 @@ use tracing::{debug, info, warn};
 
 use crate::{
     config::Config,
-    data::record::Record,
-    dur::{self, topic::Topic},
+    dur::{self, record::Record, topic::Topic},
     meta::Metadata,
 };
 

@@ -15,9 +15,9 @@ use tokio::{
     io::{AsyncSeekExt, AsyncWriteExt, BufWriter},
 };
 
-use crate::data::record::RecordHeader;
+use crate::config::Config;
 use crate::dur::error::Error;
-use crate::{config::Config, data::record::Record};
+use crate::dur::record::{Record, RecordHeader};
 
 use super::error::Result;
 
@@ -236,7 +236,10 @@ mod test {
     use std::fs::create_dir_all;
 
     use super::Segment;
-    use crate::{config::Config, data::record::Record, dur::error::Error};
+    use crate::{
+        config::Config,
+        dur::{error::Error, record::Record},
+    };
 
     #[tokio::test]
     async fn segment_basic_read_write() {

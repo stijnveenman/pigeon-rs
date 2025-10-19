@@ -2,7 +2,6 @@
 
 pub mod app;
 pub mod config;
-pub mod data;
 mod dur;
 pub mod http;
 mod meta;

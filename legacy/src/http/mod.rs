@@ -25,7 +25,7 @@ use tokio_stream::{Stream, StreamExt, StreamMap};
 use tracing::info;
 
 use crate::app::App;
-use crate::data::record::{Record, RecordHeader};
+use crate::dur::record::{Record, RecordHeader};
 
 pub struct HttpServer {
     router: Router,

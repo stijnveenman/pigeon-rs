@@ -7,12 +7,12 @@ use shared::{
 };
 use tokio::fs::{self, create_dir_all, remove_dir};
 
-use super::{error::Result, segment::Segment};
-use crate::{
-    config::Config,
-    data::record::{Record, RecordHeader},
-    dur::error::Error,
+use super::{
+    error::Result,
+    record::{Record, RecordHeader},
+    segment::Segment,
 };
+use crate::{config::Config, dur::error::Error};
 
 pub struct Partition {
     topic_id: u64,

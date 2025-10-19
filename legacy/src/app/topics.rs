@@ -9,7 +9,7 @@ use shared::state::topic_state::TopicState;
 use tokio::sync::broadcast;
 use tracing::{debug, info, warn};
 
-use crate::data::record::{Record, RecordHeader};
+use crate::dur::record::{Record, RecordHeader};
 use crate::dur::topic::Topic;
 use crate::meta::create_topic_entry::CreateTopicEntry;
 use crate::meta::delete_topic_entry::DeleteTopicEntry;
