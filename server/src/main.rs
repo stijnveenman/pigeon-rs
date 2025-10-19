@@ -1,6 +1,16 @@
+#![feature(btree_cursors)]
+
+pub mod app;
+pub mod config;
+mod dur;
+pub mod http;
+
+mod meta;
 use anyhow::Result;
+use app::App;
 use clap::Parser;
-use server::{app::App, config::Config, http::HttpServer};
+use config::Config;
+use http::HttpServer;
 use shared::{consts::DEFAULT_PORT, logging::set_up_logging};
 
 #[derive(Parser, Debug)]
