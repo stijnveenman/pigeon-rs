@@ -1,10 +1,8 @@
 use axum::{http::StatusCode, response::IntoResponse, Json};
+use shared::encoding;
 use tokio::sync::broadcast::error::RecvError;
 
-use crate::{
-    app::{self},
-    data::encoding,
-};
+use crate::app::{self};
 
 use super::responses::error_response::ErrorResponse;
 

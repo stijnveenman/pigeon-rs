@@ -1,4 +1,4 @@
-use base64::{prelude::BASE64_STANDARD, Engine};
+use base64::{Engine, prelude::BASE64_STANDARD};
 use bytes::Bytes;
 use serde::{Deserialize, Serialize};
 use std::str::Utf8Error;
@@ -6,9 +6,7 @@ use thiserror::Error;
 
 #[derive(Debug, Serialize, Deserialize, Clone, Copy)]
 pub enum Encoding {
-    #[serde(rename = "utf8")]
     Utf8,
-    #[serde(rename = "b64")]
     B64,
 }
 

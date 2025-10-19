@@ -1,13 +1,10 @@
 use serde::{Deserialize, Serialize};
+use shared::encoding::{self, Encoding};
 use std::str;
 
 use crate::{
     commands::fetch::Fetch,
-    data::{
-        encoding::{self, Encoding},
-        record::Record,
-        timestamp::Timestamp,
-    },
+    data::{record::Record, timestamp::Timestamp},
 };
 
 #[derive(Debug, Serialize, Deserialize)]

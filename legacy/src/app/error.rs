@@ -1,8 +1,9 @@
 use axum::{http::StatusCode, response::IntoResponse};
+use shared::encoding;
 use thiserror::Error;
 use tokio::sync::broadcast::error::RecvError;
 
-use crate::{data::encoding, dur};
+use crate::dur;
 
 #[derive(Debug, Error)]
 pub enum Error {

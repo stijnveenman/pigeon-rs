@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
+use shared::encoding::Encoding;
 
-use crate::data::{encoding::Encoding, identifier::Identifier};
+use crate::data::identifier::Identifier;
 
 #[derive(Serialize, Deserialize)]
 pub struct Produce {
