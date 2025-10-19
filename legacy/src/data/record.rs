@@ -1,6 +1,5 @@
 use bytes::Bytes;
-
-use super::timestamp::Timestamp;
+use shared::data::timestamp::Timestamp;
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct RecordHeader {

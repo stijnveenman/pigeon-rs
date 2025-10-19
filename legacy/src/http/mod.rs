@@ -14,6 +14,7 @@ use responses::create_topic_response::CreateTopicResponse;
 use responses::produce_response::ProduceResponse;
 use responses::record_response::FetchResponse;
 use shared::data::encoding;
+use shared::data::identifier::Identifier;
 use tokio::net::TcpListener;
 use tokio::select;
 use tokio::time::{self, Instant};
@@ -24,7 +25,6 @@ use crate::app::App;
 use crate::commands::create_topic::CreateTopic;
 use crate::commands::fetch::Fetch;
 use crate::commands::produce::Produce;
-use crate::data::identifier::Identifier;
 use crate::data::record::{Record, RecordHeader};
 use crate::data::state::topic_state::TopicState;
 

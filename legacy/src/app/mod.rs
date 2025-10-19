@@ -1,4 +1,3 @@
-#![allow(unused)]
 pub mod error;
 mod metadata;
 mod topics;
@@ -10,17 +9,13 @@ use std::{
     sync::Arc,
 };
 
-use bson::serde_helpers::u64_as_f64;
 use tokio::sync::{broadcast, RwLock, RwLockReadGuard, RwLockWriteGuard};
 use tracing::{debug, info, warn};
 
 use crate::{
     config::Config,
     data::record::Record,
-    dur::{
-        self,
-        topic::{self, Topic},
-    },
+    dur::{self, topic::Topic},
     meta::Metadata,
 };
 

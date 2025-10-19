@@ -1,11 +1,11 @@
 use serde::{Deserialize, Serialize};
-use shared::data::encoding::{self, Encoding};
+use shared::data::{
+    encoding::{self, Encoding},
+    timestamp::Timestamp,
+};
 use std::str;
 
-use crate::{
-    commands::fetch::Fetch,
-    data::{record::Record, timestamp::Timestamp},
-};
+use crate::{commands::fetch::Fetch, data::record::Record};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct RecordResponse {

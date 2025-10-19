@@ -1,8 +1,10 @@
+use shared::data::identifier::Identifier;
+
 use crate::{
     app::{error::Error, App, AppLock},
     commands::create_topic::CreateTopic,
     config::Config,
-    data::{identifier::Identifier, record::Record, timestamp::Timestamp},
+    data::record::Record,
 };
 
 #[tokio::test]

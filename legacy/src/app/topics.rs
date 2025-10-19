@@ -3,15 +3,14 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use bytes::Bytes;
+use shared::data::identifier::Identifier;
+use shared::data::offset_selection::OffsetSelection;
 use tokio::sync::broadcast;
 use tracing::{debug, info, warn};
 use tracing_subscriber::layer::Identity;
 
-use crate::data::identifier::Identifier;
-use crate::data::offset_selection::OffsetSelection;
 use crate::data::record::{Record, RecordHeader};
 use crate::data::state::topic_state::TopicState;
-use crate::data::timestamp::Timestamp;
 use crate::meta::create_topic_entry::CreateTopicEntry;
 use crate::meta::delete_topic_entry::DeleteTopicEntry;
 use crate::meta::MetadataEntry;

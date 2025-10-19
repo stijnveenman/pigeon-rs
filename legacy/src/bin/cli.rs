@@ -8,11 +8,10 @@ use pigeon_rs::{
         fetch::{Fetch, FetchPartition, FetchTopic},
         produce::Produce,
     },
-    data::{identifier::Identifier, offset_selection::OffsetSelection},
     logging::set_up_logging,
     DEFAULT_PORT,
 };
-use shared::data::encoding::Encoding;
+use shared::data::{encoding::Encoding, identifier::Identifier, offset_selection::OffsetSelection};
 use tracing::{debug, info};
 
 #[derive(Parser, Debug)]

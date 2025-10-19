@@ -6,6 +6,7 @@ use std::sync::Arc;
 
 use bytes::{Buf, Bytes};
 use index::Index;
+use shared::data::timestamp::Timestamp;
 use std::fs::File as StdFile;
 use tokio::fs::remove_file;
 use tokio::task::spawn_blocking;
@@ -15,7 +16,6 @@ use tokio::{
 };
 
 use crate::data::record::RecordHeader;
-use crate::data::timestamp::Timestamp;
 use crate::dur::error::Error;
 use crate::{config::Config, data::record::Record};
 

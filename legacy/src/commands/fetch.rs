@@ -1,7 +1,5 @@
 use serde::{Deserialize, Serialize};
-use shared::data::encoding::Encoding;
-
-use crate::data::{identifier::Identifier, offset_selection::OffsetSelection};
+use shared::data::{encoding::Encoding, identifier::Identifier, offset_selection::OffsetSelection};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Fetch {

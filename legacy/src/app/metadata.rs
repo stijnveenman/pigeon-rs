@@ -2,11 +2,7 @@ use super::error::{Error, Result};
 use bytes::Bytes;
 use tracing::{debug, warn};
 
-use crate::{
-    data::{record::Record, timestamp::Timestamp},
-    dur,
-    meta::MetadataEntry,
-};
+use crate::{data::record::Record, dur, meta::MetadataEntry};
 
 use super::AppLock;
 
