@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use shared::encoding::Encoding;
+use shared::data::encoding::Encoding;
 
 use crate::data::{identifier::Identifier, offset_selection::OffsetSelection};
 

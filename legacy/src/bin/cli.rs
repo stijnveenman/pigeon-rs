@@ -12,7 +12,7 @@ use pigeon_rs::{
     logging::set_up_logging,
     DEFAULT_PORT,
 };
-use shared::encoding::Encoding;
+use shared::data::encoding::Encoding;
 use tracing::{debug, info};
 
 #[derive(Parser, Debug)]

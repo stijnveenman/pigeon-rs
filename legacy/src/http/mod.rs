@@ -13,7 +13,7 @@ use axum::{Json, Router};
 use responses::create_topic_response::CreateTopicResponse;
 use responses::produce_response::ProduceResponse;
 use responses::record_response::FetchResponse;
-use shared::encoding;
+use shared::data::encoding;
 use tokio::net::TcpListener;
 use tokio::select;
 use tokio::time::{self, Instant};

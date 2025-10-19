@@ -1,5 +1,5 @@
 use axum::{http::StatusCode, response::IntoResponse, Json};
-use shared::encoding;
+use shared::data::encoding;
 use tokio::sync::broadcast::error::RecvError;
 
 use crate::app::{self};

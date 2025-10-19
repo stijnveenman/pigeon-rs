@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use shared::encoding::{self, Encoding};
+use shared::data::encoding::{self, Encoding};
 use std::str;
 
 use crate::{

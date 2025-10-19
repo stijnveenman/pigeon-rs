@@ -1,5 +1,5 @@
 use axum::{http::StatusCode, response::IntoResponse};
-use shared::encoding;
+use shared::data::encoding;
 use thiserror::Error;
 use tokio::sync::broadcast::error::RecvError;
 
