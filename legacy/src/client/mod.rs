@@ -2,15 +2,18 @@ use std::collections::HashMap;
 
 use reqwest::{Client, IntoUrl, Response, StatusCode, Url};
 use serde::{de::DeserializeOwned, Serialize};
-use shared::state::topic_state::TopicState;
+use shared::{
+    commands::{
+        create_topic_command::CreateTopicCommand, fetch_command::FetchCommand,
+        produce_command::ProduceCommand,
+    },
+    state::topic_state::TopicState,
+};
 use thiserror::Error;
 
-use crate::{
-    commands::{create_topic::CreateTopic, fetch::Fetch, produce::Produce},
-    http::responses::{
-        create_topic_response::CreateTopicResponse, error_response::ErrorResponse,
-        produce_response::ProduceResponse, record_response::FetchResponse,
-    },
+use crate::http::responses::{
+    create_topic_response::CreateTopicResponse, error_response::ErrorResponse,
+    produce_response::ProduceResponse, record_response::FetchResponse,
 };
 
 #[derive(Debug, Error)]
@@ -132,7 +135,7 @@ impl HttpClient {
     ) -> Result<CreateTopicResponse, Error> {
         self.post(
             "/topics",
-            CreateTopic {
+            CreateTopicCommand {
                 name: name.to_string(),
                 partitions,
                 topic_id: None,
@@ -141,11 +144,11 @@ impl HttpClient {
         .await
     }
 
-    pub async fn produce(&self, produce: Produce) -> Result<ProduceResponse, Error> {
+    pub async fn produce(&self, produce: ProduceCommand) -> Result<ProduceResponse, Error> {
         self.post("/topics/records", produce).await
     }
 
-    pub async fn fetch(&self, fetch: Fetch) -> Result<FetchResponse, Error> {
+    pub async fn fetch(&self, fetch: FetchCommand) -> Result<FetchResponse, Error> {
         self.get_with_body("/topics/records", fetch).await
     }
 }

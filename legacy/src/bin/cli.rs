@@ -2,16 +2,14 @@ use std::collections::HashMap;
 
 use anyhow::Result;
 use clap::{Parser, Subcommand};
-use pigeon_rs::{
-    client::HttpClient,
+use pigeon_rs::{client::HttpClient, logging::set_up_logging, DEFAULT_PORT};
+use shared::{
     commands::{
-        fetch::{Fetch, FetchPartition, FetchTopic},
-        produce::Produce,
+        fetch_command::{FetchCommand, FetchPartitionCommand, FetchTopicCommand},
+        produce_command::ProduceCommand,
     },
-    logging::set_up_logging,
-    DEFAULT_PORT,
+    data::{encoding::Encoding, identifier::Identifier, offset_selection::OffsetSelection},
 };
-use shared::data::{encoding::Encoding, identifier::Identifier, offset_selection::OffsetSelection};
 use tracing::{debug, info};
 
 #[derive(Parser, Debug)]
@@ -99,13 +97,13 @@ async fn listen_to_topic(
 
     loop {
         let response = client
-            .fetch(Fetch {
+            .fetch(FetchCommand {
                 encoding: Encoding::Utf8,
-                topics: vec![FetchTopic {
+                topics: vec![FetchTopicCommand {
                     identifier: Identifier::Id(state.topic_id),
                     partitions: partition_offsets
                         .iter()
-                        .map(|p| FetchPartition {
+                        .map(|p| FetchPartitionCommand {
                             id: *p.0,
                             offset: OffsetSelection::From(*p.1),
                         })
@@ -175,7 +173,7 @@ pub async fn main() -> Result<()> {
             value,
         } => {
             let response = client
-                .produce(Produce {
+                .produce(ProduceCommand {
                     topic: Identifier::Name(name),
                     partition_id,
                     key,
@@ -194,13 +192,13 @@ pub async fn main() -> Result<()> {
             timeout_ms,
         } => {
             let response = client
-                .fetch(Fetch {
+                .fetch(FetchCommand {
                     encoding: Encoding::Utf8,
                     timeout_ms,
                     min_bytes: 0,
-                    topics: vec![FetchTopic {
+                    topics: vec![FetchTopicCommand {
                         identifier: Identifier::Name(topic),
-                        partitions: vec![FetchPartition {
+                        partitions: vec![FetchPartitionCommand {
                             id: partition,
                             offset: OffsetSelection::From(start_offset),
                         }],

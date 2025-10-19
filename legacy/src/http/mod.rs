@@ -13,6 +13,9 @@ use axum::{Json, Router};
 use responses::create_topic_response::CreateTopicResponse;
 use responses::produce_response::ProduceResponse;
 use responses::record_response::FetchResponse;
+use shared::commands::create_topic_command::CreateTopicCommand;
+use shared::commands::fetch_command::FetchCommand;
+use shared::commands::produce_command::ProduceCommand;
 use shared::data::encoding;
 use shared::data::identifier::Identifier;
 use shared::state::topic_state::TopicState;
@@ -23,9 +26,6 @@ use tokio_stream::{Stream, StreamExt, StreamMap};
 use tracing::info;
 
 use crate::app::App;
-use crate::commands::create_topic::CreateTopic;
-use crate::commands::fetch::Fetch;
-use crate::commands::produce::Produce;
 use crate::data::record::{Record, RecordHeader};
 
 pub struct HttpServer {
@@ -35,7 +35,7 @@ pub struct HttpServer {
 
 async fn create_topic(
     State(app): State<App>,
-    Json(create_topic): Json<CreateTopic>,
+    Json(create_topic): Json<CreateTopicCommand>,
 ) -> AppResult<CreateTopicResponse> {
     let mut lock = app.write().await;
 
@@ -52,7 +52,7 @@ async fn create_topic(
 
 async fn produce(
     State(app): State<App>,
-    Json(produce): Json<Produce>,
+    Json(produce): Json<ProduceCommand>,
 ) -> AppResult<ProduceResponse> {
     let mut lock = app.write().await;
 
@@ -102,7 +102,10 @@ async fn delete_topic(State(app): State<App>, Path(name): Path<String>) -> Resul
     Ok(())
 }
 
-async fn fetch(State(app): State<App>, Json(fetch): Json<Fetch>) -> AppResult<FetchResponse> {
+async fn fetch(
+    State(app): State<App>,
+    Json(fetch): Json<FetchCommand>,
+) -> AppResult<FetchResponse> {
     let until = Instant::now() + Duration::from_millis(fetch.timeout_ms);
     let mut response = FetchResponse::from(&fetch);
 

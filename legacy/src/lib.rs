@@ -1,7 +1,6 @@
 #![feature(btree_cursors)]
 
 pub mod app;
-pub mod commands;
 pub mod config;
 pub mod data;
 mod dur;

@@ -1,18 +1,19 @@
 use serde::{Deserialize, Serialize};
-use shared::data::{encoding::Encoding, identifier::Identifier};
+
+use crate::data::{encoding::Encoding, identifier::Identifier};
 
 #[derive(Serialize, Deserialize)]
-pub struct Produce {
+pub struct ProduceCommand {
     pub topic: Identifier,
     pub partition_id: u64,
     pub key: String,
     pub value: String,
     pub encoding: Encoding,
-    pub headers: Option<Vec<ProduceHeader>>,
+    pub headers: Option<Vec<ProduceHeaderCommand>>,
 }
 
 #[derive(Serialize, Deserialize)]
-pub struct ProduceHeader {
+pub struct ProduceHeaderCommand {
     pub key: String,
     pub value: String,
 }

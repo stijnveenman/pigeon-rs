@@ -1,11 +1,14 @@
 use serde::{Deserialize, Serialize};
-use shared::data::{
-    encoding::{self, Encoding},
-    timestamp::Timestamp,
+use shared::{
+    commands::fetch_command::FetchCommand,
+    data::{
+        encoding::{self, Encoding},
+        timestamp::Timestamp,
+    },
 };
 use std::str;
 
-use crate::{commands::fetch::Fetch, data::record::Record};
+use crate::data::record::Record;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct RecordResponse {
@@ -31,8 +34,8 @@ pub struct FetchResponse {
     pub records: Vec<RecordResponse>,
 }
 
-impl From<&Fetch> for FetchResponse {
-    fn from(value: &Fetch) -> Self {
+impl From<&FetchCommand> for FetchResponse {
+    fn from(value: &FetchCommand) -> Self {
         Self {
             total_size: 0,
             records: vec![],
