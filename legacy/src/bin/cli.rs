@@ -2,7 +2,8 @@ use std::collections::HashMap;
 
 use anyhow::Result;
 use clap::{Parser, Subcommand};
-use pigeon_rs::{client::HttpClient, logging::set_up_logging, DEFAULT_PORT};
+use client::http_client::HttpClient;
+use pigeon_rs::{logging::set_up_logging, DEFAULT_PORT};
 use shared::{
     commands::{
         fetch_command::{FetchCommand, FetchPartitionCommand, FetchTopicCommand},

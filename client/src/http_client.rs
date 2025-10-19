@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use reqwest::{Client, IntoUrl, Response, StatusCode, Url};
-use serde::{de::DeserializeOwned, Serialize};
+use serde::{Serialize, de::DeserializeOwned};
 use shared::{
     commands::{
         create_topic_command::CreateTopicCommand, fetch_command::FetchCommand,
@@ -132,14 +132,11 @@ impl HttpClient {
         name: &str,
         partitions: Option<u64>,
     ) -> Result<CreateTopicResponse, Error> {
-        self.post(
-            "/topics",
-            CreateTopicCommand {
-                name: name.to_string(),
-                partitions,
-                topic_id: None,
-            },
-        )
+        self.post("/topics", CreateTopicCommand {
+            name: name.to_string(),
+            partitions,
+            topic_id: None,
+        })
         .await
     }
 
