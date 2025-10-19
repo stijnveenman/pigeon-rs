@@ -7,14 +7,13 @@ use shared::data::identifier::Identifier;
 use shared::data::offset_selection::OffsetSelection;
 use tokio::sync::broadcast;
 use tracing::{debug, info, warn};
-use tracing_subscriber::layer::Identity;
 
 use crate::data::record::{Record, RecordHeader};
 use crate::data::state::topic_state::TopicState;
+use crate::dur::topic::Topic;
 use crate::meta::create_topic_entry::CreateTopicEntry;
 use crate::meta::delete_topic_entry::DeleteTopicEntry;
 use crate::meta::MetadataEntry;
-use crate::{commands::create_topic::CreateTopic, dur::topic::Topic};
 
 use super::error::{Error, Result};
 use super::AppLock;
@@ -99,7 +98,7 @@ impl AppLock {
 
         self.topic_ids.remove(&topic_name);
         if let Some(topic) = self.topics.remove(&topic_id) {
-            // topic.delete().await?;
+            topic.delete().await?;
         }
 
         Ok(())
@@ -180,7 +179,7 @@ impl AppLock {
         value: Bytes,
         headers: Vec<RecordHeader>,
     ) -> Result<u64> {
-        let mut topic = self.get_topic_mut(&identifier)?;
+        let topic = self.get_topic_mut(&identifier)?;
 
         if topic.is_internal() {
             return Err(Error::InternalTopicName(topic.name().to_string()));

@@ -58,7 +58,7 @@ impl App {
             topic_ids.insert(topic_metadata.name, topic_metadata.topic_id);
         }
 
-        let mut topic_folders = fs::read_dir(config.topics_path())?;
+        let topic_folders = fs::read_dir(config.topics_path())?;
         for folder in topic_folders {
             let folder = folder?;
 
@@ -81,7 +81,7 @@ impl App {
                         path.display()
                     );
 
-                    remove_dir_all(path);
+                    remove_dir_all(path).expect("Failed to remove topic dir");
                 }
             } else {
                 warn!("unexpected path component {component:?}");

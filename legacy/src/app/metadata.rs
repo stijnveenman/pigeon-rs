@@ -1,4 +1,3 @@
-use super::error::{Error, Result};
 use bytes::Bytes;
 use tracing::{debug, warn};
 
@@ -8,7 +7,7 @@ use super::AppLock;
 
 impl AppLock {
     pub async fn append_metadata(&mut self, entry: MetadataEntry) -> dur::error::Result<Record> {
-        let mut topic = self
+        let topic = self
             .get_topic_by_id_mut(0)
             .expect("Metadata topic id 0 does not exist");
 
