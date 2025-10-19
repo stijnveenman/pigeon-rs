@@ -19,7 +19,7 @@ pub enum Error {
 }
 
 impl Encoding {
-    pub fn encode(&self, bytes: &Bytes) -> Result<String, Error> {
+    pub fn encode(&self, bytes: &[u8]) -> Result<String, Error> {
         Ok(match self {
             Encoding::Utf8 => std::str::from_utf8(bytes)?.to_string(),
             Encoding::B64 => BASE64_STANDARD.encode(bytes),
@@ -31,5 +31,31 @@ impl Encoding {
             Encoding::Utf8 => value.to_string().into(),
             Encoding::B64 => BASE64_STANDARD.decode(value)?.into(),
         })
+    }
+}
+
+#[cfg(test)]
+mod test {
+
+    use crate::data::encoding::Encoding;
+
+    #[test]
+    fn encode_utf8() {
+        assert_eq!(Encoding::Utf8.encode(b"hello").unwrap(), "hello");
+    }
+
+    #[test]
+    fn encode_base64() {
+        assert_eq!(Encoding::B64.encode(b"hello").unwrap(), "aGVsbG8=");
+    }
+
+    #[test]
+    fn decode_utf8() {
+        assert_eq!(&Encoding::Utf8.decode("world").unwrap()[..], b"world");
+    }
+
+    #[test]
+    fn decode_base64() {
+        assert_eq!(&Encoding::B64.decode("Zm9vYmFy").unwrap()[..], b"foobar");
     }
 }
