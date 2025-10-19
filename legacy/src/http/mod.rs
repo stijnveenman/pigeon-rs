@@ -71,13 +71,7 @@ async fn produce(
         .collect::<Result<_, encoding::Error>>()?;
 
     let offset = lock
-        .produce(
-            produce.topic,
-            produce.partition_id,
-            key.into(),
-            value.into(),
-            headers,
-        )
+        .produce(produce.topic, produce.partition_id, key, value, headers)
         .await?;
 
     Ok(Json(ProduceResponse { offset }))
