@@ -1,16 +1,16 @@
 use std::{collections::BTreeMap, ops::Bound, path::Path, sync::Arc};
 
 use bytes::Bytes;
-use shared::data::{offset_selection::OffsetSelection, timestamp::Timestamp};
+use shared::{
+    data::{offset_selection::OffsetSelection, timestamp::Timestamp},
+    state::partition_state::PartitionState,
+};
 use tokio::fs::{self, create_dir_all, remove_dir};
 
 use super::{error::Result, segment::Segment};
 use crate::{
     config::Config,
-    data::{
-        record::{Record, RecordHeader},
-        state::partition_state::PartitionState,
-    },
+    data::record::{Record, RecordHeader},
     dur::error::Error,
 };
 

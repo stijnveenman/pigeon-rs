@@ -15,6 +15,7 @@ use responses::produce_response::ProduceResponse;
 use responses::record_response::FetchResponse;
 use shared::data::encoding;
 use shared::data::identifier::Identifier;
+use shared::state::topic_state::TopicState;
 use tokio::net::TcpListener;
 use tokio::select;
 use tokio::time::{self, Instant};
@@ -26,7 +27,6 @@ use crate::commands::create_topic::CreateTopic;
 use crate::commands::fetch::Fetch;
 use crate::commands::produce::Produce;
 use crate::data::record::{Record, RecordHeader};
-use crate::data::state::topic_state::TopicState;
 
 pub struct HttpServer {
     router: Router,

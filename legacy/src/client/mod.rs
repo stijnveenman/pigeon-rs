@@ -2,11 +2,11 @@ use std::collections::HashMap;
 
 use reqwest::{Client, IntoUrl, Response, StatusCode, Url};
 use serde::{de::DeserializeOwned, Serialize};
+use shared::state::topic_state::TopicState;
 use thiserror::Error;
 
 use crate::{
     commands::{create_topic::CreateTopic, fetch::Fetch, produce::Produce},
-    data::state::topic_state::TopicState,
     http::responses::{
         create_topic_response::CreateTopicResponse, error_response::ErrorResponse,
         produce_response::ProduceResponse, record_response::FetchResponse,

@@ -2,11 +2,11 @@ use std::sync::Arc;
 
 use bytes::Bytes;
 use shared::data::offset_selection::OffsetSelection;
+use shared::state::topic_state::TopicState;
 use tokio::fs::remove_dir;
 
 use crate::config::Config;
 use crate::data::record::{Record, RecordHeader};
-use crate::data::state::topic_state::TopicState;
 use crate::dur::error::{Error, Result};
 
 use super::partition::Partition;
