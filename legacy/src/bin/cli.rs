@@ -14,7 +14,7 @@ use shared::{
 use tracing::{debug, info};
 
 #[derive(Parser, Debug)]
-#[command(name = "pigeon-cli", version, author, about = "Run pegon server")]
+#[command(name = "pigeon-cli", version, author, about = "Pigeon-rs CLI")]
 struct Cli {
     #[clap(subcommand)]
     command: Command,
