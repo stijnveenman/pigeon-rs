@@ -1,9 +1,8 @@
 use tracing::level_filters::LevelFilter;
 use tracing_subscriber::{
-    fmt,
+    EnvFilter, fmt,
     layer::SubscriberExt,
     util::{SubscriberInitExt, TryInitError},
-    EnvFilter,
 };
 
 fn get_default_loglevel(verbose: u8, quiet: u8) -> LevelFilter {

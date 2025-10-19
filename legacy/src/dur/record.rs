@@ -36,7 +36,7 @@ impl Record {
             + self.headers.iter().map(RecordHeader::size).sum::<usize>()
     }
 
-    pub fn into_response(
+    pub fn to_response(
         &self,
         encoding: &Encoding,
         topic_id: u64,

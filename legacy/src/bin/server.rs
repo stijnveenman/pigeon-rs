@@ -1,8 +1,7 @@
 use anyhow::Result;
 use clap::Parser;
-use pigeon_rs::{
-    app::App, config::Config, http::HttpServer, logging::set_up_logging, DEFAULT_PORT,
-};
+use pigeon_rs::{app::App, config::Config, http::HttpServer};
+use shared::{consts::DEFAULT_PORT, logging::set_up_logging};
 
 #[derive(Parser, Debug)]
 #[command(name = "pigeon", version, author, about = "Run pegon server")]

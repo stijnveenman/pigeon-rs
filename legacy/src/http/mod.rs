@@ -117,7 +117,7 @@ async fn fetch(
             while let Some(record) = lock.read(&topic.identifier, partition.id, &offset).await? {
                 let record_offset = record.offset;
                 response.push(
-                    record.into_response(&fetch.encoding, topic_id, partition.id)?,
+                    record.to_response(&fetch.encoding, topic_id, partition.id)?,
                     record.size(),
                 );
 
@@ -164,7 +164,7 @@ async fn fetch(
              _ = time::sleep_until(until) => return Ok(Json(response)),
             record = map.next() => {
                 if let Some((topic_id, (partition_id, record))) = record {
-                    response.push(record.into_response(&fetch.encoding, topic_id, partition_id)?, record.size());
+                    response.push(record.to_response(&fetch.encoding, topic_id, partition_id)?, record.size());
 
                     if response.total_size > fetch.min_bytes {
                         return Ok(Json(response));

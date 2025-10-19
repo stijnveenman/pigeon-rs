@@ -3,13 +3,14 @@ use std::collections::HashMap;
 use anyhow::Result;
 use clap::{Parser, Subcommand};
 use client::http_client::HttpClient;
-use pigeon_rs::{logging::set_up_logging, DEFAULT_PORT};
 use shared::{
     commands::{
         fetch_command::{FetchCommand, FetchPartitionCommand, FetchTopicCommand},
         produce_command::ProduceCommand,
     },
+    consts::DEFAULT_PORT,
     data::{encoding::Encoding, identifier::Identifier, offset_selection::OffsetSelection},
+    logging::set_up_logging,
 };
 use tracing::{debug, info};
 
@@ -85,13 +86,10 @@ async fn listen_to_topic(
         .partitions
         .iter()
         .map(|partition| {
-            (
-                partition.partition_id,
-                match from_beginning {
-                    true => 0,
-                    false => partition.current_offset,
-                },
-            )
+            (partition.partition_id, match from_beginning {
+                true => 0,
+                false => partition.current_offset,
+            })
         })
         .collect::<HashMap<_, _>>();
     debug!("Partition offset: {partition_offsets:#?}");
