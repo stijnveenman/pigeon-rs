@@ -3,7 +3,7 @@ use tokio::sync::mpsc;
 
 use crate::tui_event::TuiEvent;
 
-pub type Tx = mpsc::UnboundedSender<Option<TuiEvent>>;
+pub type Tx = mpsc::UnboundedSender<TuiEvent>;
 
 pub trait Component {
     /// Handle a specific TuiEvent, should return None if the event is handled. If the Component

@@ -20,6 +20,7 @@ use tokio::sync::mpsc;
 use tui_event::TuiEvent;
 
 #[tokio::main]
+// This is far from pretty, but it's mostly async wiring
 async fn main() -> Result<()> {
     enable_raw_mode()?;
     let mut stderr = io::stderr();
@@ -29,13 +30,24 @@ async fn main() -> Result<()> {
     let mut terminal = Terminal::new(backend)?;
 
     let (tx, mut rx) = mpsc::unbounded_channel();
+    let (key_tx, mut key_rx) = mpsc::unbounded_channel();
 
-    let tx2 = tx.clone();
-    let task = tokio::spawn(async move {
+    let key_tx2 = key_tx.clone();
+    let key_task = tokio::spawn(async move {
         let tick_rate = Duration::from_millis(250);
         loop {
             let event = TuiEvent::read(tick_rate).unwrap();
-            if tx2.send(event).is_err() {
+            if key_tx.send(event).is_err() {
+                break;
+            }
+        }
+    });
+
+    let rx_task = tokio::spawn(async move {
+        loop {
+            if let Some(event) = rx.recv().await {
+                key_tx2.send(Some(event));
+            } else {
                 break;
             }
         }
@@ -45,7 +57,7 @@ async fn main() -> Result<()> {
     while !app.should_close {
         terminal.draw(|f| app.render(f, f.area()))?;
 
-        let Some(received) = rx.recv().await else {
+        let Some(received) = key_rx.recv().await else {
             // Channel closed
             break;
         };
@@ -57,7 +69,8 @@ async fn main() -> Result<()> {
         }
     }
 
-    task.abort();
+    key_task.abort();
+    rx_task.abort();
 
     disable_raw_mode()?;
     execute!(

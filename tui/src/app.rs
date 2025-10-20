@@ -17,7 +17,7 @@ impl Component for App {
         let tx = tx.clone();
         tokio::spawn(async move {
             tokio::time::sleep(Duration::from_secs(2)).await;
-            tx.send(Some(TuiEvent::Close))
+            tx.send(TuiEvent::Close)
         });
 
         match _event {
