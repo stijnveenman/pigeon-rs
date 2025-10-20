@@ -1,6 +1,6 @@
 use ratatui::{Frame, layout::Rect};
 
-use crate::event::Event;
+use crate::tui_event::TuiEvent;
 
 pub trait Component {
     /// Handle a specific event, should return true to stop 'propogation'; ie, if the Component did
@@ -9,7 +9,7 @@ pub trait Component {
     /// Examples might be handling characters, which should prevent a global 'q' char from exiting
     /// the application
     #[allow(unused_variables)]
-    fn handle_event(&mut self, event: Event) -> bool {
+    fn handle_event(&mut self, event: TuiEvent) -> bool {
         false
     }
 

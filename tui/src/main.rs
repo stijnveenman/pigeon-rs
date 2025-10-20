@@ -1,13 +1,12 @@
 mod app;
 mod component;
-mod event;
+mod tui_event;
 
 use std::io;
 
 use anyhow::Result;
 use app::App;
 use component::Component;
-use event::Event;
 use ratatui::{
     Terminal,
     crossterm::{
@@ -17,6 +16,7 @@ use ratatui::{
     },
     prelude::CrosstermBackend,
 };
+use tui_event::TuiEvent;
 
 fn main() -> Result<()> {
     enable_raw_mode()?;
@@ -30,7 +30,7 @@ fn main() -> Result<()> {
     while !app.should_close {
         terminal.draw(|f| app.render(f, f.area()))?;
 
-        if let Some(event) = Event::read()? {
+        if let Some(event) = TuiEvent::read()? {
             app.handle_event(event);
         }
     }

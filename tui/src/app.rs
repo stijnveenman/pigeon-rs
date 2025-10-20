@@ -1,4 +1,4 @@
-use crate::component::Component;
+use crate::{component::Component, tui_event::TuiEvent};
 
 #[derive(Default)]
 pub struct App {
@@ -6,9 +6,9 @@ pub struct App {
 }
 
 impl Component for App {
-    fn render(&self, f: &mut ratatui::Frame, rect: ratatui::prelude::Rect) {}
+    fn render(&self, f: &mut ratatui::Frame, _rect: ratatui::prelude::Rect) {}
 
-    fn handle_event(&mut self, event: crate::event::Event) -> bool {
+    fn handle_event(&mut self, _event: TuiEvent) -> bool {
         self.should_close = true;
 
         true
