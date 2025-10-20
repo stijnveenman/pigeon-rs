@@ -30,11 +30,12 @@ async fn main() -> Result<()> {
 
     let (tx, mut rx) = mpsc::unbounded_channel();
 
+    let tx2 = tx.clone();
     let task = tokio::spawn(async move {
         let tick_rate = Duration::from_millis(250);
         loop {
             let event = TuiEvent::read(tick_rate).unwrap();
-            if tx.send(event).is_err() {
+            if tx2.send(event).is_err() {
                 break;
             }
         }
@@ -50,9 +51,9 @@ async fn main() -> Result<()> {
         };
 
         if let Some(event) = received {
-            app.event(event);
+            app.event(event, tx.clone());
         } else {
-            app.tick();
+            app.tick(tx.clone());
         }
     }
 
