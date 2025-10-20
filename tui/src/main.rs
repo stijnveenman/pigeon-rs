@@ -16,9 +16,11 @@ use ratatui::{
     },
     prelude::CrosstermBackend,
 };
+use tokio::sync::mpsc;
 use tui_event::TuiEvent;
 
-fn main() -> Result<()> {
+#[tokio::main]
+async fn main() -> Result<()> {
     enable_raw_mode()?;
     let mut stderr = io::stderr();
     execute!(stderr, EnterAlternateScreen, EnableMouseCapture)?;
@@ -26,17 +28,35 @@ fn main() -> Result<()> {
     let backend = CrosstermBackend::new(stderr);
     let mut terminal = Terminal::new(backend)?;
 
-    let tick_rate = Duration::from_millis(250);
+    let (tx, mut rx) = mpsc::unbounded_channel();
+
+    let task = tokio::spawn(async move {
+        let tick_rate = Duration::from_millis(250);
+        loop {
+            let event = TuiEvent::read(tick_rate).unwrap();
+            if tx.send(event).is_err() {
+                break;
+            }
+        }
+    });
+
     let mut app = App::default();
     while !app.should_close {
         terminal.draw(|f| app.render(f, f.area()))?;
 
-        if let Some(event) = TuiEvent::read(tick_rate)? {
+        let Some(received) = rx.recv().await else {
+            // Channel closed
+            break;
+        };
+
+        if let Some(event) = received {
             app.event(event);
         } else {
             app.tick();
         }
     }
+
+    task.abort();
 
     disable_raw_mode()?;
     execute!(
