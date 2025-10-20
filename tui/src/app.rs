@@ -8,9 +8,9 @@ pub struct App {
 impl Component for App {
     fn render(&self, f: &mut ratatui::Frame, _rect: ratatui::prelude::Rect) {}
 
-    fn handle_event(&mut self, _event: TuiEvent) -> bool {
+    fn event(&mut self, _event: TuiEvent) -> Option<TuiEvent> {
         self.should_close = true;
 
-        true
+        None
     }
 }

@@ -1,4 +1,4 @@
-use std::io;
+use std::{io, time::Duration};
 
 use ratatui::crossterm::event::{self, KeyEvent, KeyEventKind};
 
@@ -7,14 +7,16 @@ pub enum TuiEvent {
 }
 
 impl TuiEvent {
-    pub fn read() -> io::Result<Option<TuiEvent>> {
+    pub fn read(tick_rate: Duration) -> io::Result<Option<TuiEvent>> {
+        if !event::poll(tick_rate)? {
+            return Ok(None);
+        }
+
         let event = match event::read()? {
-            event::Event::Key(key) if key.kind == KeyEventKind::Press => {
-                Some(TuiEvent::KeyPress(key))
-            }
-            _ => None,
+            event::Event::Key(key) if key.kind == KeyEventKind::Press => TuiEvent::KeyPress(key),
+            _ => return Ok(None),
         };
 
-        Ok(event)
+        Ok(Some(event))
     }
 }

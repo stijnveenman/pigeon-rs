@@ -2,7 +2,7 @@ mod app;
 mod component;
 mod tui_event;
 
-use std::io;
+use std::{io, time::Duration};
 
 use anyhow::Result;
 use app::App;
@@ -26,12 +26,15 @@ fn main() -> Result<()> {
     let backend = CrosstermBackend::new(stderr);
     let mut terminal = Terminal::new(backend)?;
 
+    let tick_rate = Duration::from_millis(250);
     let mut app = App::default();
     while !app.should_close {
         terminal.draw(|f| app.render(f, f.area()))?;
 
-        if let Some(event) = TuiEvent::read()? {
-            app.handle_event(event);
+        if let Some(event) = TuiEvent::read(tick_rate)? {
+            app.event(event);
+        } else {
+            app.tick();
         }
     }
 
