@@ -1,3 +1,4 @@
 [alias]
 server = "run --bin server"
 cli = "run --bin cli"
+tui = "run --bin tui"
