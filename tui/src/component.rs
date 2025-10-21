@@ -17,6 +17,7 @@ pub trait Component {
     }
 
     /// Generic tick is called if no events have been received for a while
+    #[allow(unused_variables)]
     fn tick(&mut self, tx: Tx) {}
 
     /// Render call, should render the Component into rect for this frame

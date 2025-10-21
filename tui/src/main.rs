@@ -44,10 +44,8 @@ async fn main() -> Result<()> {
     });
 
     let rx_task = tokio::spawn(async move {
-        loop {
-            if let Some(event) = rx.recv().await {
-                key_tx2.send(Some(event));
-            } else {
+        while let Some(event) = rx.recv().await {
+            if key_tx2.send(Some(event)).is_err() {
                 break;
             }
         }

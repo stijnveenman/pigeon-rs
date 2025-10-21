@@ -3,7 +3,7 @@ use std::time::Duration;
 use ratatui::{
     layout::{Constraint, Direction, Layout},
     style::{Style, Stylize},
-    widgets::{Block, BorderType, Borders},
+    widgets::{Block, BorderType, Borders, Paragraph},
 };
 
 use crate::{
@@ -29,7 +29,11 @@ impl Component for App {
             .border_style(Style::new().blue().bold().italic());
 
         f.render_widget(block.clone().title("Topics"), topics);
-        f.render_widget(block.title("Records"), records);
+        f.render_widget(block.clone().title("Records"), records);
+
+        let p = Paragraph::new("Lorum ipsum");
+        f.render_widget(p.clone(), block.inner(topics));
+        f.render_widget(p.clone(), block.inner(records));
     }
 
     fn event(&mut self, _event: TuiEvent, tx: Tx) -> Option<TuiEvent> {
