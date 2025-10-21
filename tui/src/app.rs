@@ -8,19 +8,29 @@ use ratatui::{
 
 use crate::{
     component::{Component, Tx},
+    components::topic_list::TopicList,
     tui_event::TuiEvent,
 };
 
-#[derive(Default)]
 pub struct App {
     pub should_close: bool,
+    topic_list: TopicList,
+}
+
+impl App {
+    pub fn new() -> Self {
+        Self {
+            should_close: false,
+            topic_list: TopicList::new(),
+        }
+    }
 }
 
 impl Component for App {
     fn render(&self, f: &mut ratatui::Frame, rect: ratatui::prelude::Rect) {
         let [topics, records] = Layout::default()
             .direction(Direction::Horizontal)
-            .constraints(vec![Constraint::Percentage(50), Constraint::Percentage(50)])
+            .constraints(vec![Constraint::Percentage(25), Constraint::Percentage(75)])
             .areas(rect);
 
         let block = Block::new()
@@ -31,8 +41,9 @@ impl Component for App {
         f.render_widget(block.clone().title("Topics"), topics);
         f.render_widget(block.clone().title("Records"), records);
 
+        self.topic_list.render(f, block.inner(topics));
+
         let p = Paragraph::new("Lorum ipsum");
-        f.render_widget(p.clone(), block.inner(topics));
         f.render_widget(p.clone(), block.inner(records));
     }
 

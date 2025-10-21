@@ -1,5 +1,6 @@
 mod app;
 mod component;
+mod components;
 mod tui_event;
 
 use std::{io, time::Duration};
@@ -51,7 +52,7 @@ async fn main() -> Result<()> {
         }
     });
 
-    let mut app = App::default();
+    let mut app = App::new();
     while !app.should_close {
         terminal.draw(|f| app.render(f, f.area()))?;
 
