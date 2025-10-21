@@ -1,9 +1,10 @@
-use ratatui::widgets::{List, ListItem};
+use ratatui::widgets::{HighlightSpacing, List, ListItem, ListState};
 
 use crate::component::Component;
 
 pub struct TopicList {
     topics: Vec<String>,
+    list_state: ListState,
 }
 
 impl TopicList {
@@ -13,6 +14,7 @@ impl TopicList {
                 .iter()
                 .map(|s| s.to_string())
                 .collect(),
+            list_state: ListState::default().with_selected(Some(0)),
         }
     }
 }
@@ -25,8 +27,13 @@ impl Component for TopicList {
             .map(|topic| ListItem::new(topic.as_str()))
             .collect();
 
-        let list = List::new(items);
+        let list = List::new(items)
+            .highlight_symbol(">")
+            .highlight_spacing(HighlightSpacing::Always);
 
-        f.render_widget(list, rect);
+        // TODO: make render mutable
+        let mut new_state = self.list_state.clone();
+        f.render_stateful_widget(list, rect, &mut new_state);
+        assert_eq!(self.list_state, new_state);
     }
 }
