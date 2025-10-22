@@ -83,6 +83,7 @@ impl Component for TopicList {
             .horizontal_alignment(Alignment::Right)
             .vertical_alignment(Alignment::Right)
             .title("Popup");
-        f.render_widget(popup, rect);
+        f.render_widget(popup.clone(), rect);
+        f.render_widget("lorom", popup.inner(rect));
     }
 }

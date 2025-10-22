@@ -1,10 +1,11 @@
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout, Rect},
     style::Style,
-    text::{Line, ToLine},
+    text::Line,
     widgets::{Block, BorderType, Borders, Clear, Widget},
 };
 
+#[derive(Clone)]
 pub struct Popup<'a> {
     title: Line<'a>,
     border_style: Style,
@@ -97,6 +98,18 @@ impl<'a> Popup<'a> {
     fn align(&self, rect: Rect) -> Rect {
         let rect = self.align_direction(rect, Direction::Horizontal);
         self.align_direction(rect, Direction::Vertical)
+    }
+
+    pub fn inner(&self, rect: Rect) -> Rect {
+        let rect = self.align(rect);
+
+        let block = Block::new()
+            .borders(Borders::ALL)
+            .border_type(BorderType::Double)
+            .border_style(self.border_style)
+            .title_style(self.title_style);
+
+        block.inner(rect)
     }
 }
 
