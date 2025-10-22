@@ -3,6 +3,7 @@ mod component;
 mod components;
 mod style;
 mod tui_event;
+mod widgets;
 
 use std::{io, time::Duration};
 

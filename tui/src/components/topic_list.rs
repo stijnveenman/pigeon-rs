@@ -8,6 +8,7 @@ use crate::{
     component::Component,
     style::{ACTIVE_BORDER_COLOR, BORDER_STYLE, StylizeIf},
     tui_event::TuiEvent,
+    widgets::popup::Popup,
 };
 
 pub struct TopicList {
@@ -75,5 +76,8 @@ impl Component for TopicList {
             .highlight_spacing(HighlightSpacing::Always);
 
         f.render_stateful_widget(list, rect, &mut self.list_state);
+
+        let popup = Popup::new(100, 100);
+        f.render_widget(popup, rect);
     }
 }
