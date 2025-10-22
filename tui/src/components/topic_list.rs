@@ -1,5 +1,6 @@
 use ratatui::{
     crossterm::event::KeyCode,
+    layout::Alignment,
     style::{Modifier, Style, Stylize},
     widgets::{Block, BorderType, Borders, HighlightSpacing, List, ListItem, ListState},
 };
@@ -77,7 +78,11 @@ impl Component for TopicList {
 
         f.render_stateful_widget(list, rect, &mut self.list_state);
 
-        let popup = Popup::new(100, 100);
+        let popup = Popup::new(20, 50)
+            .border_style(BORDER_STYLE)
+            .horizontal_alignment(Alignment::Right)
+            .vertical_alignment(Alignment::Right)
+            .title("Popup");
         f.render_widget(popup, rect);
     }
 }
