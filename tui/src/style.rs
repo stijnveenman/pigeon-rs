@@ -11,7 +11,7 @@ pub trait StylizeIf<'a, T>: Sized {
     fn fg_if<C: Into<Color>>(self, color: C, condition: bool) -> T;
 }
 
-impl<'a, T, U> StylizeIf<'a, T> for U
+impl<T, U> StylizeIf<'_, T> for U
 where
     U: Styled<Item = T>,
 {

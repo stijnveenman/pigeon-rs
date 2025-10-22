@@ -1,14 +1,14 @@
+use std::sync::Mutex;
+
 use ratatui::{
     crossterm::event::KeyCode,
-    layout::{Alignment, Constraint, Direction, Layout},
+    layout::{Constraint, Direction, Layout},
 };
 
 use crate::{
     component::{Component, Tx},
     components::{record_list::RecordList, topic_list::TopicList},
-    style::BORDER_STYLE,
     tui_event::TuiEvent,
-    widgets::popup::Popup,
 };
 
 pub struct App {
@@ -16,6 +16,7 @@ pub struct App {
     topic_list: TopicList,
     record_list: RecordList,
     topics_active: bool,
+    popup: Option<Mutex<Box<dyn Component + Send>>>,
 }
 
 impl App {
@@ -25,12 +26,13 @@ impl App {
             topic_list: TopicList::new(),
             record_list: RecordList::new(),
             topics_active: true,
+            popup: None,
         }
     }
 }
 
 impl Component for App {
-    fn render(&mut self, f: &mut ratatui::Frame, rect: ratatui::prelude::Rect, active: bool) {
+    fn render(&mut self, f: &mut ratatui::Frame, rect: ratatui::prelude::Rect, _active: bool) {
         let [topics, records] = Layout::default()
             .direction(Direction::Horizontal)
             .constraints(vec![Constraint::Percentage(25), Constraint::Percentage(75)])
@@ -39,9 +41,10 @@ impl Component for App {
         self.topic_list.render(f, topics, self.topics_active);
         self.record_list.render(f, records, !self.topics_active);
 
-        let popup = Popup::new().title("Popup");
-        f.render_widget(popup.clone(), rect);
-        f.render_widget("lorom", popup.inner(rect));
+        if let Some(popup) = &self.popup {
+            let mut popup = popup.lock().unwrap();
+            popup.render(f, rect, true);
+        }
     }
 
     fn event(&mut self, event: TuiEvent, tx: Tx) -> Option<TuiEvent> {
@@ -57,6 +60,9 @@ impl Component for App {
                 KeyCode::Tab => self.topics_active = !self.topics_active,
                 _ => {}
             },
+            TuiEvent::Popup(popup) => {
+                self.popup = popup;
+            }
         };
 
         None

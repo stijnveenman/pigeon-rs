@@ -10,6 +10,8 @@ use crate::{
     tui_event::TuiEvent,
 };
 
+use super::create_topic_popup::CreateTopicPopup;
+
 pub struct TopicList {
     topics: Vec<String>,
     list_state: ListState,
@@ -31,7 +33,7 @@ impl Component for TopicList {
     fn event(
         &mut self,
         event: crate::tui_event::TuiEvent,
-        _tx: crate::component::Tx,
+        tx: crate::component::Tx,
     ) -> Option<crate::tui_event::TuiEvent> {
         match event {
             TuiEvent::KeyPress(key) => match key.code {
@@ -39,8 +41,12 @@ impl Component for TopicList {
                 KeyCode::Char('k') => self.list_state.select_previous(),
                 KeyCode::Char('g') => self.list_state.select_first(),
                 KeyCode::Char('G') => self.list_state.select_last(),
+                KeyCode::Char('a') => {
+                    tx.send(TuiEvent::popup(CreateTopicPopup {})).unwrap();
+                }
                 _ => return Some(event),
             },
+            _ => return Some(event),
         };
 
         None

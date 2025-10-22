@@ -1,9 +1,12 @@
-use std::{io, time::Duration};
+use std::{io, sync::Mutex, time::Duration};
 
 use ratatui::crossterm::event::{self, KeyEvent, KeyEventKind};
 
+use crate::component::Component;
+
 pub enum TuiEvent {
     KeyPress(KeyEvent),
+    Popup(Option<Mutex<Box<dyn Component + Send>>>),
 }
 
 impl TuiEvent {
@@ -18,5 +21,9 @@ impl TuiEvent {
         };
 
         Ok(Some(event))
+    }
+
+    pub fn popup<T: Component + Send + 'static>(popup: T) -> TuiEvent {
+        TuiEvent::Popup(Some(Mutex::new(Box::new(popup))))
     }
 }
