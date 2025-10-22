@@ -21,5 +21,5 @@ pub trait Component {
     fn tick(&mut self, tx: Tx) {}
 
     /// Render call, should render the Component into rect for this frame
-    fn render(&self, f: &mut Frame, rect: Rect);
+    fn render(&mut self, f: &mut Frame, rect: Rect);
 }

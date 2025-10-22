@@ -4,7 +4,6 @@ use ratatui::crossterm::event::{self, KeyEvent, KeyEventKind};
 
 pub enum TuiEvent {
     KeyPress(KeyEvent),
-    Close,
 }
 
 impl TuiEvent {

@@ -1,6 +1,5 @@
-use std::time::Duration;
-
 use ratatui::{
+    crossterm::event::KeyCode,
     layout::{Constraint, Direction, Layout},
     style::{Style, Stylize},
     widgets::{Block, BorderType, Borders, Paragraph},
@@ -27,7 +26,7 @@ impl App {
 }
 
 impl Component for App {
-    fn render(&self, f: &mut ratatui::Frame, rect: ratatui::prelude::Rect) {
+    fn render(&mut self, f: &mut ratatui::Frame, rect: ratatui::prelude::Rect) {
         let [topics, records] = Layout::default()
             .direction(Direction::Horizontal)
             .constraints(vec![Constraint::Percentage(25), Constraint::Percentage(75)])
@@ -47,19 +46,17 @@ impl Component for App {
         f.render_widget(p.clone(), block.inner(records));
     }
 
-    fn event(&mut self, _event: TuiEvent, tx: Tx) -> Option<TuiEvent> {
-        let tx = tx.clone();
-        tokio::spawn(async move {
-            tokio::time::sleep(Duration::from_millis(10)).await;
-            tx.send(TuiEvent::Close)
-        });
+    fn event(&mut self, event: TuiEvent, tx: Tx) -> Option<TuiEvent> {
+        let event = self.topic_list.event(event, tx)?;
 
-        match _event {
-            TuiEvent::Close => {
-                self.should_close = true;
-                None
-            }
-            e => Some(e),
-        }
+        match event {
+            TuiEvent::KeyPress(key) => match key.code {
+                KeyCode::Char('q') => self.should_close = true,
+                KeyCode::Esc => self.should_close = true,
+                _ => {}
+            },
+        };
+
+        None
     }
 }

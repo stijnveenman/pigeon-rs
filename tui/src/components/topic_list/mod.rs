@@ -1,6 +1,10 @@
-use ratatui::widgets::{HighlightSpacing, List, ListItem, ListState};
+use ratatui::{
+    crossterm::event::KeyCode,
+    style::{Modifier, Style, Stylize},
+    widgets::{HighlightSpacing, List, ListItem, ListState},
+};
 
-use crate::component::Component;
+use crate::{component::Component, tui_event::TuiEvent};
 
 pub struct TopicList {
     topics: Vec<String>,
@@ -20,7 +24,25 @@ impl TopicList {
 }
 
 impl Component for TopicList {
-    fn render(&self, f: &mut ratatui::Frame, rect: ratatui::prelude::Rect) {
+    fn event(
+        &mut self,
+        event: crate::tui_event::TuiEvent,
+        _tx: crate::component::Tx,
+    ) -> Option<crate::tui_event::TuiEvent> {
+        match event {
+            TuiEvent::KeyPress(key) => match key.code {
+                KeyCode::Char('j') => self.list_state.select_next(),
+                KeyCode::Char('k') => self.list_state.select_previous(),
+                KeyCode::Char('g') => self.list_state.select_first(),
+                KeyCode::Char('G') => self.list_state.select_last(),
+                _ => return Some(event),
+            },
+        };
+
+        None
+    }
+
+    fn render(&mut self, f: &mut ratatui::Frame, rect: ratatui::prelude::Rect) {
         let items: Vec<ListItem> = self
             .topics
             .iter()
@@ -29,11 +51,9 @@ impl Component for TopicList {
 
         let list = List::new(items)
             .highlight_symbol(">")
+            .highlight_style(Style::new().on_blue().black().add_modifier(Modifier::BOLD))
             .highlight_spacing(HighlightSpacing::Always);
 
-        // TODO: make render mutable
-        let mut new_state = self.list_state.clone();
-        f.render_stateful_widget(list, rect, &mut new_state);
-        assert_eq!(self.list_state, new_state);
+        f.render_stateful_widget(list, rect, &mut self.list_state);
     }
 }
