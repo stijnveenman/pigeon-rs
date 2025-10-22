@@ -1,6 +1,7 @@
 mod app;
 mod component;
 mod components;
+mod style;
 mod tui_event;
 
 use std::{io, time::Duration};
