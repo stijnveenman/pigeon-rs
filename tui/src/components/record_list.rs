@@ -5,22 +5,20 @@ use crate::{
     style::{ACTIVE_BORDER_COLOR, BORDER_STYLE, StylizeIf},
 };
 
-pub struct RecordList {
-    pub is_active: bool,
-}
+pub struct RecordList {}
 
 impl RecordList {
-    pub fn new(is_active: bool) -> Self {
-        Self { is_active }
+    pub fn new() -> Self {
+        Self {}
     }
 }
 
 impl Component for RecordList {
-    fn render(&mut self, f: &mut ratatui::Frame, rect: ratatui::prelude::Rect) {
+    fn render(&mut self, f: &mut ratatui::Frame, rect: ratatui::prelude::Rect, active: bool) {
         let block = Block::new()
             .borders(Borders::ALL)
             .border_type(BorderType::Double)
-            .border_style(BORDER_STYLE.fg_if(ACTIVE_BORDER_COLOR, self.is_active))
+            .border_style(BORDER_STYLE.fg_if(ACTIVE_BORDER_COLOR, active))
             .title("Records");
 
         let inner = block.inner(rect);

@@ -56,7 +56,7 @@ async fn main() -> Result<()> {
 
     let mut app = App::new();
     while !app.should_close {
-        terminal.draw(|f| app.render(f, f.area()))?;
+        terminal.draw(|f| app.render(f, f.area(), true))?;
 
         let Some(received) = key_rx.recv().await else {
             // Channel closed

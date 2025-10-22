@@ -1,6 +1,5 @@
 use ratatui::{
     crossterm::event::KeyCode,
-    layout::Alignment,
     style::{Modifier, Style, Stylize},
     widgets::{Block, BorderType, Borders, HighlightSpacing, List, ListItem, ListState},
 };
@@ -9,19 +8,16 @@ use crate::{
     component::Component,
     style::{ACTIVE_BORDER_COLOR, BORDER_STYLE, StylizeIf},
     tui_event::TuiEvent,
-    widgets::popup::Popup,
 };
 
 pub struct TopicList {
-    pub is_active: bool,
     topics: Vec<String>,
     list_state: ListState,
 }
 
 impl TopicList {
-    pub fn new(is_active: bool) -> Self {
+    pub fn new() -> Self {
         Self {
-            is_active,
             topics: ["__metadata", "foo", "bar"]
                 .iter()
                 .map(|s| s.to_string())
@@ -37,10 +33,6 @@ impl Component for TopicList {
         event: crate::tui_event::TuiEvent,
         _tx: crate::component::Tx,
     ) -> Option<crate::tui_event::TuiEvent> {
-        if !self.is_active {
-            return Some(event);
-        };
-
         match event {
             TuiEvent::KeyPress(key) => match key.code {
                 KeyCode::Char('j') => self.list_state.select_next(),
@@ -54,11 +46,11 @@ impl Component for TopicList {
         None
     }
 
-    fn render(&mut self, f: &mut ratatui::Frame, rect: ratatui::prelude::Rect) {
+    fn render(&mut self, f: &mut ratatui::Frame, rect: ratatui::prelude::Rect, active: bool) {
         let block = Block::new()
             .borders(Borders::ALL)
             .border_type(BorderType::Double)
-            .border_style(BORDER_STYLE.fg_if(ACTIVE_BORDER_COLOR, self.is_active))
+            .border_style(BORDER_STYLE.fg_if(ACTIVE_BORDER_COLOR, active))
             .title("Topics");
 
         let inner = block.inner(rect);

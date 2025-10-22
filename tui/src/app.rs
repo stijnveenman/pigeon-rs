@@ -15,27 +15,29 @@ pub struct App {
     pub should_close: bool,
     topic_list: TopicList,
     record_list: RecordList,
+    topics_active: bool,
 }
 
 impl App {
     pub fn new() -> Self {
         Self {
             should_close: false,
-            topic_list: TopicList::new(true),
-            record_list: RecordList::new(false),
+            topic_list: TopicList::new(),
+            record_list: RecordList::new(),
+            topics_active: true,
         }
     }
 }
 
 impl Component for App {
-    fn render(&mut self, f: &mut ratatui::Frame, rect: ratatui::prelude::Rect) {
+    fn render(&mut self, f: &mut ratatui::Frame, rect: ratatui::prelude::Rect, active: bool) {
         let [topics, records] = Layout::default()
             .direction(Direction::Horizontal)
             .constraints(vec![Constraint::Percentage(25), Constraint::Percentage(75)])
             .areas(rect);
 
-        self.topic_list.render(f, topics);
-        self.record_list.render(f, records);
+        self.topic_list.render(f, topics, self.topics_active);
+        self.record_list.render(f, records, !self.topics_active);
 
         let popup = Popup::new().title("Popup");
         f.render_widget(popup.clone(), rect);
@@ -49,10 +51,7 @@ impl Component for App {
             TuiEvent::KeyPress(key) => match key.code {
                 KeyCode::Char('q') => self.should_close = true,
                 KeyCode::Esc => self.should_close = true,
-                KeyCode::Tab => {
-                    self.topic_list.is_active = !self.topic_list.is_active;
-                    self.record_list.is_active = !self.record_list.is_active;
-                }
+                KeyCode::Tab => self.topics_active = !self.topics_active,
                 _ => {}
             },
         };
