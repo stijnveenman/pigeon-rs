@@ -45,7 +45,10 @@ impl Component for App {
     }
 
     fn event(&mut self, event: TuiEvent, tx: Tx) -> Option<TuiEvent> {
-        let event = self.topic_list.event(event, tx)?;
+        let event = match self.topics_active {
+            true => self.topic_list.event(event, tx)?,
+            false => self.record_list.event(event, tx)?,
+        };
 
         match event {
             TuiEvent::KeyPress(key) => match key.code {
