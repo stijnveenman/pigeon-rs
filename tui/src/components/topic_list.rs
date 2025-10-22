@@ -77,13 +77,5 @@ impl Component for TopicList {
             .highlight_spacing(HighlightSpacing::Always);
 
         f.render_stateful_widget(list, rect, &mut self.list_state);
-
-        let popup = Popup::new(20, 50)
-            .border_style(BORDER_STYLE)
-            .horizontal_alignment(Alignment::Right)
-            .vertical_alignment(Alignment::Right)
-            .title("Popup");
-        f.render_widget(popup.clone(), rect);
-        f.render_widget("lorom", popup.inner(rect));
     }
 }

@@ -1,32 +1,26 @@
 use ratatui::{
-    layout::{Alignment, Constraint, Direction, Layout, Rect},
+    layout::{Alignment, Constraint, Direction, Flex, Layout, Rect},
     style::Style,
     text::Line,
     widgets::{Block, BorderType, Borders, Clear, Widget},
 };
 
+use crate::style::BORDER_STYLE;
+
 #[derive(Clone)]
 pub struct Popup<'a> {
     title: Line<'a>,
-    border_style: Style,
-    title_style: Style,
-    height_pct: u16,
-    width_pct: u16,
-    horizontal_alignment: Alignment,
-    vertical_alignment: Alignment,
+    percent_x: u16,
+    percent_y: u16,
 }
 
 #[allow(dead_code)]
 impl<'a> Popup<'a> {
-    pub fn new(width_pct: u16, height_pct: u16) -> Popup<'a> {
+    pub fn new() -> Popup<'a> {
         Self {
             title: Line::default(),
-            border_style: Style::default(),
-            title_style: Style::default(),
-            horizontal_alignment: Alignment::Center,
-            vertical_alignment: Alignment::Center,
-            width_pct,
-            height_pct,
+            percent_x: 50,
+            percent_y: 30,
         }
     }
 
@@ -35,81 +29,32 @@ impl<'a> Popup<'a> {
         self
     }
 
-    pub fn border_style(mut self, border_style: Style) -> Self {
-        self.border_style = border_style;
+    pub fn percent_x(mut self, percent_x: u16) -> Self {
+        self.percent_x = percent_x;
         self
     }
 
-    pub fn title_style(mut self, title_style: Style) -> Self {
-        self.title_style = title_style;
+    pub fn percent_y(mut self, percent_y: u16) -> Self {
+        self.percent_y = percent_y;
         self
     }
 
-    pub fn horizontal_alignment(mut self, alignment: Alignment) -> Self {
-        self.horizontal_alignment = alignment;
-        self
+    fn area(&self, area: Rect) -> Rect {
+        let vertical =
+            Layout::vertical([Constraint::Percentage(self.percent_y)]).flex(Flex::Center);
+        let horizontal =
+            Layout::horizontal([Constraint::Percentage(self.percent_x)]).flex(Flex::Center);
+        let [area] = vertical.areas(area);
+        let [area] = horizontal.areas(area);
+        area
     }
 
-    pub fn vertical_alignment(mut self, alignment: Alignment) -> Self {
-        self.vertical_alignment = alignment;
-        self
-    }
-
-    fn align_direction(&self, rect: Rect, direction: Direction) -> Rect {
-        let alignment = match direction {
-            Direction::Horizontal => self.horizontal_alignment,
-            Direction::Vertical => self.vertical_alignment,
-        };
-
-        let percentage = match direction {
-            Direction::Horizontal => self.width_pct,
-            Direction::Vertical => self.height_pct,
-        };
-
-        match alignment {
-            Alignment::Left => {
-                let [area, _] = Layout::default()
-                    .direction(direction)
-                    .constraints(vec![Constraint::Percentage(percentage), Constraint::Min(0)])
-                    .areas(rect);
-                area
-            }
-            Alignment::Center => {
-                let [_, area, _] = Layout::default()
-                    .direction(direction)
-                    .constraints(vec![
-                        Constraint::Min(0),
-                        Constraint::Percentage(percentage),
-                        Constraint::Min(0),
-                    ])
-                    .areas(rect);
-                area
-            }
-            Alignment::Right => {
-                let [_, area] = Layout::default()
-                    .direction(direction)
-                    .constraints(vec![Constraint::Min(0), Constraint::Percentage(percentage)])
-                    .areas(rect);
-                area
-            }
-        }
-    }
-
-    fn align(&self, rect: Rect) -> Rect {
-        let rect = self.align_direction(rect, Direction::Horizontal);
-        self.align_direction(rect, Direction::Vertical)
-    }
-
-    pub fn inner(&self, rect: Rect) -> Rect {
-        let rect = self.align(rect);
-
-        let block = Block::new()
+    pub fn inner(&self, area: Rect) -> Rect {
+        Block::new()
             .borders(Borders::ALL)
             .border_type(BorderType::Double)
-            .border_style(self.border_style)
-            .title_style(self.title_style);
-
-        block.inner(rect)
+            .border_style(BORDER_STYLE)
+            .inner(area)
     }
 }
 
@@ -118,14 +63,14 @@ impl Widget for Popup<'_> {
     where
         Self: Sized,
     {
-        let area = self.align(area);
+        let area = self.area(area);
 
         Clear.render(area, buf);
+
         let block = Block::new()
             .borders(Borders::ALL)
             .border_type(BorderType::Double)
-            .border_style(self.border_style)
-            .title_style(self.title_style)
+            .border_style(BORDER_STYLE)
             .title(self.title);
 
         block.render(area, buf);

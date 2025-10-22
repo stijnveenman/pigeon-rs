@@ -1,12 +1,14 @@
 use ratatui::{
     crossterm::event::KeyCode,
-    layout::{Constraint, Direction, Layout},
+    layout::{Alignment, Constraint, Direction, Layout},
 };
 
 use crate::{
     component::{Component, Tx},
     components::{record_list::RecordList, topic_list::TopicList},
+    style::BORDER_STYLE,
     tui_event::TuiEvent,
+    widgets::popup::Popup,
 };
 
 pub struct App {
@@ -34,6 +36,10 @@ impl Component for App {
 
         self.topic_list.render(f, topics);
         self.record_list.render(f, records);
+
+        let popup = Popup::new().title("Popup");
+        f.render_widget(popup.clone(), rect);
+        f.render_widget("lorom", popup.inner(rect));
     }
 
     fn event(&mut self, event: TuiEvent, tx: Tx) -> Option<TuiEvent> {
