@@ -41,10 +41,15 @@ impl FormPopup {
         None
     }
 
+    fn close(self) -> Option<Self> {
+        None
+    }
+
     pub fn event(self, event: TuiEvent) -> Option<Self> {
         match event {
             TuiEvent::KeyPress(key) => match key.code {
-                KeyCode::Char('q') | KeyCode::Esc => self.finish(),
+                KeyCode::Char('q') | KeyCode::Esc => self.close(),
+                KeyCode::Enter => self.finish(),
                 _ => Some(self),
             },
             _ => Some(self),

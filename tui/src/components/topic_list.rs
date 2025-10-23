@@ -43,15 +43,17 @@ impl Component for TopicList {
                 KeyCode::Char('G') => self.list_state.select_last(),
                 KeyCode::Char('a') => {
                     tokio::spawn(async move {
-                        let mut result = Form::new()
+                        let Ok(mut result) = Form::new()
                             .title("Add new topic")
                             .push("Name", QuestionType::String)
                             .show(tx.clone())
                             .await
-                            .unwrap();
+                        else {
+                            return;
+                        };
 
                         let topic = result.get("Name").unwrap();
-                        tx.send(TuiEvent::AddTopic(topic))
+                        tx.send(TuiEvent::AddTopic(topic)).unwrap();
                     });
                 }
                 _ => return Some(event),
