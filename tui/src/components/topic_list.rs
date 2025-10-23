@@ -6,11 +6,10 @@ use ratatui::{
 
 use crate::{
     component::Component,
+    form::Form,
     style::{ACTIVE_BORDER_COLOR, BORDER_STYLE, StylizeIf},
     tui_event::TuiEvent,
 };
-
-use super::create_topic_popup::CreateTopicPopup;
 
 pub struct TopicList {
     topics: Vec<String>,
@@ -42,7 +41,7 @@ impl Component for TopicList {
                 KeyCode::Char('g') => self.list_state.select_first(),
                 KeyCode::Char('G') => self.list_state.select_last(),
                 KeyCode::Char('a') => {
-                    tx.send(TuiEvent::popup(CreateTopicPopup {})).unwrap();
+                    let _rx = Form::new().show(tx);
                 }
                 _ => return Some(event),
             },

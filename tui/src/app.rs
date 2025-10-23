@@ -8,6 +8,7 @@ use ratatui::{
 use crate::{
     component::{Component, Tx},
     components::{record_list::RecordList, topic_list::TopicList},
+    form::FormPopup,
     tui_event::TuiEvent,
 };
 
@@ -16,7 +17,7 @@ pub struct App {
     topic_list: TopicList,
     record_list: RecordList,
     topics_active: bool,
-    popup: Option<Mutex<Box<dyn Component + Send>>>,
+    form: Option<FormPopup>,
 }
 
 impl App {
@@ -26,7 +27,7 @@ impl App {
             topic_list: TopicList::new(),
             record_list: RecordList::new(),
             topics_active: true,
-            popup: None,
+            form: None,
         }
     }
 }
@@ -41,13 +42,17 @@ impl Component for App {
         self.topic_list.render(f, topics, self.topics_active);
         self.record_list.render(f, records, !self.topics_active);
 
-        if let Some(popup) = &self.popup {
-            let mut popup = popup.lock().unwrap();
-            popup.render(f, rect, true);
+        if let Some(form) = &mut self.form {
+            form.render(f, rect, true);
         }
     }
 
     fn event(&mut self, event: TuiEvent, tx: Tx) -> Option<TuiEvent> {
+        if let Some(form) = self.form.take() {
+            self.form = form.event(event);
+            return None;
+        }
+
         let event = match self.topics_active {
             true => self.topic_list.event(event, tx)?,
             false => self.record_list.event(event, tx)?,
@@ -60,8 +65,8 @@ impl Component for App {
                 KeyCode::Tab => self.topics_active = !self.topics_active,
                 _ => {}
             },
-            TuiEvent::Popup(popup) => {
-                self.popup = popup;
+            TuiEvent::Form(form) => {
+                self.form = Some(form);
             }
         };
 

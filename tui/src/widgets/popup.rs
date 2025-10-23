@@ -49,6 +49,7 @@ impl<'a> Popup<'a> {
     }
 
     pub fn inner(&self, area: Rect) -> Rect {
+        let area = self.area(area);
         Block::new()
             .borders(Borders::ALL)
             .border_type(BorderType::Double)
