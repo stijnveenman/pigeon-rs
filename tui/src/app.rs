@@ -68,6 +68,7 @@ impl Component for App {
             TuiEvent::Form(form) => {
                 self.form = Some(form);
             }
+            _ => {}
         };
 
         None

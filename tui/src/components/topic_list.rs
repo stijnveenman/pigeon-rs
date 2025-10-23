@@ -6,7 +6,7 @@ use ratatui::{
 
 use crate::{
     component::Component,
-    form::Form,
+    form::{Form, QuestionType},
     style::{ACTIVE_BORDER_COLOR, BORDER_STYLE, StylizeIf},
     tui_event::TuiEvent,
 };
@@ -35,13 +35,24 @@ impl Component for TopicList {
         tx: crate::component::Tx,
     ) -> Option<crate::tui_event::TuiEvent> {
         match event {
+            TuiEvent::AddTopic(topic) => self.topics.push(topic),
             TuiEvent::KeyPress(key) => match key.code {
                 KeyCode::Char('j') => self.list_state.select_next(),
                 KeyCode::Char('k') => self.list_state.select_previous(),
                 KeyCode::Char('g') => self.list_state.select_first(),
                 KeyCode::Char('G') => self.list_state.select_last(),
                 KeyCode::Char('a') => {
-                    let _rx = Form::new().show(tx);
+                    tokio::spawn(async move {
+                        let mut result = Form::new()
+                            .title("Add new topic")
+                            .push("Name", QuestionType::String)
+                            .show(tx.clone())
+                            .await
+                            .unwrap();
+
+                        let topic = result.get("Name").unwrap();
+                        tx.send(TuiEvent::AddTopic(topic))
+                    });
                 }
                 _ => return Some(event),
             },

@@ -7,6 +7,7 @@ use crate::form::FormPopup;
 pub enum TuiEvent {
     KeyPress(KeyEvent),
     Form(FormPopup),
+    AddTopic(String),
 }
 
 impl TuiEvent {
