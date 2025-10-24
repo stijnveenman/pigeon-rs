@@ -9,6 +9,7 @@ use crate::style::BORDER_STYLE;
 #[derive(Clone)]
 pub struct Popup<'a> {
     title: Line<'a>,
+    title_bottom: Line<'a>,
     constraint_x: Constraint,
     constraint_y: Constraint,
 }
@@ -18,6 +19,7 @@ impl<'a> Popup<'a> {
     pub fn new() -> Popup<'a> {
         Self {
             title: Line::default(),
+            title_bottom: Line::default(),
             constraint_x: Constraint::Percentage(50),
             constraint_y: Constraint::Percentage(30),
         }
@@ -25,6 +27,11 @@ impl<'a> Popup<'a> {
 
     pub fn title<T: Into<Line<'a>>>(mut self, title: T) -> Self {
         self.title = title.into();
+        self
+    }
+
+    pub fn title_bottom<T: Into<Line<'a>>>(mut self, title: T) -> Self {
+        self.title_bottom = title.into();
         self
     }
 
@@ -69,7 +76,8 @@ impl Widget for Popup<'_> {
             .borders(Borders::ALL)
             .border_type(BorderType::Double)
             .border_style(BORDER_STYLE)
-            .title(self.title);
+            .title(self.title)
+            .title_bottom(self.title_bottom);
 
         block.render(area, buf);
     }

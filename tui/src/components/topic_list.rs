@@ -45,8 +45,8 @@ impl Component for TopicList {
                     tokio::spawn(async move {
                         let Ok(mut result) = Form::new()
                             .title("Add new topic")
-                            .push("Name", QuestionType::String)
-                            .push("Partitions", QuestionType::Integer)
+                            .push("Name", QuestionType::String, true)
+                            .push("Partitions", QuestionType::Integer, false)
                             .show(tx.clone())
                             .await
                         else {

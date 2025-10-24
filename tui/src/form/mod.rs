@@ -2,9 +2,10 @@ use std::{ops::Add, str::FromStr};
 
 use ratatui::{
     Frame,
-    crossterm::event::{KeyCode, KeyModifiers},
+    crossterm::event::KeyCode,
     layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Style, Stylize},
+    text::Line,
     widgets::{Block, Borders, Paragraph},
 };
 use tokio::sync::oneshot;
@@ -22,12 +23,19 @@ pub struct FormQuestion {
     question_type: QuestionType,
     name: String,
     value: String,
+    required: bool,
 }
 
 impl FormQuestion {
     fn render(&self, f: &mut Frame, rect: Rect, active: bool) -> Rect {
+        let title = if self.required {
+            self.name.clone() + "*"
+        } else {
+            self.name.clone()
+        };
+
         let block = Block::new()
-            .title(self.name.clone())
+            .title(title)
             .border_style(Style::new().gray().fg_if(Color::White, active))
             .borders(Borders::ALL);
 
@@ -84,7 +92,8 @@ impl FormPopup {
 
         let popup = Popup::new()
             .constraint_y(Constraint::Length(height))
-            .title(self.form.title.clone());
+            .title(self.form.title.clone())
+            .title_bottom(Line::from("Esc: Cancel, Enter: Confirm").right_aligned());
 
         f.render_widget(popup.clone(), rect);
         let mut rect = popup.inner(rect);
@@ -95,6 +104,15 @@ impl FormPopup {
     }
 
     fn finish(self) -> Option<Self> {
+        if self
+            .form
+            .questions
+            .iter()
+            .any(|q| q.required && q.value.is_empty())
+        {
+            return Some(self);
+        }
+
         self.tx.send(self.form).unwrap();
 
         None
@@ -159,11 +177,17 @@ impl Form {
         self
     }
 
-    pub fn push(mut self, name: impl Into<String>, question_type: QuestionType) -> Self {
+    pub fn push(
+        mut self,
+        name: impl Into<String>,
+        question_type: QuestionType,
+        required: bool,
+    ) -> Self {
         self.questions.push(FormQuestion {
             name: name.into(),
             question_type,
             value: String::new(),
+            required,
         });
 
         self
