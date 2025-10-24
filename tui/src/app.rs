@@ -17,6 +17,7 @@ pub struct App {
     record_list: RecordList,
     topics_active: bool,
     form: Option<FormPopup>,
+    prompt: Option<Prompt>,
 }
 
 impl App {
@@ -27,6 +28,7 @@ impl App {
             record_list: RecordList::new(),
             topics_active: true,
             form: None,
+            prompt: Some(Prompt::new()),
         }
     }
 }
@@ -45,10 +47,17 @@ impl Component for App {
             form.render(f, rect);
         }
 
-        Prompt::new().render(f);
+        if let Some(prompt) = &mut self.prompt {
+            prompt.render(f);
+        }
     }
 
     fn event(&mut self, event: TuiEvent) -> Option<TuiEvent> {
+        if let Some(prompt) = self.prompt.take() {
+            self.prompt = prompt.event(event);
+            return None;
+        }
+
         if let Some(form) = self.form.take() {
             self.form = form.event(event);
             return None;

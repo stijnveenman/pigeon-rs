@@ -1,13 +1,29 @@
 use ratatui::{
     Frame,
+    crossterm::event::{KeyCode, KeyEvent, KeyModifiers},
     layout::{Constraint, Rect},
-    widgets::{Paragraph, Wrap},
+    style::{Color, Style, Stylize},
+    text::{Line, Span},
+    widgets::{Block, Borders, Paragraph, Wrap},
 };
 
-use crate::widgets::popup::Popup;
+use crate::{style::StylizeIf, tui_event::TuiEvent, widgets::popup::Popup};
+
+pub enum InputType {
+    String,
+    Integer,
+}
+
+pub struct Input {
+    input_type: InputType,
+    name: String,
+    value: String,
+    required: bool,
+}
 
 pub enum PromptItem {
     Paragraph(String),
+    Input(Input),
 }
 
 impl PromptItem {
@@ -16,16 +32,57 @@ impl PromptItem {
             PromptItem::Paragraph(text) => Paragraph::new(text.clone())
                 .wrap(Wrap { trim: true })
                 .line_count(width) as u16,
+            PromptItem::Input(_) => 3,
         }
     }
 
-    fn render(&self, f: &mut Frame, area: Rect) {
+    fn render(&self, f: &mut Frame, area: Rect, active: bool) {
         match self {
             PromptItem::Paragraph(text) => {
                 let paragraph = Paragraph::new(text.clone()).wrap(Wrap { trim: true });
 
                 f.render_widget(paragraph, area);
             }
+            PromptItem::Input(input) => {
+                let mut title = Line::from(Span::from(&input.name));
+                if input.required {
+                    title.push_span(Span::styled("*", Color::Gray));
+                }
+
+                let block = Block::new()
+                    .title(title)
+                    .border_style(Style::new().gray().fg_if(Color::White, active))
+                    .borders(Borders::ALL);
+
+                let input = Paragraph::new(input.value.clone()).block(block);
+
+                f.render_widget(input, area);
+            }
+        }
+    }
+
+    fn push_char(&mut self, c: char) {
+        match self {
+            PromptItem::Paragraph(_) => {}
+            PromptItem::Input(input) => {
+                input.value.push(c);
+            }
+        }
+    }
+
+    fn pop(&mut self) {
+        match self {
+            PromptItem::Paragraph(_) => {}
+            PromptItem::Input(input) => {
+                input.value.pop();
+            }
+        }
+    }
+
+    fn selectable(&self) -> bool {
+        match self {
+            PromptItem::Input(_) => true,
+            PromptItem::Paragraph(_) => false,
         }
     }
 }
@@ -34,6 +91,7 @@ pub struct Prompt {
     items: Vec<PromptItem>,
     width: Constraint,
     title: String,
+    active_idx: usize,
 }
 
 impl Prompt {
@@ -44,9 +102,57 @@ impl Prompt {
                 PromptItem::Paragraph("This is some basic paragraph text".into()),
                 PromptItem::Paragraph("This is some basic paragraph text".into()),
                 PromptItem::Paragraph("This is some basic paragraph text".into()),
+                PromptItem::Input(Input {
+                    name: "Topic".into(),
+                    input_type: InputType::String,
+                    value: "Foobar".into(),
+                    required: true,
+                }),
+                PromptItem::Input(Input {
+                    name: "Topic".into(),
+                    input_type: InputType::String,
+                    value: "Foobar".into(),
+                    required: true,
+                }),
+                PromptItem::Input(Input {
+                    name: "Topic".into(),
+                    input_type: InputType::String,
+                    value: "Foobar".into(),
+                    required: true,
+                }),
             ],
             width: Constraint::Percentage(50),
             title: "Create topic".into(),
+            active_idx: 0,
+        }
+    }
+
+    fn current_mut(&mut self) -> &mut PromptItem {
+        self.items.get_mut(self.active_idx).unwrap()
+    }
+
+    fn select_next(&mut self) {
+        if let Some(next) = self
+            .items
+            .iter()
+            .enumerate()
+            .skip(self.active_idx + 1)
+            .find(|(_, i)| i.selectable())
+        {
+            self.active_idx = next.0;
+        }
+    }
+
+    fn select_prev(&mut self) {
+        if let Some(next) = self
+            .items
+            .iter()
+            .enumerate()
+            .rev()
+            .skip(self.items.len() - self.active_idx)
+            .find(|(_, i)| i.selectable())
+        {
+            self.active_idx = next.0;
         }
     }
 
@@ -62,14 +168,29 @@ impl Prompt {
         let mut area = popup.inner(f.area());
         f.render_widget(popup, f.area());
 
-        for item in &self.items {
+        for (idx, item) in self.items.iter().enumerate() {
             let item_area = Rect {
                 height: item.height(area.width),
                 ..area
             };
             area.y += item_area.height;
 
-            item.render(f, item_area);
+            item.render(f, item_area, idx == self.active_idx);
         }
+    }
+
+    pub fn event(mut self, event: TuiEvent) -> Option<Prompt> {
+        if let TuiEvent::KeyPress(key) = event {
+            match key.code {
+                KeyCode::Esc => return None,
+                KeyCode::Tab => self.select_next(),
+                KeyCode::BackTab => self.select_prev(),
+                KeyCode::Char(c) => self.current_mut().push_char(c),
+                KeyCode::Backspace => self.current_mut().pop(),
+                _ => return Some(self),
+            };
+        };
+
+        Some(self)
     }
 }
