@@ -10,7 +10,12 @@ use ratatui::{
 };
 use tokio::sync::oneshot;
 
-use crate::{component::Tx, style::StylizeIf, tui_event::TuiEvent, widgets::popup::Popup};
+use crate::{
+    component::Tx,
+    style::{BORDER_STYLE, StylizeIf},
+    tui_event::TuiEvent,
+    widgets::popup::Popup,
+};
 
 pub enum InputType {
     String,
@@ -121,12 +126,19 @@ impl PromptItem {
     }
 }
 
+pub enum PromptType {
+    Form,
+    Success,
+    Error,
+}
+
 pub struct Prompt {
     items: Vec<PromptItem>,
     width: Constraint,
     title: String,
     active_idx: usize,
     tx: Option<oneshot::Sender<Prompt>>,
+    prompt_type: PromptType,
 }
 
 impl Prompt {
@@ -136,6 +148,7 @@ impl Prompt {
             width: Constraint::Percentage(50),
             title: "Create topic".into(),
             active_idx: 0,
+            prompt_type: PromptType::Form,
             tx: None,
         }
     }
@@ -158,8 +171,14 @@ impl Prompt {
         self
     }
 
+    pub fn paragraph(mut self, text: impl Into<String>) -> Self {
+        self.items.push(PromptItem::Paragraph(text.into()));
+        self
+    }
+
     pub fn input(mut self, input: Input) -> Self {
         self.items.push(PromptItem::Input(input));
+        self.select_first();
         self
     }
 
@@ -198,10 +217,26 @@ impl Prompt {
         }
     }
 
+    fn footer(&self) -> Line<'_> {
+        match self.prompt_type {
+            PromptType::Form => "Esc: Cancel, Enter: Confirm".into(),
+            PromptType::Success | PromptType::Error => "Esc/Enter to dismiss".into(),
+        }
+    }
+
     pub fn render(&self, f: &mut Frame) {
         let popup = Popup::new()
             .constraint_x(self.width)
-            .title(self.title.clone());
+            .title(self.title.clone())
+            .border_style(
+                BORDER_STYLE
+                    .fg_if(Color::Red, matches!(self.prompt_type, PromptType::Error))
+                    .fg_if(
+                        Color::Green,
+                        matches!(self.prompt_type, PromptType::Success),
+                    ),
+            )
+            .title_bottom(self.footer().right_aligned());
         let width = popup.inner(f.area()).width;
 
         let height = 2 + self.items.iter().map(|i| i.height(width)).sum::<u16>();

@@ -1,5 +1,6 @@
 use ratatui::{
     layout::{Constraint, Flex, Layout, Rect},
+    style::Style,
     text::Line,
     widgets::{Block, BorderType, Borders, Clear, Widget},
 };
@@ -10,6 +11,7 @@ use crate::style::BORDER_STYLE;
 pub struct Popup<'a> {
     title: Line<'a>,
     title_bottom: Line<'a>,
+    border_style: Style,
     constraint_x: Constraint,
     constraint_y: Constraint,
 }
@@ -22,11 +24,17 @@ impl<'a> Popup<'a> {
             title_bottom: Line::default(),
             constraint_x: Constraint::Percentage(50),
             constraint_y: Constraint::Percentage(30),
+            border_style: BORDER_STYLE,
         }
     }
 
     pub fn title<T: Into<Line<'a>>>(mut self, title: T) -> Self {
         self.title = title.into();
+        self
+    }
+
+    pub fn border_style(mut self, style: Style) -> Self {
+        self.border_style = style;
         self
     }
 
@@ -58,7 +66,7 @@ impl<'a> Popup<'a> {
         Block::new()
             .borders(Borders::ALL)
             .border_type(BorderType::Double)
-            .border_style(BORDER_STYLE)
+            .border_style(self.border_style)
             .inner(area)
     }
 }
@@ -75,7 +83,7 @@ impl Widget for Popup<'_> {
         let block = Block::new()
             .borders(Borders::ALL)
             .border_type(BorderType::Double)
-            .border_style(BORDER_STYLE)
+            .border_style(self.border_style)
             .title(self.title)
             .title_bottom(self.title_bottom);
 
