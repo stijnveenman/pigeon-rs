@@ -42,6 +42,18 @@ impl FormQuestion {
         remaining
     }
 
+    fn event(&mut self, key: KeyCode) {
+        match key {
+            KeyCode::Char(c) => {
+                self.value.push(c);
+            }
+            KeyCode::Backspace => {
+                self.value.pop();
+            }
+            _ => {}
+        };
+    }
+
     fn height(&self) -> u16 {
         3
     }
@@ -90,12 +102,20 @@ impl FormPopup {
             TuiEvent::KeyPress(key) => match key.code {
                 KeyCode::Esc => self.close(),
                 KeyCode::Enter => self.finish(),
-                KeyCode::Char(c) => {
-                    self.form.questions.first_mut().unwrap().value.push(c);
+                KeyCode::Char(_) => {
+                    self.form
+                        .questions
+                        .get_mut(self.active_idx)
+                        .unwrap()
+                        .event(key.code);
                     Some(self)
                 }
                 KeyCode::Backspace => {
-                    self.form.questions.first_mut().unwrap().value.pop();
+                    self.form
+                        .questions
+                        .get_mut(self.active_idx)
+                        .unwrap()
+                        .event(key.code);
                     Some(self)
                 }
                 KeyCode::BackTab => {
