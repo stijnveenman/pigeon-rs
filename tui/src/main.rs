@@ -55,7 +55,7 @@ async fn main() -> Result<()> {
         }
     });
 
-    let mut app = App::new();
+    let mut app = App::new(tx);
     while !app.should_close {
         terminal.draw(|f| app.render(f, f.area(), true))?;
 
@@ -65,9 +65,9 @@ async fn main() -> Result<()> {
         };
 
         if let Some(event) = received {
-            app.event(event, tx.clone());
+            app.event(event);
         } else {
-            app.tick(tx.clone());
+            app.tick();
         }
     }
 

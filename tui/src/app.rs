@@ -1,5 +1,3 @@
-use std::sync::Mutex;
-
 use ratatui::{
     crossterm::event::KeyCode,
     layout::{Constraint, Direction, Layout},
@@ -21,10 +19,10 @@ pub struct App {
 }
 
 impl App {
-    pub fn new() -> Self {
+    pub fn new(tx: Tx) -> Self {
         Self {
             should_close: false,
-            topic_list: TopicList::new(),
+            topic_list: TopicList::new(tx.clone()),
             record_list: RecordList::new(),
             topics_active: true,
             form: None,
@@ -47,15 +45,15 @@ impl Component for App {
         }
     }
 
-    fn event(&mut self, event: TuiEvent, tx: Tx) -> Option<TuiEvent> {
+    fn event(&mut self, event: TuiEvent) -> Option<TuiEvent> {
         if let Some(form) = self.form.take() {
             self.form = form.event(event);
             return None;
         }
 
         let event = match self.topics_active {
-            true => self.topic_list.event(event, tx)?,
-            false => self.record_list.event(event, tx)?,
+            true => self.topic_list.event(event)?,
+            false => self.record_list.event(event)?,
         };
 
         match event {

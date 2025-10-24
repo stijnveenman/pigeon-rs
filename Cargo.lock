@@ -1954,7 +1954,9 @@ name = "tui"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "client",
  "ratatui",
+ "shared",
  "tokio",
  "tokio-stream",
 ]

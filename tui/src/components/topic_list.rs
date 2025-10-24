@@ -1,47 +1,67 @@
+use std::{collections::BTreeMap, time::Duration};
+
+use client::http_client::HttpClient;
 use ratatui::{
     crossterm::event::KeyCode,
     style::{Modifier, Style, Stylize},
     widgets::{Block, BorderType, Borders, HighlightSpacing, List, ListItem, ListState},
 };
+use shared::{consts::DEFAULT_PORT, state::topic_state::TopicState};
+use tokio::{task::JoinHandle, time::sleep};
 
 use crate::{
-    component::Component,
+    component::{Component, Tx},
     form::{Form, QuestionType},
     style::{ACTIVE_BORDER_COLOR, BORDER_STYLE, StylizeIf},
     tui_event::TuiEvent,
 };
 
 pub struct TopicList {
-    topics: Vec<String>,
+    topics: BTreeMap<u64, TopicState>,
     list_state: ListState,
+    tx: Tx,
+    refresh_task: JoinHandle<()>,
 }
 
 impl TopicList {
-    pub fn new() -> Self {
+    pub fn new(tx: Tx) -> Self {
         Self {
-            topics: ["__metadata", "foo", "bar"]
-                .iter()
-                .map(|s| s.to_string())
-                .collect(),
+            topics: BTreeMap::new(),
             list_state: ListState::default().with_selected(Some(0)),
+            tx: tx.clone(),
+            refresh_task: tokio::spawn(async move {
+                let client = HttpClient::new(format!("http://127.0.0.1:{}", DEFAULT_PORT)).unwrap();
+
+                loop {
+                    let topics = client.get_topics().await.unwrap();
+
+                    tx.send(TuiEvent::TopicList(topics.into_iter().collect()))
+                        .unwrap();
+
+                    sleep(Duration::from_secs(1)).await;
+                }
+            }),
         }
     }
 }
 
 impl Component for TopicList {
-    fn event(
-        &mut self,
-        event: crate::tui_event::TuiEvent,
-        tx: crate::component::Tx,
-    ) -> Option<crate::tui_event::TuiEvent> {
+    fn event(&mut self, event: crate::tui_event::TuiEvent) -> Option<crate::tui_event::TuiEvent> {
         match event {
-            TuiEvent::AddTopic(topic) => self.topics.push(topic),
+            // TuiEvent::AddTopic(topic) => self.topics.push(topic),
+            TuiEvent::TopicList(topics) => {
+                self.topics = topics;
+                if self.list_state.selected().is_none() {
+                    self.list_state.select_next();
+                }
+            }
             TuiEvent::KeyPress(key) => match key.code {
                 KeyCode::Char('j') => self.list_state.select_next(),
                 KeyCode::Char('k') => self.list_state.select_previous(),
                 KeyCode::Char('g') => self.list_state.select_first(),
                 KeyCode::Char('G') => self.list_state.select_last(),
                 KeyCode::Char('a') => {
+                    let tx = self.tx.clone();
                     tokio::spawn(async move {
                         let Ok(mut result) = Form::new()
                             .title("Add new topic")
@@ -78,8 +98,8 @@ impl Component for TopicList {
 
         let items: Vec<ListItem> = self
             .topics
-            .iter()
-            .map(|topic| ListItem::new(topic.as_str()))
+            .values()
+            .map(|topic| ListItem::new(topic.name.clone()))
             .collect();
 
         let list = List::new(items)
@@ -88,5 +108,11 @@ impl Component for TopicList {
             .highlight_spacing(HighlightSpacing::Always);
 
         f.render_stateful_widget(list, rect, &mut self.list_state);
+    }
+}
+
+impl Drop for TopicList {
+    fn drop(&mut self) {
+        self.refresh_task.abort();
     }
 }

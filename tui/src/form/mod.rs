@@ -43,7 +43,7 @@ impl FormQuestion {
 
         let [rect, remaining] = Layout::default()
             .direction(Direction::Vertical)
-            .constraints(vec![Constraint::Length(3), Constraint::Min(0)])
+            .constraints(vec![Constraint::Length(self.height()), Constraint::Min(0)])
             .areas(rect);
 
         f.render_widget(p, rect);
