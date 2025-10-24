@@ -66,18 +66,10 @@ impl Component for TopicList {
                 KeyCode::Char('a') => {
                     let tx = self.tx.clone();
                     tokio::spawn(async move {
-                        Prompt::new()
+                        let Ok(result) = Prompt::new()
                             .title("Add new topic")
-                            .input(Input::string("Topic").required())
+                            .input(Input::string("Name").required())
                             .input(Input::integer("Partitions"))
-                            .show(tx.clone())
-                            .await
-                            .unwrap();
-
-                        let Ok(mut result) = Form::new()
-                            .title("Add new topic")
-                            .push("Name", QuestionType::String, true)
-                            .push("Partitions", QuestionType::Integer, false)
                             .show(tx.clone())
                             .await
                         else {

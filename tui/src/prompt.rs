@@ -1,4 +1,4 @@
-use std::any::Any;
+use std::{any::Any, iter::FilterMap, str::FromStr};
 
 use ratatui::{
     Frame,
@@ -138,6 +138,19 @@ impl Prompt {
             active_idx: 0,
             tx: None,
         }
+    }
+
+    pub fn get<T: FromStr>(&self, name: &str) -> Result<T, T::Err> {
+        self.items
+            .iter()
+            .filter_map(|i| match i {
+                PromptItem::Input(i) if i.name == name => Some(i),
+                _ => None,
+            })
+            .next()
+            .unwrap()
+            .value
+            .parse()
     }
 
     pub fn title(mut self, title: impl Into<String>) -> Self {
