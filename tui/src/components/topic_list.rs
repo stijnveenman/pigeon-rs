@@ -46,6 +46,9 @@ impl Component for TopicList {
                         let Ok(mut result) = Form::new()
                             .title("Add new topic")
                             .push("Name", QuestionType::String)
+                            .push("Partitions", QuestionType::Integer)
+                            .push("Partitions", QuestionType::Integer)
+                            .push("Partitions", QuestionType::Integer)
                             .show(tx.clone())
                             .await
                         else {

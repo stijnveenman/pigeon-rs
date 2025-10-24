@@ -43,7 +43,7 @@ impl Component for App {
         self.record_list.render(f, records, !self.topics_active);
 
         if let Some(form) = &mut self.form {
-            form.render(f, rect, true);
+            form.render(f, rect);
         }
     }
 

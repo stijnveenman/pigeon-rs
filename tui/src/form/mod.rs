@@ -1,22 +1,20 @@
-use std::str::FromStr;
+use std::{ops::Add, str::FromStr};
 
 use ratatui::{
-    crossterm::event::KeyCode,
-    layout::Rect,
+    Frame,
+    crossterm::event::{KeyCode, KeyModifiers},
+    layout::{Constraint, Direction, Layout, Rect},
+    style::{Color, Style, Stylize},
     widgets::{Block, Borders, Paragraph},
 };
 use tokio::sync::oneshot;
 
-use crate::{
-    component::Tx,
-    style::{ACTIVE_BORDER_COLOR, BORDER_STYLE},
-    tui_event::TuiEvent,
-    widgets::popup::Popup,
-};
+use crate::{component::Tx, style::StylizeIf, tui_event::TuiEvent, widgets::popup::Popup};
 
 #[derive(Debug)]
 pub enum QuestionType {
     String,
+    Integer,
 }
 
 #[derive(Debug)]
@@ -24,6 +22,25 @@ pub struct FormQuestion {
     question_type: QuestionType,
     name: String,
     value: String,
+}
+
+impl FormQuestion {
+    fn render(&self, f: &mut Frame, rect: Rect, active: bool) -> Rect {
+        let block = Block::new()
+            .title(self.name.clone())
+            .border_style(Style::new().gray().fg_if(Color::White, active))
+            .borders(Borders::ALL);
+
+        let p = Paragraph::new(self.value.clone()).block(block);
+
+        let [rect, remaining] = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints(vec![Constraint::Length(3), Constraint::Min(0)])
+            .areas(rect);
+
+        f.render_widget(p, rect);
+        remaining
+    }
 }
 
 #[derive(Debug)]
@@ -34,25 +51,19 @@ pub struct Form {
 
 pub struct FormPopup {
     form: Form,
+    active_idx: usize,
     tx: oneshot::Sender<Form>,
 }
 
 impl FormPopup {
-    pub fn render(&mut self, f: &mut ratatui::Frame, rect: ratatui::prelude::Rect, _active: bool) {
+    pub fn render(&self, f: &mut Frame, rect: Rect) {
         let popup = Popup::new().title(self.form.title.clone());
         f.render_widget(popup.clone(), rect);
-        let rect = popup.inner(rect);
+        let mut rect = popup.inner(rect);
 
-        let mut input_rect = rect;
-        input_rect.height = 3;
-
-        let block = Block::new()
-            .title(self.form.questions.first().unwrap().name.clone())
-            .border_style(BORDER_STYLE.fg(ACTIVE_BORDER_COLOR))
-            .borders(Borders::ALL);
-        let paragraph =
-            Paragraph::new(self.form.questions.first().unwrap().value.clone()).block(block);
-        f.render_widget(paragraph, input_rect);
+        for (idx, question) in self.form.questions.iter().enumerate() {
+            rect = question.render(f, rect, idx == self.active_idx);
+        }
     }
 
     fn finish(self) -> Option<Self> {
@@ -76,6 +87,20 @@ impl FormPopup {
                 }
                 KeyCode::Backspace => {
                     self.form.questions.first_mut().unwrap().value.pop();
+                    Some(self)
+                }
+                KeyCode::BackTab => {
+                    self.active_idx = self
+                        .active_idx
+                        .checked_sub(1)
+                        .unwrap_or(self.form.questions.len() - 1);
+                    Some(self)
+                }
+                KeyCode::Tab => {
+                    self.active_idx = self.active_idx.add(1);
+                    if self.active_idx >= self.form.questions.len() {
+                        self.active_idx = 0;
+                    }
                     Some(self)
                 }
                 _ => Some(self),
@@ -123,6 +148,7 @@ impl Form {
         tx.send(TuiEvent::Form(FormPopup {
             form: self,
             tx: form_tx,
+            active_idx: 0,
         }))
         .unwrap();
 
