@@ -82,9 +82,12 @@ impl Component for TopicList {
                         let client =
                             HttpClient::new(format!("http://127.0.0.1:{}", DEFAULT_PORT)).unwrap();
 
-                        let topic = client.create_topic(&topic, partitions).await.unwrap();
-
-                        tx.send(TuiEvent::AddTopic(topic)).unwrap();
+                        match client.create_topic(&topic, partitions).await {
+                            Ok(topic) => tx.send(TuiEvent::AddTopic(topic)).unwrap(),
+                            Err(err) => {
+                                Prompt::error(err.to_string()).show(tx);
+                            }
+                        }
                     });
                 }
                 _ => return Some(event),

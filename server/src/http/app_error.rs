@@ -58,6 +58,7 @@ impl IntoResponse for AppError {
             app::error::Error::RecvError(recv_error) => {
                 (StatusCode::INTERNAL_SERVER_ERROR, recv_error.to_string())
             }
+            app::error::Error::InvalidName(_) => (StatusCode::BAD_REQUEST, self.0.to_string()),
         };
 
         (

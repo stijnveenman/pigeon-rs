@@ -28,6 +28,8 @@ pub enum Error {
     FetchTimeout,
     #[error("Error receiving from internal channel")]
     RecvError(#[from] RecvError),
+    #[error("Topic name ({0}) is invalid")]
+    InvalidName(String),
 }
 
 pub type Result<T> = std::result::Result<T, Error>;

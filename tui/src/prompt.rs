@@ -153,6 +153,17 @@ impl Prompt {
         }
     }
 
+    pub fn error(message: impl Into<String>) -> Prompt {
+        Prompt::new()
+            .prompt_type(PromptType::Error)
+            .paragraph(message.into())
+    }
+
+    pub fn prompt_type(mut self, prompt_type: PromptType) -> Self {
+        self.prompt_type = prompt_type;
+        self
+    }
+
     pub fn get<T: FromStr>(&self, name: &str) -> Result<T, T::Err> {
         self.items
             .iter()

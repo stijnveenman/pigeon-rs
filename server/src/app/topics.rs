@@ -25,6 +25,10 @@ impl AppLock {
         name: &str,
         partition_count: Option<u64>,
     ) -> Result<u64> {
+        if name.is_empty() {
+            return Err(Error::InvalidName(name.to_string()));
+        }
+
         let topic_id = match topic_id {
             Some(topic_id) => topic_id,
             None => loop {
