@@ -56,6 +56,7 @@ impl Input {
 pub enum PromptItem {
     Paragraph(String),
     Input(Input),
+    Padding(u16),
 }
 
 impl PromptItem {
@@ -65,11 +66,13 @@ impl PromptItem {
                 .wrap(Wrap { trim: true })
                 .line_count(width) as u16,
             PromptItem::Input(_) => 3,
+            PromptItem::Padding(height) => *height,
         }
     }
 
     fn render(&self, f: &mut Frame, area: Rect, active: bool) {
         match self {
+            PromptItem::Padding(_) => {}
             PromptItem::Paragraph(text) => {
                 let paragraph = Paragraph::new(text.clone()).wrap(Wrap { trim: true });
 
@@ -95,7 +98,7 @@ impl PromptItem {
 
     fn push_char(&mut self, c: char) {
         match self {
-            PromptItem::Paragraph(_) => {}
+            PromptItem::Paragraph(_) | PromptItem::Padding(_) => {}
             PromptItem::Input(input) => match input.input_type {
                 InputType::String => {
                     input.value.push(c);
@@ -111,7 +114,7 @@ impl PromptItem {
 
     fn pop(&mut self) {
         match self {
-            PromptItem::Paragraph(_) => {}
+            PromptItem::Paragraph(_) | PromptItem::Padding(_) => {}
             PromptItem::Input(input) => {
                 input.value.pop();
             }
@@ -121,7 +124,7 @@ impl PromptItem {
     fn selectable(&self) -> bool {
         match self {
             PromptItem::Input(_) => true,
-            PromptItem::Paragraph(_) => false,
+            PromptItem::Paragraph(_) | PromptItem::Padding(_) => false,
         }
     }
 }
@@ -129,6 +132,7 @@ impl PromptItem {
 pub enum PromptType {
     Form,
     Success,
+    Info,
     Error,
 }
 
@@ -151,6 +155,11 @@ impl Prompt {
             prompt_type: PromptType::Form,
             tx: None,
         }
+    }
+
+    pub fn width(mut self, width: Constraint) -> Self {
+        self.width = width;
+        self
     }
 
     pub fn error(message: impl Into<String>) -> Prompt {
@@ -184,6 +193,11 @@ impl Prompt {
 
     pub fn paragraph(mut self, text: impl Into<String>) -> Self {
         self.items.push(PromptItem::Paragraph(text.into()));
+        self
+    }
+
+    pub fn padding(mut self, height: u16) -> Self {
+        self.items.push(PromptItem::Padding(height));
         self
     }
 
@@ -231,7 +245,9 @@ impl Prompt {
     fn footer(&self) -> Line<'_> {
         match self.prompt_type {
             PromptType::Form => "Esc: Cancel, Enter: Confirm".into(),
-            PromptType::Success | PromptType::Error => "Esc/Enter to dismiss".into(),
+            PromptType::Success | PromptType::Error | PromptType::Info => {
+                "Esc/Enter to dismiss".into()
+            }
         }
     }
 

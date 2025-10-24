@@ -3,6 +3,7 @@ use std::{collections::BTreeMap, time::Duration};
 use client::http_client::HttpClient;
 use ratatui::{
     crossterm::event::KeyCode,
+    layout::Constraint,
     style::{Modifier, Style, Stylize},
     widgets::{Block, BorderType, Borders, HighlightSpacing, List, ListItem, ListState},
 };
@@ -11,7 +12,7 @@ use tokio::{task::JoinHandle, time::sleep};
 
 use crate::{
     component::{Component, Tx},
-    prompt::{Input, Prompt},
+    prompt::{Input, Prompt, PromptType},
     style::{ACTIVE_BORDER_COLOR, BORDER_STYLE, StylizeIf},
     tui_event::TuiEvent,
 };
@@ -65,6 +66,30 @@ impl Component for TopicList {
                 KeyCode::Char('k') => self.list_state.select_previous(),
                 KeyCode::Char('g') => self.list_state.select_first(),
                 KeyCode::Char('G') => self.list_state.select_last(),
+                KeyCode::Char('i') => {
+                    let idx = self.list_state.selected()?;
+                    let topic = self.topics.values().nth(idx)?;
+
+                    let partitions: String =
+                        topic.partitions.iter().fold(String::new(), |prev, p| {
+                            format!(
+                                "{}Partition {}: {}\n",
+                                prev, p.partition_id, p.current_offset
+                            )
+                        });
+
+                    Prompt::new()
+                        .prompt_type(PromptType::Info)
+                        .width(Constraint::Length(30))
+                        .title(format!("Topic: {}", topic.name))
+                        .paragraph(format!("Id: {}", topic.topic_id))
+                        .paragraph(format!("Name: {}", topic.name))
+                        .paragraph(format!("Partitions: {}", topic.partitions.len()))
+                        .padding(1)
+                        .paragraph("Offsets")
+                        .paragraph(partitions)
+                        .show(self.tx.clone());
+                }
                 KeyCode::Char('d') => {
                     let idx = self.list_state.selected()?;
                     let topic = self.topics.values().nth(idx)?;
