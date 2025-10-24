@@ -7,6 +7,7 @@ use crate::{
     component::{Component, Tx},
     components::{record_list::RecordList, topic_list::TopicList},
     form::FormPopup,
+    prompt::Prompt,
     tui_event::TuiEvent,
 };
 
@@ -43,6 +44,8 @@ impl Component for App {
         if let Some(form) = &mut self.form {
             form.render(f, rect);
         }
+
+        Prompt::new().render(f);
     }
 
     fn event(&mut self, event: TuiEvent) -> Option<TuiEvent> {

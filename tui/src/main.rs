@@ -2,6 +2,7 @@ mod app;
 mod component;
 mod components;
 mod form;
+mod prompt;
 mod style;
 mod tui_event;
 mod widgets;
