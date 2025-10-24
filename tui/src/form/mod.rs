@@ -44,9 +44,16 @@ impl FormQuestion {
 
     fn event(&mut self, key: KeyCode) {
         match key {
-            KeyCode::Char(c) => {
-                self.value.push(c);
-            }
+            KeyCode::Char(c) => match self.question_type {
+                QuestionType::String => {
+                    self.value.push(c);
+                }
+                QuestionType::Integer => {
+                    if c.is_numeric() {
+                        self.value.push(c);
+                    }
+                }
+            },
             KeyCode::Backspace => {
                 self.value.pop();
             }
