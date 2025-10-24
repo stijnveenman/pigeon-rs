@@ -6,7 +6,8 @@ mod style;
 mod tui_event;
 mod widgets;
 
-use std::{io, time::Duration};
+use core::panic;
+use std::{io, process, time::Duration};
 
 use anyhow::Result;
 use app::App;
@@ -14,6 +15,7 @@ use component::Component;
 use ratatui::{
     Terminal,
     crossterm::{
+        self,
         event::{DisableMouseCapture, EnableMouseCapture},
         execute,
         terminal::{EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode},
@@ -23,10 +25,26 @@ use ratatui::{
 use tokio::sync::mpsc;
 use tui_event::TuiEvent;
 
+pub fn initialize_panic_handler() {
+    std::panic::set_hook(Box::new(|panic_info| {
+        crossterm::execute!(
+            std::io::stderr(),
+            crossterm::terminal::LeaveAlternateScreen,
+            DisableMouseCapture
+        )
+        .unwrap();
+        crossterm::terminal::disable_raw_mode().unwrap();
+
+        println!("{}", panic_info);
+        process::exit(1);
+    }));
+}
+
 #[tokio::main]
 // This is far from pretty, but it's mostly async wiring
 async fn main() -> Result<()> {
     enable_raw_mode()?;
+    initialize_panic_handler();
     let mut stderr = io::stderr();
     execute!(stderr, EnterAlternateScreen, EnableMouseCapture)?;
 
