@@ -1,3 +1,5 @@
+use std::any::Any;
+
 use ratatui::{
     Frame,
     crossterm::event::{KeyCode, KeyEvent, KeyModifiers},
@@ -20,6 +22,30 @@ pub struct Input {
     name: String,
     value: String,
     required: bool,
+}
+
+impl Input {
+    pub fn new(name: impl Into<String>, input_type: InputType) -> Self {
+        Input {
+            input_type,
+            name: name.into(),
+            required: false,
+            value: String::new(),
+        }
+    }
+
+    pub fn string(name: impl Into<String>) -> Self {
+        Self::new(name, InputType::String)
+    }
+
+    pub fn integer(name: impl Into<String>) -> Self {
+        Self::new(name, InputType::Integer)
+    }
+
+    pub fn required(mut self) -> Self {
+        self.required = true;
+        self
+    }
 }
 
 pub enum PromptItem {
@@ -65,9 +91,16 @@ impl PromptItem {
     fn push_char(&mut self, c: char) {
         match self {
             PromptItem::Paragraph(_) => {}
-            PromptItem::Input(input) => {
-                input.value.push(c);
-            }
+            PromptItem::Input(input) => match input.input_type {
+                InputType::String => {
+                    input.value.push(c);
+                }
+                InputType::Integer => {
+                    if c.is_numeric() {
+                        input.value.push(c);
+                    }
+                }
+            },
         }
     }
 
@@ -99,30 +132,7 @@ pub struct Prompt {
 impl Prompt {
     pub fn new() -> Self {
         Prompt {
-            items: vec![
-                PromptItem::Paragraph("This is some basic paragraph text".into()),
-                PromptItem::Paragraph("This is some basic paragraph text".into()),
-                PromptItem::Paragraph("This is some basic paragraph text".into()),
-                PromptItem::Paragraph("This is some basic paragraph text".into()),
-                PromptItem::Input(Input {
-                    name: "Topic".into(),
-                    input_type: InputType::String,
-                    value: "Foobar".into(),
-                    required: true,
-                }),
-                PromptItem::Input(Input {
-                    name: "Topic".into(),
-                    input_type: InputType::String,
-                    value: "Foobar".into(),
-                    required: true,
-                }),
-                PromptItem::Input(Input {
-                    name: "Topic".into(),
-                    input_type: InputType::String,
-                    value: "Foobar".into(),
-                    required: true,
-                }),
-            ],
+            items: vec![],
             width: Constraint::Percentage(50),
             title: "Create topic".into(),
             active_idx: 0,
@@ -130,8 +140,24 @@ impl Prompt {
         }
     }
 
+    pub fn title(mut self, title: impl Into<String>) -> Self {
+        self.title = title.into();
+        self
+    }
+
+    pub fn input(mut self, input: Input) -> Self {
+        self.items.push(PromptItem::Input(input));
+        self
+    }
+
     fn current_mut(&mut self) -> &mut PromptItem {
         self.items.get_mut(self.active_idx).unwrap()
+    }
+
+    fn select_first(&mut self) {
+        if let Some(next) = self.items.iter().enumerate().find(|(_, i)| i.selectable()) {
+            self.active_idx = next.0;
+        }
     }
 
     fn select_next(&mut self) {
