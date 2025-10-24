@@ -14,7 +14,6 @@ use shared::commands::fetch_command::FetchCommand;
 use shared::commands::produce_command::ProduceCommand;
 use shared::data::encoding;
 use shared::data::identifier::Identifier;
-use shared::response::create_topic_response::CreateTopicResponse;
 use shared::response::produce_response::ProduceResponse;
 use shared::response::record_response::FetchResponse;
 use shared::state::topic_state::TopicState;
@@ -35,7 +34,7 @@ pub struct HttpServer {
 async fn create_topic(
     State(app): State<App>,
     Json(create_topic): Json<CreateTopicCommand>,
-) -> AppResult<CreateTopicResponse> {
+) -> AppResult<TopicState> {
     let mut lock = app.write().await;
 
     let topic_id = lock
@@ -46,7 +45,9 @@ async fn create_topic(
         )
         .await?;
 
-    Ok(Json(CreateTopicResponse { topic_id }))
+    let topic = lock.get_topic_by_id(topic_id)?.state();
+
+    Ok(Json(topic))
 }
 
 async fn produce(

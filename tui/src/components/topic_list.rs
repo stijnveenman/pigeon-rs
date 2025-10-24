@@ -48,7 +48,9 @@ impl TopicList {
 impl Component for TopicList {
     fn event(&mut self, event: crate::tui_event::TuiEvent) -> Option<crate::tui_event::TuiEvent> {
         match event {
-            // TuiEvent::AddTopic(topic) => self.topics.push(topic),
+            TuiEvent::AddTopic(topic) => {
+                self.topics.insert(topic.topic_id, topic);
+            }
             TuiEvent::TopicList(topics) => {
                 self.topics = topics;
                 if self.list_state.selected().is_none() {
@@ -73,7 +75,14 @@ impl Component for TopicList {
                             return;
                         };
 
-                        let topic = result.get("Name").unwrap();
+                        let topic: String = result.get("Name").unwrap();
+                        let partitions = result.get("Partitions").ok();
+
+                        let client =
+                            HttpClient::new(format!("http://127.0.0.1:{}", DEFAULT_PORT)).unwrap();
+
+                        let topic = client.create_topic(&topic, partitions).await.unwrap();
+
                         tx.send(TuiEvent::AddTopic(topic)).unwrap();
                     });
                 }

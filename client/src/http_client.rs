@@ -8,8 +8,8 @@ use shared::{
         produce_command::ProduceCommand,
     },
     response::{
-        create_topic_response::CreateTopicResponse, error_response::ErrorResponse,
-        produce_response::ProduceResponse, record_response::FetchResponse,
+        error_response::ErrorResponse, produce_response::ProduceResponse,
+        record_response::FetchResponse,
     },
     state::topic_state::TopicState,
 };
@@ -131,7 +131,7 @@ impl HttpClient {
         &self,
         name: &str,
         partitions: Option<u64>,
-    ) -> Result<CreateTopicResponse, Error> {
+    ) -> Result<TopicState, Error> {
         self.post("/topics", CreateTopicCommand {
             name: name.to_string(),
             partitions,

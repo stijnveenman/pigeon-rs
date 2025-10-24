@@ -8,7 +8,7 @@ use crate::form::FormPopup;
 pub enum TuiEvent {
     KeyPress(KeyEvent),
     Form(FormPopup),
-    AddTopic(String),
+    AddTopic(TopicState),
     TopicList(BTreeMap<u64, TopicState>),
 }
 

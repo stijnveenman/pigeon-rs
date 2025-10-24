@@ -6,7 +6,6 @@ mod style;
 mod tui_event;
 mod widgets;
 
-use core::panic;
 use std::{io, process, time::Duration};
 
 use anyhow::Result;
