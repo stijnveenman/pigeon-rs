@@ -1,8 +1,8 @@
-use std::{any::Any, iter::FilterMap, str::FromStr};
+use std::str::FromStr;
 
 use ratatui::{
     Frame,
-    crossterm::event::{KeyCode, KeyEvent, KeyModifiers},
+    crossterm::event::KeyCode,
     layout::{Constraint, Rect},
     style::{Color, Style, Stylize},
     text::{Line, Span},

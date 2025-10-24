@@ -6,7 +6,6 @@ use ratatui::{
 use crate::{
     component::{Component, Tx},
     components::{record_list::RecordList, topic_list::TopicList},
-    form::FormPopup,
     prompt::Prompt,
     tui_event::TuiEvent,
 };
@@ -16,7 +15,6 @@ pub struct App {
     topic_list: TopicList,
     record_list: RecordList,
     topics_active: bool,
-    form: Option<FormPopup>,
     prompt: Option<Prompt>,
 }
 
@@ -27,7 +25,6 @@ impl App {
             topic_list: TopicList::new(tx.clone()),
             record_list: RecordList::new(),
             topics_active: true,
-            form: None,
             prompt: None,
         }
     }
@@ -43,10 +40,6 @@ impl Component for App {
         self.topic_list.render(f, topics, self.topics_active);
         self.record_list.render(f, records, !self.topics_active);
 
-        if let Some(form) = &mut self.form {
-            form.render(f, rect);
-        }
-
         if let Some(prompt) = &mut self.prompt {
             prompt.render(f);
         }
@@ -55,11 +48,6 @@ impl Component for App {
     fn event(&mut self, event: TuiEvent) -> Option<TuiEvent> {
         if let Some(prompt) = self.prompt.take() {
             self.prompt = prompt.event(event);
-            return None;
-        }
-
-        if let Some(form) = self.form.take() {
-            self.form = form.event(event);
             return None;
         }
 
@@ -77,9 +65,6 @@ impl Component for App {
             },
             TuiEvent::Prompt(prompt) => {
                 self.prompt = Some(prompt);
-            }
-            TuiEvent::Form(form) => {
-                self.form = Some(form);
             }
             _ => {}
         };

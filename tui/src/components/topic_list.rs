@@ -11,7 +11,6 @@ use tokio::{task::JoinHandle, time::sleep};
 
 use crate::{
     component::{Component, Tx},
-    form::{Form, QuestionType},
     prompt::{Input, Prompt},
     style::{ACTIVE_BORDER_COLOR, BORDER_STYLE, StylizeIf},
     tui_event::TuiEvent,
