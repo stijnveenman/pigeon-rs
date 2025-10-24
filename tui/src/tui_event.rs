@@ -9,6 +9,7 @@ pub enum TuiEvent {
     KeyPress(KeyEvent),
     Prompt(Prompt),
     AddTopic(TopicState),
+    RemoveTopic(u64),
     TopicList(BTreeMap<u64, TopicState>),
 }
 

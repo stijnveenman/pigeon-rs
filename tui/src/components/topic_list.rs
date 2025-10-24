@@ -51,6 +51,9 @@ impl Component for TopicList {
             TuiEvent::AddTopic(topic) => {
                 self.topics.insert(topic.topic_id, topic);
             }
+            TuiEvent::RemoveTopic(topic) => {
+                self.topics.remove(&topic);
+            }
             TuiEvent::TopicList(topics) => {
                 self.topics = topics;
                 if self.list_state.selected().is_none() {
@@ -62,6 +65,33 @@ impl Component for TopicList {
                 KeyCode::Char('k') => self.list_state.select_previous(),
                 KeyCode::Char('g') => self.list_state.select_first(),
                 KeyCode::Char('G') => self.list_state.select_last(),
+                KeyCode::Char('d') => {
+                    let idx = self.list_state.selected()?;
+                    let topic = self.topics.values().nth(idx)?;
+                    let name = topic.name.clone();
+                    let id = topic.topic_id;
+
+                    let tx = self.tx.clone();
+                    tokio::spawn(async move {
+                        if Prompt::new()
+                            .paragraph(format!("Are you sure you want to delete topic: {}", name))
+                            .show(tx.clone())
+                            .await
+                            .is_err()
+                        {
+                            return;
+                        }
+
+                        let client =
+                            HttpClient::new(format!("http://127.0.0.1:{}", DEFAULT_PORT)).unwrap();
+
+                        if let Err(err) = client.delete_topic(&name).await {
+                            Prompt::error(err.to_string()).show(tx);
+                        } else {
+                            tx.send(TuiEvent::RemoveTopic(id)).unwrap();
+                        }
+                    });
+                }
                 KeyCode::Char('a') => {
                     let tx = self.tx.clone();
                     tokio::spawn(async move {
