@@ -41,6 +41,10 @@ impl FormQuestion {
         f.render_widget(p, rect);
         remaining
     }
+
+    fn height(&self) -> u16 {
+        3
+    }
 }
 
 #[derive(Debug)]
@@ -57,7 +61,12 @@ pub struct FormPopup {
 
 impl FormPopup {
     pub fn render(&self, f: &mut Frame, rect: Rect) {
-        let popup = Popup::new().title(self.form.title.clone());
+        let height = 2 + self.form.questions.iter().map(|q| q.height()).sum::<u16>();
+
+        let popup = Popup::new()
+            .constraint_y(Constraint::Length(height))
+            .title(self.form.title.clone());
+
         f.render_widget(popup.clone(), rect);
         let mut rect = popup.inner(rect);
 

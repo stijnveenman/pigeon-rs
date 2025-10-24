@@ -9,8 +9,8 @@ use crate::style::BORDER_STYLE;
 #[derive(Clone)]
 pub struct Popup<'a> {
     title: Line<'a>,
-    percent_x: u16,
-    percent_y: u16,
+    constraint_x: Constraint,
+    constraint_y: Constraint,
 }
 
 #[allow(dead_code)]
@@ -18,8 +18,8 @@ impl<'a> Popup<'a> {
     pub fn new() -> Popup<'a> {
         Self {
             title: Line::default(),
-            percent_x: 50,
-            percent_y: 30,
+            constraint_x: Constraint::Percentage(50),
+            constraint_y: Constraint::Percentage(30),
         }
     }
 
@@ -28,21 +28,19 @@ impl<'a> Popup<'a> {
         self
     }
 
-    pub fn percent_x(mut self, percent_x: u16) -> Self {
-        self.percent_x = percent_x;
+    pub fn constraint_x(mut self, constraint_x: Constraint) -> Self {
+        self.constraint_x = constraint_x;
         self
     }
 
-    pub fn percent_y(mut self, percent_y: u16) -> Self {
-        self.percent_y = percent_y;
+    pub fn constraint_y(mut self, constraint_y: Constraint) -> Self {
+        self.constraint_y = constraint_y;
         self
     }
 
     fn area(&self, area: Rect) -> Rect {
-        let vertical =
-            Layout::vertical([Constraint::Percentage(self.percent_y)]).flex(Flex::Center);
-        let horizontal =
-            Layout::horizontal([Constraint::Percentage(self.percent_x)]).flex(Flex::Center);
+        let vertical = Layout::vertical([self.constraint_y]).flex(Flex::Center);
+        let horizontal = Layout::horizontal([self.constraint_x]).flex(Flex::Center);
         let [area] = vertical.areas(area);
         let [area] = horizontal.areas(area);
         area
