@@ -6,8 +6,9 @@ use ratatui::{
     text::{Line, Span},
     widgets::{Block, Borders, Paragraph, Wrap},
 };
+use tokio::sync::oneshot;
 
-use crate::{style::StylizeIf, tui_event::TuiEvent, widgets::popup::Popup};
+use crate::{component::Tx, style::StylizeIf, tui_event::TuiEvent, widgets::popup::Popup};
 
 pub enum InputType {
     String,
@@ -92,6 +93,7 @@ pub struct Prompt {
     width: Constraint,
     title: String,
     active_idx: usize,
+    tx: Option<oneshot::Sender<Prompt>>,
 }
 
 impl Prompt {
@@ -124,6 +126,7 @@ impl Prompt {
             width: Constraint::Percentage(50),
             title: "Create topic".into(),
             active_idx: 0,
+            tx: None,
         }
     }
 
@@ -183,6 +186,11 @@ impl Prompt {
         if let TuiEvent::KeyPress(key) = event {
             match key.code {
                 KeyCode::Esc => return None,
+                KeyCode::Enter => {
+                    let tx = self.tx.take().unwrap();
+                    let _ = tx.send(self);
+                    return None;
+                }
                 KeyCode::Tab => self.select_next(),
                 KeyCode::BackTab => self.select_prev(),
                 KeyCode::Char(c) => self.current_mut().push_char(c),
@@ -192,5 +200,14 @@ impl Prompt {
         };
 
         Some(self)
+    }
+
+    pub fn show(mut self, tx: Tx) -> oneshot::Receiver<Prompt> {
+        let (form_tx, form_rx) = oneshot::channel();
+        self.tx = Some(form_tx);
+
+        tx.send(TuiEvent::Prompt(self)).unwrap();
+
+        form_rx
     }
 }

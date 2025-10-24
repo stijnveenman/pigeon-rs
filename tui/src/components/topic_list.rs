@@ -12,6 +12,7 @@ use tokio::{task::JoinHandle, time::sleep};
 use crate::{
     component::{Component, Tx},
     form::{Form, QuestionType},
+    prompt::Prompt,
     style::{ACTIVE_BORDER_COLOR, BORDER_STYLE, StylizeIf},
     tui_event::TuiEvent,
 };
@@ -65,6 +66,8 @@ impl Component for TopicList {
                 KeyCode::Char('a') => {
                     let tx = self.tx.clone();
                     tokio::spawn(async move {
+                        Prompt::new().show(tx.clone()).await.unwrap();
+
                         let Ok(mut result) = Form::new()
                             .title("Add new topic")
                             .push("Name", QuestionType::String, true)

@@ -28,7 +28,7 @@ impl App {
             record_list: RecordList::new(),
             topics_active: true,
             form: None,
-            prompt: Some(Prompt::new()),
+            prompt: None,
         }
     }
 }
@@ -75,6 +75,9 @@ impl Component for App {
                 KeyCode::Tab => self.topics_active = !self.topics_active,
                 _ => {}
             },
+            TuiEvent::Prompt(prompt) => {
+                self.prompt = Some(prompt);
+            }
             TuiEvent::Form(form) => {
                 self.form = Some(form);
             }

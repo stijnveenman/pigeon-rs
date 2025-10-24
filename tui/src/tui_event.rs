@@ -3,11 +3,12 @@ use std::{collections::BTreeMap, io, time::Duration};
 use ratatui::crossterm::event::{self, KeyEvent, KeyEventKind};
 use shared::state::topic_state::TopicState;
 
-use crate::form::FormPopup;
+use crate::{form::FormPopup, prompt::Prompt};
 
 pub enum TuiEvent {
     KeyPress(KeyEvent),
     Form(FormPopup),
+    Prompt(Prompt),
     AddTopic(TopicState),
     TopicList(BTreeMap<u64, TopicState>),
 }
