@@ -23,7 +23,7 @@ impl App {
         Self {
             should_close: false,
             topic_list: TopicList::new(tx.clone()),
-            record_list: RecordList::new(),
+            record_list: RecordList::new(tx.clone()),
             topics_active: true,
             prompt: None,
         }

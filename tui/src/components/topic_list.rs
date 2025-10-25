@@ -67,6 +67,7 @@ impl Component for TopicList {
                 self.topics = topics;
                 if self.list_state.selected().is_none() {
                     self.list_state.select_next();
+                    self.send_selected();
                 }
             }
             TuiEvent::KeyPress(key) => match key.code {

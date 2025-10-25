@@ -1,7 +1,7 @@
 use std::{collections::BTreeMap, io, time::Duration};
 
 use ratatui::crossterm::event::{self, KeyEvent, KeyEventKind};
-use shared::state::topic_state::TopicState;
+use shared::{response::record_response::RecordResponse, state::topic_state::TopicState};
 
 use crate::prompt::Prompt;
 
@@ -12,6 +12,7 @@ pub enum TuiEvent {
     RemoveTopic(u64),
     TopicList(BTreeMap<u64, TopicState>),
     SelectTopic(TopicState),
+    Record(RecordResponse),
 }
 
 impl TuiEvent {
