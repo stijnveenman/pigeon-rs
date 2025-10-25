@@ -44,6 +44,14 @@ impl TopicList {
             }),
         }
     }
+
+    fn send_selected(&self) -> Option<()> {
+        let idx = self.list_state.selected()?;
+        let topic = self.topics.values().nth(idx)?;
+        self.tx.send(TuiEvent::SelectTopic(topic.clone())).unwrap();
+
+        Some(())
+    }
 }
 
 impl Component for TopicList {
@@ -62,10 +70,22 @@ impl Component for TopicList {
                 }
             }
             TuiEvent::KeyPress(key) => match key.code {
-                KeyCode::Char('j') => self.list_state.select_next(),
-                KeyCode::Char('k') => self.list_state.select_previous(),
-                KeyCode::Char('g') => self.list_state.select_first(),
-                KeyCode::Char('G') => self.list_state.select_last(),
+                KeyCode::Char('j') => {
+                    self.list_state.select_next();
+                    self.send_selected();
+                }
+                KeyCode::Char('k') => {
+                    self.list_state.select_previous();
+                    self.send_selected();
+                }
+                KeyCode::Char('g') => {
+                    self.list_state.select_first();
+                    self.send_selected();
+                }
+                KeyCode::Char('G') => {
+                    self.list_state.select_last();
+                    self.send_selected();
+                }
                 KeyCode::Char('i') => {
                     let idx = self.list_state.selected()?;
                     let topic = self.topics.values().nth(idx)?;

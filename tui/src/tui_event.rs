@@ -11,6 +11,7 @@ pub enum TuiEvent {
     AddTopic(TopicState),
     RemoveTopic(u64),
     TopicList(BTreeMap<u64, TopicState>),
+    SelectTopic(TopicState),
 }
 
 impl TuiEvent {

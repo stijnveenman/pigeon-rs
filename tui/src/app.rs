@@ -52,8 +52,14 @@ impl Component for App {
         }
 
         let event = match self.topics_active {
-            true => self.topic_list.event(event)?,
-            false => self.record_list.event(event)?,
+            true => {
+                let event = self.topic_list.event(event)?;
+                self.record_list.event(event)?
+            }
+            false => {
+                let event = self.record_list.event(event)?;
+                self.topic_list.event(event)?
+            }
         };
 
         match event {
