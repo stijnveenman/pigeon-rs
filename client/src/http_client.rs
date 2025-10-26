@@ -140,6 +140,21 @@ impl HttpClient {
         .await
     }
 
+    pub async fn create_topic_if_not_exists(
+        &self,
+        name: &str,
+        partitions: Option<u64>,
+    ) -> Result<TopicState, Error> {
+        match self.create_topic(name, partitions).await {
+            Ok(topic) => Ok(topic),
+            // TODO: this isn't a great way to check the error
+            Err(Error::ErrorResponse(_, message)) if message.contains("is already in use") => {
+                return self.get_topic(name).await;
+            }
+            Err(err) => Err(err),
+        }
+    }
+
     pub async fn produce(&self, produce: ProduceCommand) -> Result<ProduceResponse, Error> {
         self.post("/topics/records", produce).await
     }
