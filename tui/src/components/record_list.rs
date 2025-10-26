@@ -1,10 +1,10 @@
-use std::{collections::HashMap, slice::SliceIndex};
+use std::collections::HashMap;
 
 use client::http_client::HttpClient;
 use ratatui::{
     layout::{Constraint, Direction, Layout},
     text::Line,
-    widgets::{Block, BorderType, Borders, List, ListItem, Paragraph},
+    widgets::{Block, BorderType, Borders, List, ListItem},
 };
 use shared::{
     commands::fetch_command::{FetchCommand, FetchPartitionCommand, FetchTopicCommand},
@@ -104,8 +104,11 @@ impl RecordList {
                 let response = match response {
                     Ok(r) => r,
                     Err(e) => {
-                        tx.send(TuiEvent::Prompt(Prompt::error(e.to_string())))
-                            .unwrap();
+                        tx.send(TuiEvent::Prompt(Prompt::error(
+                            "Fetch Erorr",
+                            e.to_string(),
+                        )))
+                        .unwrap();
                         return;
                     }
                 };
@@ -130,6 +133,13 @@ impl RecordList {
 impl Component for RecordList {
     fn event(&mut self, event: TuiEvent) -> Option<TuiEvent> {
         match event {
+            TuiEvent::RemoveTopic(topic_id) => {
+                if self.topic.as_ref().is_some_and(|t| t.topic_id == topic_id) {
+                    if let Some(handle) = self.update_handle.take() {
+                        handle.abort();
+                    }
+                }
+            }
             TuiEvent::SelectTopic(topic) => self.select_topic(topic),
             TuiEvent::Record(record) => self.records.push(record),
             e => return Some(e),

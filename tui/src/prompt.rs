@@ -146,11 +146,11 @@ pub struct Prompt {
 }
 
 impl Prompt {
-    pub fn new() -> Self {
+    pub fn new(title: impl Into<String>) -> Self {
         Prompt {
             items: vec![],
             width: Constraint::Percentage(50),
-            title: "Create topic".into(),
+            title: title.into(),
             active_idx: 0,
             prompt_type: PromptType::Form,
             tx: None,
@@ -162,8 +162,8 @@ impl Prompt {
         self
     }
 
-    pub fn error(message: impl Into<String>) -> Prompt {
-        Prompt::new()
+    pub fn error(title: &str, message: impl Into<String>) -> Prompt {
+        Prompt::new(title.to_string())
             .prompt_type(PromptType::Error)
             .paragraph(message.into())
     }

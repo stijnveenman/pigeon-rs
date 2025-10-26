@@ -62,6 +62,7 @@ impl Component for TopicList {
             }
             TuiEvent::RemoveTopic(topic) => {
                 self.topics.remove(&topic);
+                return Some(event);
             }
             TuiEvent::TopicList(topics) => {
                 self.topics = topics;
@@ -99,7 +100,7 @@ impl Component for TopicList {
                             )
                         });
 
-                    Prompt::new()
+                    Prompt::new("Topic Info")
                         .prompt_type(PromptType::Info)
                         .width(Constraint::Length(30))
                         .title(format!("Topic: {}", topic.name))
@@ -119,7 +120,7 @@ impl Component for TopicList {
 
                     let tx = self.tx.clone();
                     tokio::spawn(async move {
-                        if Prompt::new()
+                        if Prompt::new("Delete topic")
                             .paragraph(format!("Are you sure you want to delete topic: {}", name))
                             .show(tx.clone())
                             .await
@@ -132,7 +133,7 @@ impl Component for TopicList {
                             HttpClient::new(format!("http://127.0.0.1:{}", DEFAULT_PORT)).unwrap();
 
                         if let Err(err) = client.delete_topic(&name).await {
-                            Prompt::error(err.to_string()).show(tx);
+                            Prompt::error("Delete topic failed", err.to_string()).show(tx);
                         } else {
                             tx.send(TuiEvent::RemoveTopic(id)).unwrap();
                         }
@@ -141,7 +142,7 @@ impl Component for TopicList {
                 KeyCode::Char('a') => {
                     let tx = self.tx.clone();
                     tokio::spawn(async move {
-                        let Ok(result) = Prompt::new()
+                        let Ok(result) = Prompt::new("Create topic")
                             .title("Add new topic")
                             .input(Input::string("Name").required())
                             .input(Input::integer("Partitions"))
@@ -160,7 +161,7 @@ impl Component for TopicList {
                         match client.create_topic(&topic, partitions).await {
                             Ok(topic) => tx.send(TuiEvent::AddTopic(topic)).unwrap(),
                             Err(err) => {
-                                Prompt::error(err.to_string()).show(tx);
+                                Prompt::error("Create topic failed", err.to_string()).show(tx);
                             }
                         }
                     });
