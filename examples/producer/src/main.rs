@@ -6,7 +6,7 @@ use client::http_client::HttpClient;
 use shared::{
     commands::produce_command::ProduceCommand,
     consts::DEFAULT_PORT,
-    data::{encoding::Encoding, identifier::Identifier},
+    data::{encoding::Encoding, identifier::Identifier, partitioner::Partitioner},
 };
 use tokio::time::sleep;
 
@@ -41,7 +41,8 @@ pub async fn main() -> Result<()> {
         let response = client
             .produce(ProduceCommand {
                 topic: identifier.clone(),
-                partition_id: cli.partition_id,
+                partition_id: Partitioner::Default(cli.partition_id)
+                    .select_partition(idx.to_string()),
                 key: format!("{}", idx),
                 value: format!("Idx: {}", idx),
                 encoding: Encoding::Utf8,
