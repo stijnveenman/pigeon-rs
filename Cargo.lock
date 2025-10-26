@@ -1193,6 +1193,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "producer"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "clap",
+ "client",
+ "shared",
+ "tokio",
+]
+
+[[package]]
 name = "quote"
 version = "1.0.41"
 source = "registry+https://github.com/rust-lang/crates.io-index"
