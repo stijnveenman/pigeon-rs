@@ -170,6 +170,8 @@ impl Component for RecordList {
         let items = self
             .records
             .iter()
+            // TODO: list scroll?
+            .skip(self.records.len().saturating_sub(rect.height as usize))
             .map(|r| {
                 let line = Line::from(format!(
                     "{:woffset$} | {:wkey$} | {:wvalue$} | {:wts$}",
