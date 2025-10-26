@@ -1,7 +1,11 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, slice::SliceIndex};
 
 use client::http_client::HttpClient;
-use ratatui::widgets::{Block, BorderType, Borders, Paragraph};
+use ratatui::{
+    layout::{Constraint, Direction, Layout},
+    text::Line,
+    widgets::{Block, BorderType, Borders, List, ListItem, Paragraph},
+};
 use shared::{
     commands::fetch_command::{FetchCommand, FetchPartitionCommand, FetchTopicCommand},
     consts::DEFAULT_PORT,
@@ -150,7 +154,48 @@ impl Component for RecordList {
         f.render_widget(block, rect);
         let rect = inner;
 
-        let p = Paragraph::new(format!("Records: {}", self.records.len()));
-        f.render_widget(p, rect);
+        let [offset, _, key, _, value, _, timestamp] = Layout::default()
+            .direction(Direction::Horizontal)
+            .constraints(vec![
+                Constraint::Length(6),
+                Constraint::Length(3), // Devider,
+                Constraint::Ratio(3, 8),
+                Constraint::Length(3), // Devider,
+                Constraint::Ratio(5, 8),
+                Constraint::Length(3), // Devider,
+                Constraint::Length(18),
+            ])
+            .areas(rect);
+
+        let items = self
+            .records
+            .iter()
+            .map(|r| {
+                let line = Line::from(format!(
+                    "{:woffset$} | {:wkey$} | {:wvalue$} | {:wts$}",
+                    r.offset,
+                    split_slice(&r.key, key.width as usize),
+                    split_slice(&r.value, value.width as usize),
+                    r.timestamp.to_local_string("%d/%m/%Y %H:%M"),
+                    woffset = offset.width as usize,
+                    wkey = key.width as usize,
+                    wvalue = value.width as usize,
+                    wts = timestamp.width as usize
+                ));
+                ListItem::new(line)
+            })
+            .collect::<Vec<_>>();
+
+        let list = List::new(items);
+
+        f.render_widget(list, rect);
     }
+}
+
+fn split_slice(slice: &str, mid: usize) -> &str {
+    if mid > slice.len() {
+        return slice;
+    }
+
+    slice.split_at(mid).0
 }

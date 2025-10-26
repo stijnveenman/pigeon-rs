@@ -1,7 +1,7 @@
 use core::fmt;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, Local, Utc};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
@@ -16,6 +16,10 @@ impl Timestamp {
 
     pub fn to_utc_string(self, format: &str) -> String {
         DateTime::<Utc>::from(self.0).format(format).to_string()
+    }
+
+    pub fn to_local_string(self, format: &str) -> String {
+        DateTime::<Local>::from(self.0).format(format).to_string()
     }
 
     pub fn to_secs(self) -> u64 {
