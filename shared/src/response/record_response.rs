@@ -1,5 +1,4 @@
 use serde::{Deserialize, Serialize};
-use std::str;
 
 use crate::{
     commands::fetch_command::FetchCommand,
