@@ -25,6 +25,7 @@ use tracing::info;
 
 use crate::app::App;
 use crate::dur::record::{Record, RecordHeader};
+use crate::record_batch::RecordBatch;
 
 pub struct HttpServer {
     router: Router,
@@ -107,7 +108,7 @@ async fn fetch(
     Json(fetch): Json<FetchCommand>,
 ) -> AppResult<FetchResponse> {
     let until = Instant::now() + Duration::from_millis(fetch.timeout_ms);
-    let mut response = FetchResponse::from(&fetch);
+    let mut batch = RecordBatch::new(fetch.min_bytes, None);
 
     let lock = app.read().await;
 
@@ -117,18 +118,15 @@ async fn fetch(
             let mut offset = partition.offset;
             while let Some(record) = lock.read(&topic.identifier, partition.id, &offset).await? {
                 let record_offset = record.offset;
-                response.push(
-                    record.to_response(&fetch.encoding, topic_id, partition.id)?,
-                    record.size(),
-                );
+                batch.push(topic_id, partition.id, &record);
 
                 match offset.narrow(record_offset) {
                     Some(next) => offset = next,
                     None => break,
                 }
 
-                if response.total_size > fetch.min_bytes {
-                    return Ok(Json(response));
+                if batch.is_full() {
+                    return Ok(Json(batch.to_response(fetch.encoding)?));
                 }
             }
         }
@@ -162,13 +160,13 @@ async fn fetch(
 
     loop {
         select! {
-             _ = time::sleep_until(until) => return Ok(Json(response)),
+             _ = time::sleep_until(until) => return Ok(Json(batch.to_response(fetch.encoding)?)),
             record = map.next() => {
                 if let Some((topic_id, (partition_id, record))) = record {
-                    response.push(record.to_response(&fetch.encoding, topic_id, partition_id)?, record.size());
+                    batch.push(topic_id, partition_id, &record);
 
-                    if response.total_size > fetch.min_bytes {
-                        return Ok(Json(response));
+                    if batch.is_ready() {
+                        return Ok(Json(batch.to_response(fetch.encoding)?))
                     }
                 }
             }
