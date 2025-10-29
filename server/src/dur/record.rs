@@ -7,13 +7,13 @@ use shared::{
     response::record_response::{HeaderResponse, RecordResponse},
 };
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct RecordHeader {
     pub key: String,
     pub value: Bytes,
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Record {
     pub offset: u64,
     pub timestamp: Timestamp,

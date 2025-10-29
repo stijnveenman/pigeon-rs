@@ -6,6 +6,7 @@ mod dur;
 pub mod http;
 
 mod meta;
+mod record_batch;
 use anyhow::Result;
 use app::App;
 use clap::Parser;
