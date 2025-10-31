@@ -118,6 +118,7 @@ pub async fn main() -> Result<()> {
                 .fetch(FetchCommand {
                     encoding: Encoding::Utf8,
                     timeout_ms,
+                    max_bytes: None,
                     min_bytes: 0,
                     topics: vec![FetchTopicCommand {
                         identifier: Identifier::Name(topic),

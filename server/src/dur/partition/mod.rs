@@ -12,7 +12,7 @@ use super::{
     record::{Record, RecordHeader},
     segment::Segment,
 };
-use crate::{config::Config, dur::error::Error};
+use crate::{config::Config, dur::error::Error, record_batch::RecordBatch};
 
 pub struct Partition {
     topic_id: u64,
@@ -109,6 +109,36 @@ impl Partition {
         };
 
         segment.read_exact(offset).await
+    }
+
+    pub async fn read_batch(
+        &self,
+        batch: &mut RecordBatch,
+        offset: &OffsetSelection,
+    ) -> Result<usize> {
+        let cursor = self.segments.range(offset.range());
+        let mut bytes_read = 0;
+
+        for (_, segment) in cursor {
+            let range = segment.index().range(offset.range());
+
+            for (offset, _) in range {
+                // TODO: actually read in batch from segment
+                let record = segment
+                    .read_exact(*offset)
+                    .await?
+                    .expect("Unexpected missing offset");
+
+                bytes_read += record.size();
+                batch.push(self.topic_id, self.partition_id, record);
+
+                if batch.is_full() {
+                    break;
+                }
+            }
+        }
+
+        Ok(bytes_read)
     }
 
     // TODO: unit test

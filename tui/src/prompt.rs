@@ -131,7 +131,6 @@ impl PromptItem {
 
 pub enum PromptType {
     Form,
-    Success,
     Info,
     Error,
 }
@@ -245,9 +244,7 @@ impl Prompt {
     fn footer(&self) -> Line<'_> {
         match self.prompt_type {
             PromptType::Form => "Esc: Cancel, Enter: Confirm".into(),
-            PromptType::Success | PromptType::Error | PromptType::Info => {
-                "Esc/Enter to dismiss".into()
-            }
+            PromptType::Error | PromptType::Info => "Esc/Enter to dismiss".into(),
         }
     }
 
@@ -256,12 +253,7 @@ impl Prompt {
             .constraint_x(self.width)
             .title(self.title.clone())
             .border_style(
-                BORDER_STYLE
-                    .fg_if(Color::Red, matches!(self.prompt_type, PromptType::Error))
-                    .fg_if(
-                        Color::Green,
-                        matches!(self.prompt_type, PromptType::Success),
-                    ),
+                BORDER_STYLE.fg_if(Color::Red, matches!(self.prompt_type, PromptType::Error)),
             )
             .title_bottom(self.footer().right_aligned());
         let width = popup.inner(f.area()).width;

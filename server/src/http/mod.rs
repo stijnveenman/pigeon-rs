@@ -108,31 +108,31 @@ async fn fetch(
     Json(fetch): Json<FetchCommand>,
 ) -> AppResult<FetchResponse> {
     let until = Instant::now() + Duration::from_millis(fetch.timeout_ms);
-    let mut batch = RecordBatch::new(fetch.min_bytes, None);
+    let mut batch = RecordBatch::new(fetch.min_bytes, fetch.max_bytes);
 
     let lock = app.read().await;
 
     for topic in &fetch.topics {
-        let topic_id = lock.get_topic(&topic.identifier)?.id();
         for partition in &topic.partitions {
-            let mut offset = partition.offset;
-            while let Some(record) = lock.read(&topic.identifier, partition.id, &offset).await? {
-                let record_offset = record.offset;
-                batch.push(topic_id, partition.id, &record);
+            lock.read_batch(
+                &mut batch,
+                &partition.offset,
+                partition.id,
+                &topic.identifier,
+            )
+            .await?;
 
-                match offset.narrow(record_offset) {
-                    Some(next) => offset = next,
-                    None => break,
-                }
-
-                if batch.is_full() {
-                    return Ok(Json(batch.to_response(fetch.encoding)?));
-                }
+            if batch.is_full() {
+                return Ok(Json(batch.to_response(fetch.encoding)?));
             }
         }
     }
 
     drop(lock);
+
+    if batch.is_ready() {
+        return Ok(Json(batch.to_response(fetch.encoding)?));
+    }
 
     let mut lock = app.write().await;
     let mut map = StreamMap::new();
@@ -163,7 +163,7 @@ async fn fetch(
              _ = time::sleep_until(until) => return Ok(Json(batch.to_response(fetch.encoding)?)),
             record = map.next() => {
                 if let Some((topic_id, (partition_id, record))) = record {
-                    batch.push(topic_id, partition_id, &record);
+                    batch.push(topic_id, partition_id, record.as_ref().clone());
 
                     if batch.is_ready() {
                         return Ok(Json(batch.to_response(fetch.encoding)?))

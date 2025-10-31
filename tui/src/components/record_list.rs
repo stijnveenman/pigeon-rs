@@ -98,6 +98,7 @@ impl RecordList {
                         }],
                         timeout_ms,
                         min_bytes,
+                        max_bytes: None,
                     })
                     .await;
 

@@ -14,6 +14,7 @@ use crate::dur::topic::Topic;
 use crate::meta::MetadataEntry;
 use crate::meta::create_topic_entry::CreateTopicEntry;
 use crate::meta::delete_topic_entry::DeleteTopicEntry;
+use crate::record_batch::RecordBatch;
 
 use super::AppLock;
 use super::error::{Error, Result};
@@ -128,6 +129,18 @@ impl AppLock {
         let topic = self.get_topic(identifer)?;
 
         Ok(topic.read(partition_id, offset).await?)
+    }
+
+    pub async fn read_batch(
+        &self,
+        batch: &mut RecordBatch,
+        offset: &OffsetSelection,
+        partition_id: u64,
+        identifier: &Identifier,
+    ) -> Result<usize> {
+        let topic = self.get_topic(identifier)?;
+
+        Ok(topic.read_batch(batch, offset, partition_id).await?)
     }
 
     pub fn get_topic(&self, identifer: &Identifier) -> Result<&Topic> {

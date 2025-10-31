@@ -1,9 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::{
-    commands::fetch_command::FetchCommand,
-    data::{encoding::Encoding, timestamp::Timestamp},
-};
+use crate::data::{encoding::Encoding, timestamp::Timestamp};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct RecordResponse {
@@ -26,17 +23,8 @@ pub struct HeaderResponse {
 pub struct FetchResponse {
     pub total_size: usize,
     pub encoding: Encoding,
+    pub count: usize,
     pub records: Vec<RecordResponse>,
-}
-
-impl From<&FetchCommand> for FetchResponse {
-    fn from(value: &FetchCommand) -> Self {
-        Self {
-            total_size: 0,
-            records: vec![],
-            encoding: value.encoding,
-        }
-    }
 }
 
 impl FetchResponse {

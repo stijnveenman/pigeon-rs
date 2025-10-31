@@ -36,12 +36,12 @@ impl RecordBatch {
         self.max_bytes.is_some_and(|max| self.total_bytes > max)
     }
 
-    pub fn push(&mut self, topic_id: u64, partition_id: u64, record: &Record) {
+    pub fn push(&mut self, topic_id: u64, partition_id: u64, record: Record) {
         let topic_records = self.records.entry(topic_id).or_default();
         let partition_records = topic_records.entry(partition_id).or_default();
 
-        partition_records.push(record.clone());
         self.total_bytes += record.size();
+        partition_records.push(record);
     }
 
     pub fn to_response(&self, encoding: Encoding) -> Result<FetchResponse, encoding::Error> {
@@ -60,6 +60,7 @@ impl RecordBatch {
         Ok(FetchResponse {
             total_size: self.total_bytes,
             encoding,
+            count: records.len(),
             records,
         })
     }

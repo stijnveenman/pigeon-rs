@@ -7,6 +7,7 @@ pub struct FetchCommand {
     pub encoding: Encoding,
     pub timeout_ms: u64,
     pub min_bytes: usize,
+    pub max_bytes: Option<usize>,
     pub topics: Vec<FetchTopicCommand>,
 }
 

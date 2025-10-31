@@ -7,6 +7,7 @@ use tokio::fs::remove_dir;
 
 use crate::config::Config;
 use crate::dur::error::{Error, Result};
+use crate::record_batch::RecordBatch;
 
 use super::partition::Partition;
 use super::record::{Record, RecordHeader};
@@ -87,6 +88,20 @@ impl Topic {
             .ok_or(Error::PartitionNotFound)?;
 
         partition.append(key, value, headers).await
+    }
+
+    pub async fn read_batch(
+        &self,
+        batch: &mut RecordBatch,
+        offset: &OffsetSelection,
+        partition_id: u64,
+    ) -> Result<usize> {
+        let partition = self
+            .partitions
+            .get(partition_id as usize)
+            .ok_or(Error::PartitionNotFound)?;
+
+        partition.read_batch(batch, offset).await
     }
 
     pub async fn read(
