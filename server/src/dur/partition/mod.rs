@@ -123,7 +123,7 @@ impl Partition {
                 continue;
             };
             // TODO: determine based on max offset
-            let end_offset = range.last().unwrap_or(start_offset);
+            let end_offset = range.next_back().unwrap_or(start_offset);
 
             let records = segment.read_range(*start_offset, *end_offset).await?;
             batch.append(self.topic_id, self.partition_id, records);
