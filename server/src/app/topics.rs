@@ -120,17 +120,6 @@ impl AppLock {
         Ok(topic.read_exact(partition_id, offset).await?)
     }
 
-    pub async fn read(
-        &self,
-        identifer: &Identifier,
-        partition_id: u64,
-        offset: &OffsetSelection,
-    ) -> Result<Option<Record>> {
-        let topic = self.get_topic(identifer)?;
-
-        Ok(topic.read(partition_id, offset).await?)
-    }
-
     pub async fn read_batch(
         &self,
         batch: &mut RecordBatch,

@@ -104,19 +104,6 @@ impl Topic {
         partition.read_batch(batch, offset).await
     }
 
-    pub async fn read(
-        &self,
-        partition_id: u64,
-        offset: &OffsetSelection,
-    ) -> Result<Option<Record>> {
-        let partition = self
-            .partitions
-            .get(partition_id as usize)
-            .ok_or(Error::PartitionNotFound)?;
-
-        partition.read(offset).await
-    }
-
     pub async fn read_exact(&self, partition_id: u64, offset: u64) -> Result<Option<Record>> {
         let partition = self
             .partitions

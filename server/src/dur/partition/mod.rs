@@ -136,25 +136,6 @@ impl Partition {
         Ok(())
     }
 
-    // TODO: unit test
-    pub async fn read(&self, offset: &OffsetSelection) -> Result<Option<Record>> {
-        // We want to get the segment with the latest start offset before the offset
-        let mut cursor = self.segments.upper_bound(Bound::Unbounded);
-
-        while let Some((_, segment)) = cursor.prev() {
-            let mut range = match offset {
-                OffsetSelection::Exact(offset) => segment.index().range(offset..=offset),
-                OffsetSelection::From(offset) => segment.index().range(offset..),
-            };
-
-            if let Some((offset, _)) = range.next() {
-                return segment.read_exact(*offset).await;
-            }
-        }
-
-        Ok(None)
-    }
-
     pub async fn delete(self) -> Result<()> {
         for (_, segment) in self.segments.into_iter() {
             segment.delete().await?;
