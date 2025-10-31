@@ -115,30 +115,25 @@ impl Partition {
         &self,
         batch: &mut RecordBatch,
         offset: &OffsetSelection,
-    ) -> Result<usize> {
-        let cursor = self.segments.range(offset.range());
-        let mut bytes_read = 0;
+    ) -> Result<()> {
+        // Not great iterator
+        for segment in self.segments.values() {
+            let mut range = segment.index().range(offset.range()).map(|e| e.0);
+            let Some(start_offset) = range.next() else {
+                continue;
+            };
+            // TODO: determine based on max offset
+            let end_offset = range.last().unwrap_or(start_offset);
 
-        for (_, segment) in cursor {
-            let range = segment.index().range(offset.range());
+            let records = segment.read_range(*start_offset, *end_offset).await?;
+            batch.append(self.topic_id, self.partition_id, records);
 
-            for (offset, _) in range {
-                // TODO: actually read in batch from segment
-                let record = segment
-                    .read_exact(*offset)
-                    .await?
-                    .expect("Unexpected missing offset");
-
-                bytes_read += record.size();
-                batch.push(self.topic_id, self.partition_id, record);
-
-                if batch.is_full() {
-                    break;
-                }
+            if batch.is_full() {
+                break;
             }
         }
 
-        Ok(bytes_read)
+        Ok(())
     }
 
     // TODO: unit test

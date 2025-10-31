@@ -95,7 +95,7 @@ impl Topic {
         batch: &mut RecordBatch,
         offset: &OffsetSelection,
         partition_id: u64,
-    ) -> Result<usize> {
+    ) -> Result<()> {
         let partition = self
             .partitions
             .get(partition_id as usize)

@@ -44,6 +44,14 @@ impl RecordBatch {
         partition_records.push(record);
     }
 
+    pub fn append(&mut self, topic_id: u64, partition_id: u64, mut records: Vec<Record>) {
+        let topic_records = self.records.entry(topic_id).or_default();
+        let partition_records = topic_records.entry(partition_id).or_default();
+
+        self.total_bytes += records.iter().map(|e| e.size()).sum::<usize>();
+        partition_records.append(&mut records);
+    }
+
     pub fn to_response(&self, encoding: Encoding) -> Result<FetchResponse, encoding::Error> {
         let mut records = Vec::new();
         for (topic_id, partition) in &self.records {

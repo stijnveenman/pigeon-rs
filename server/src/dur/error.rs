@@ -12,6 +12,8 @@ pub enum Error {
     PartitionNotFound,
     #[error("Failed to parse start offset from log filename({0:?})")]
     InvalidLogFilename(OsString),
+    #[error("Offset out of range of segment")]
+    OffsetOutOfRange,
 }
 
 pub type Result<T> = std::result::Result<T, Error>;

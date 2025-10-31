@@ -1,5 +1,6 @@
 use std::{
     collections::{BTreeMap, btree_map::Range},
+    fmt::Debug,
     io::ErrorKind,
     ops::RangeBounds,
 };
@@ -15,6 +16,15 @@ pub struct Index {
     index: BTreeMap<u64, u64>,
     file: File,
     path: String,
+}
+
+impl Debug for Index {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Index")
+            .field("index", &self.index)
+            .field("path", &self.path)
+            .finish()
+    }
 }
 
 impl Index {

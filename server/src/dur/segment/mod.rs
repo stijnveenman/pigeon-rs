@@ -114,6 +114,68 @@ impl Segment {
         self.log_size >= self.max_log_size
     }
 
+    fn record_location(&self, offset: u64) -> Option<u64> {
+        self.index.range(offset..).next().map(|e| e.1).copied()
+    }
+
+    pub async fn read_range(&self, start_offset: u64, end_offset: u64) -> Result<Vec<Record>> {
+        let start_location = self
+            .record_location(start_offset)
+            .ok_or(Error::OffsetOutOfRange)?;
+
+        let end_location = self
+            .record_location(end_offset + 1)
+            .unwrap_or(self.log_size);
+
+        if start_location >= end_location {
+            return Ok(Vec::new());
+        }
+
+        let read_len = end_location - start_location;
+
+        let bytes = self.read_at(start_location, read_len as usize).await?;
+        assert_eq!(bytes.len(), read_len as usize);
+
+        let mut bytes = Bytes::from(bytes);
+        let mut records = Vec::new();
+
+        while bytes.has_remaining() {
+            let offset = bytes.get_u64();
+            let timestamp = Timestamp::from(bytes.get_u64());
+
+            let key_len = bytes.get_u32();
+            let key = bytes.copy_to_bytes(key_len as usize);
+
+            let value_len = bytes.get_u32();
+            let value = bytes.copy_to_bytes(value_len as usize);
+
+            let header_len = bytes.get_u16();
+
+            let headers = (0..header_len)
+                .map(|_| {
+                    let key_len = bytes.get_u32();
+                    let key = bytes.copy_to_bytes(key_len as usize);
+                    let key = String::from_utf8(key.to_vec()).expect("failed to parse from_utf8");
+
+                    let value_len = bytes.get_u32();
+                    let value = bytes.copy_to_bytes(value_len as usize);
+
+                    RecordHeader { key, value }
+                })
+                .collect::<Vec<_>>();
+
+            records.push(Record {
+                offset,
+                timestamp,
+                key,
+                value,
+                headers,
+            });
+        }
+
+        Ok(records)
+    }
+
     pub async fn read_exact(&self, offset: u64) -> Result<Option<Record>> {
         let mut index_range = self.index.range(offset..);
 

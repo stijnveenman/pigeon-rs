@@ -137,7 +137,7 @@ impl AppLock {
         offset: &OffsetSelection,
         partition_id: u64,
         identifier: &Identifier,
-    ) -> Result<usize> {
+    ) -> Result<()> {
         let topic = self.get_topic(identifier)?;
 
         Ok(topic.read_batch(batch, offset, partition_id).await?)
