@@ -1,18 +1,5 @@
-#![feature(btree_cursors)]
-
-pub mod app;
-pub mod config;
-mod dur;
-pub mod http;
-
-mod meta;
-mod record_batch;
 use anyhow::Result;
-use app::App;
 use clap::Parser;
-use config::Config;
-use http::HttpServer;
-use shared::{consts::DEFAULT_PORT, logging::set_up_logging};
 
 #[derive(Parser, Debug)]
 #[command(name = "pigeon", version, author, about = "Run pegon server")]
@@ -29,19 +16,7 @@ struct Cli {
 
 #[tokio::main]
 pub async fn main() -> Result<()> {
-    let cli = Cli::parse();
-    set_up_logging(cli.verbose, cli.quiet)?;
-
-    let config = Config::default();
-    let app = App::load_from_disk(config)
-        .await
-        .expect("Failed to load app state");
-
-    let port = cli.port.unwrap_or(DEFAULT_PORT);
-
-    let http = HttpServer::new("127.0.0.1", port, app);
-
-    http.serve().await.expect("http server failed");
+    let _cli = Cli::parse();
 
     Ok(())
 }
