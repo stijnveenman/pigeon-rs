@@ -4,14 +4,14 @@ use std::collections::BTreeMap;
 pub struct Index(BTreeMap<u64, u64>);
 
 impl Index {
-    pub fn insert(&mut self, key: u64, value: u64) {
-        assert!(self.0.last_entry().is_none_or(|v| key > *v.key()));
+    pub fn insert(&mut self, offset: u64, byte_offset: u64) {
+        assert!(self.0.last_entry().is_none_or(|v| offset > *v.key()));
 
-        self.0.insert(key, value);
+        self.0.insert(offset, byte_offset);
     }
 
-    pub fn get(&mut self, key: u64) -> Option<&u64> {
-        self.0.get(&key)
+    pub fn get(&mut self, offset: u64) -> Option<&u64> {
+        self.0.get(&offset)
     }
 }
 
