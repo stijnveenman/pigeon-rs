@@ -1,3 +1,5 @@
+mod dur;
+
 use anyhow::Result;
 use clap::Parser;
 use tracing::{info, warn};
