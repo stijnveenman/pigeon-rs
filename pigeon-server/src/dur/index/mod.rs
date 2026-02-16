@@ -1,13 +1,17 @@
+mod index_writer;
+
 use std::collections::BTreeMap;
 
 use bytes::Buf;
 use pigeon_core::PError;
 
+pub const INDEX_EXTENSION: &str = "index";
+
 #[derive(Default, Debug)]
 pub struct Index(BTreeMap<u64, u64>);
 
 impl Index {
-    pub fn insert(&mut self, offset: u64, byte_offset: u64) -> Result<(), PError> {
+    pub fn append(&mut self, offset: u64, byte_offset: u64) -> Result<(), PError> {
         if self.0.last_entry().is_some_and(|v| offset <= *v.key()) {
             return Err(PError::IndexOffsetNotAllowed);
         }
@@ -32,7 +36,7 @@ impl TryFrom<&[u8]> for Index {
             let byte_offset = value.try_get_u64().map_err(|_| PError::IndexParseFailed)?;
 
             index
-                .insert(offset, byte_offset)
+                .append(offset, byte_offset)
                 .map_err(|_| PError::IndexParseFailed)?;
         }
 
@@ -47,22 +51,22 @@ mod test {
     use crate::dur::index::Index;
 
     #[test]
-    fn insert_and_get() {
+    fn append_and_get() {
         let mut index = Index::default();
 
-        index.insert(0, 1).unwrap();
-        index.insert(1, 2).unwrap();
+        index.append(0, 1).unwrap();
+        index.append(1, 2).unwrap();
 
         assert_eq!(index.get(0), Some(&1));
         assert_eq!(index.get(1), Some(&2));
     }
 
     #[test]
-    fn can_only_insert_at_the_end() {
+    fn can_only_append_at_the_end() {
         let mut index = Index::default();
 
-        assert_eq!(index.insert(10, 10), Ok(()));
-        assert_eq!(index.insert(0, 0), Err(PError::IndexOffsetNotAllowed));
+        assert_eq!(index.append(10, 10), Ok(()));
+        assert_eq!(index.append(0, 0), Err(PError::IndexOffsetNotAllowed));
     }
 
     #[test]
