@@ -35,6 +35,13 @@ impl IndexWriter {
         }
     }
 
+    pub async fn close(&mut self) {
+        if let Some(mut file) = self.file.take() {
+            // TODO: error handling
+            file.flush().await.unwrap();
+        }
+    }
+
     pub async fn append(&mut self, offset: u64, byte_offset: u64) {
         let file = self.open().await;
 
@@ -67,6 +74,7 @@ mod test {
 
         let mut writer = IndexWriter::new(base_dir, 0);
         writer.open().await;
+        writer.close().await;
 
         let file = dir.path().with_file_name("0.index");
         assert!(file.exists())
