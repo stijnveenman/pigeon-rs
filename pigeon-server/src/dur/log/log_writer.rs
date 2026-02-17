@@ -1,9 +1,9 @@
 use std::path::{Path, PathBuf};
 
-use pigeon_core::PError;
+use pigeon_core::{PError, record::Record};
 use tokio::{
     fs::{File, remove_file},
-    io::AsyncWriteExt,
+    io::{AsyncSeekExt, AsyncWriteExt},
 };
 
 use crate::dur::log::LOG_EXTENSION;
@@ -11,6 +11,7 @@ use crate::dur::log::LOG_EXTENSION;
 pub struct LogWriter {
     path: PathBuf,
     file: Option<File>,
+    file_position: u64,
 }
 
 impl LogWriter {
@@ -18,16 +19,25 @@ impl LogWriter {
         let path = Path::new(base_dir)
             .join(Path::new(&start_offset.to_string()).with_extension(LOG_EXTENSION));
 
-        LogWriter { path, file: None }
+        LogWriter {
+            path,
+            file: None,
+            file_position: 0,
+        }
     }
 
     pub async fn open(&mut self) -> Result<&mut File, PError> {
         match self.file {
             None => {
-                let file = File::options()
+                let mut file = File::options()
                     .create(true)
                     .append(true)
                     .open(&self.path)
+                    .await
+                    .map_err(|_| PError::LogOpenFailed)?;
+
+                self.file_position = file
+                    .stream_position()
                     .await
                     .map_err(|_| PError::LogOpenFailed)?;
 
@@ -54,10 +64,46 @@ impl LogWriter {
 
         Ok(())
     }
+
+    pub async fn append(&mut self, record: &Record) -> Result<u64, PError> {
+        let file = self.open().await?;
+        let mut written = 0u64;
+
+        file.write_u64(record.offset)
+            .await
+            .map_err(|_| PError::LogWriteFailed)?;
+        written += 8;
+
+        file.write_u64(record.key.len() as u64)
+            .await
+            .map_err(|_| PError::LogWriteFailed)?;
+        written += 8;
+
+        file.write_all(&record.key)
+            .await
+            .map_err(|_| PError::LogWriteFailed)?;
+        written += record.key.len() as u64;
+
+        file.write_u64(record.value.len() as u64)
+            .await
+            .map_err(|_| PError::LogWriteFailed)?;
+        written += 8;
+
+        file.write_all(&record.value)
+            .await
+            .map_err(|_| PError::LogWriteFailed)?;
+        written += record.value.len() as u64;
+
+        file.flush().await.map_err(|_| PError::LogWriteFailed)?;
+
+        self.file_position += written;
+        Ok(written)
+    }
 }
 
 #[cfg(test)]
 mod test {
+    use pigeon_core::record::Record;
     use tempfile::tempdir;
 
     use crate::dur::log::log_writer::LogWriter;
@@ -67,8 +113,14 @@ mod test {
         let dir = tempdir().unwrap();
         let base_dir = dir.path().to_str().unwrap();
 
-        let mut _writer = LogWriter::new(base_dir, 0);
-        // TODO:
+        let mut writer = LogWriter::new(base_dir, 0);
+        let record = Record {
+            offset: 1,
+            key: "hello".as_bytes().to_vec(),
+            value: "world".as_bytes().to_vec(),
+        };
+
+        writer.append(&record).await.unwrap();
     }
 
     #[tokio::test]
