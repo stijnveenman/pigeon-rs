@@ -1,6 +1,7 @@
+use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
-#[derive(Error, Debug, PartialEq, Eq)]
+#[derive(Error, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum PError {
     #[error("Offset cannot be added to index")]
     IndexOffsetNotAllowed,
