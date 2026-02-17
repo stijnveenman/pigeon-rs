@@ -1,9 +1,10 @@
 mod index_writer;
 
-use std::collections::BTreeMap;
+use std::{collections::BTreeMap, path::Path};
 
 use bytes::Buf;
 use pigeon_core::PError;
+use tokio::{fs::File, io::AsyncReadExt};
 
 pub const INDEX_EXTENSION: &str = "index";
 
@@ -23,6 +24,24 @@ impl Index {
 
     pub fn get(&self, offset: u64) -> Option<&u64> {
         self.0.get(&offset)
+    }
+
+    pub async fn from_file(base_dir: &str, start_offset: u64) -> Result<Index, PError> {
+        let path = Path::new(base_dir)
+            .join(Path::new(&start_offset.to_string()).with_extension(INDEX_EXTENSION));
+
+        let mut file = File::options()
+            .read(true)
+            .open(path)
+            .await
+            .map_err(|_| PError::IndexNotFound)?;
+
+        let mut bytes = Vec::new();
+        file.read_to_end(&mut bytes)
+            .await
+            .map_err(|_| PError::IndexReadFailed)?;
+
+        Index::try_from(bytes.as_slice())
     }
 }
 
@@ -47,8 +66,9 @@ impl TryFrom<&[u8]> for Index {
 #[cfg(test)]
 mod test {
     use pigeon_core::PError;
+    use tempfile::tempdir;
 
-    use crate::dur::index::Index;
+    use crate::dur::index::{Index, index_writer::IndexWriter};
 
     #[test]
     fn append_and_get() {
@@ -123,5 +143,25 @@ mod test {
 
         let index = Index::try_from(bytes.as_slice());
         assert_eq!(index.err(), Some(PError::IndexParseFailed));
+    }
+
+    #[tokio::test]
+    async fn write_index_and_read() {
+        let dir = tempdir().unwrap();
+        let base_dir = dir.path().to_str().unwrap();
+
+        let mut writer = IndexWriter::new(base_dir, 0);
+
+        writer.append(0, 10).await.unwrap();
+        writer.append(1, 20).await.unwrap();
+
+        writer.close().await.unwrap();
+
+        let index = Index::from_file(base_dir, 0).await.unwrap();
+
+        assert_eq!(index.get(0), Some(&10));
+        assert_eq!(index.get(1), Some(&20));
+
+        drop(dir);
     }
 }

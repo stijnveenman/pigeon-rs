@@ -16,8 +16,7 @@ pub struct IndexWriter {
 impl IndexWriter {
     pub fn new(base_dir: &str, start_offset: u64) -> IndexWriter {
         let path = Path::new(base_dir)
-            .with_file_name(start_offset.to_string())
-            .with_extension(INDEX_EXTENSION);
+            .join(Path::new(&start_offset.to_string()).with_extension(INDEX_EXTENSION));
 
         IndexWriter { path, file: None }
     }
@@ -95,7 +94,7 @@ mod test {
         writer.open().await.unwrap();
         writer.close().await.unwrap();
 
-        let file = dir.path().with_file_name("0.index");
+        let file = dir.path().join("0.index");
         assert!(file.exists())
     }
 
@@ -107,7 +106,7 @@ mod test {
         let mut writer = IndexWriter::new(base_dir, 0);
         writer.open().await.unwrap();
 
-        let file = dir.path().with_file_name("0.index");
+        let file = dir.path().join("0.index");
         assert!(file.exists());
 
         writer.delete().await.unwrap();
