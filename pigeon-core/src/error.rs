@@ -6,4 +6,8 @@ pub enum PError {
     IndexOffsetNotAllowed,
     #[error("Failed to parse Index")]
     IndexParseFailed,
+    #[error("Failed to open Index")]
+    IndexOpenFailed,
+    #[error("Failed to write to Index")]
+    IndexWriteFailed,
 }
