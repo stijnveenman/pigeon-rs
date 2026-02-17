@@ -15,4 +15,8 @@ pub enum PError {
     IndexNotFound,
     #[error("Index read failed")]
     IndexReadFailed,
+    #[error("Faeild to open Log")]
+    LogOpenFailed,
+    #[error("Failed to write to Log")]
+    LogWriteFailed,
 }
