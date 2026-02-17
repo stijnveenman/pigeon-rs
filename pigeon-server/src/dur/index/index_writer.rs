@@ -1,7 +1,10 @@
 use std::path::{Path, PathBuf};
 
 use pigeon_core::PError;
-use tokio::{fs::File, io::AsyncWriteExt};
+use tokio::{
+    fs::{File, remove_file},
+    io::AsyncWriteExt,
+};
 
 use crate::dur::index::INDEX_EXTENSION;
 
@@ -39,6 +42,16 @@ impl IndexWriter {
         if let Some(mut file) = self.file.take() {
             file.flush().await.map_err(|_| PError::IndexWriteFailed)?;
         }
+
+        Ok(())
+    }
+
+    pub async fn delete(mut self) -> Result<(), PError> {
+        self.close().await?;
+
+        remove_file(self.path)
+            .await
+            .map_err(|_| PError::IndexWriteFailed)?;
 
         Ok(())
     }
@@ -84,5 +97,20 @@ mod test {
 
         let file = dir.path().with_file_name("0.index");
         assert!(file.exists())
+    }
+
+    #[tokio::test]
+    async fn open_and_delete() {
+        let dir = tempdir().unwrap();
+        let base_dir = dir.path().to_str().unwrap();
+
+        let mut writer = IndexWriter::new(base_dir, 0);
+        writer.open().await.unwrap();
+
+        let file = dir.path().with_file_name("0.index");
+        assert!(file.exists());
+
+        writer.delete().await.unwrap();
+        assert!(!file.exists());
     }
 }
