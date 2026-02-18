@@ -2,7 +2,7 @@ use pigeon_core::{PError, record::Record};
 
 use crate::dur::{index::Index, log::log_reader::LogReader};
 
-struct SegmentReader {
+pub struct SegmentReader {
     log: LogReader,
     index: Index,
 }

@@ -1,11 +1,8 @@
 use pigeon_core::{PError, record::Record};
 
-use crate::dur::{
-    index::index_writer::IndexWriter,
-    log::log_writer::{self, LogWriter},
-};
+use crate::dur::{index::index_writer::IndexWriter, log::log_writer::LogWriter};
 
-struct SegmentWriter {
+pub struct SegmentWriter {
     log: LogWriter,
     index: IndexWriter,
 }

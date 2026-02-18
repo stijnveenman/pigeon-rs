@@ -102,7 +102,7 @@ impl LogReader {
         if bytes.remaining() < value_len {
             return Err(PError::ParseRecordFailed);
         }
-        let value = bytes.slice(0..key_len);
+        let value = bytes.slice(0..value_len);
         bytes.advance(value_len);
 
         Ok(Record {

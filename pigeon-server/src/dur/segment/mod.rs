@@ -1,2 +1,35 @@
 mod segment_reader;
 mod segment_writer;
+
+#[cfg(test)]
+mod test {
+    use pigeon_core::record::Record;
+    use tempfile::tempdir;
+
+    use crate::dur::segment::{segment_reader::SegmentReader, segment_writer::SegmentWriter};
+
+    #[tokio::test]
+    async fn segment_rw() {
+        let dir = tempdir().unwrap();
+        let base_dir = dir.path().to_str().unwrap();
+
+        let mut segment_writer = SegmentWriter::open(base_dir, 0).await.unwrap();
+        segment_writer
+            .append(&Record::new(0, "key", "value"))
+            .await
+            .unwrap();
+        segment_writer
+            .append(&Record::new(1, "hello", "world"))
+            .await
+            .unwrap();
+        drop(segment_writer);
+
+        let segment_reader = SegmentReader::open(base_dir, 0).await.unwrap();
+
+        let record = segment_reader.read_record(0).await;
+        assert_eq!(record, Ok(Record::new(0, "key", "value")));
+
+        let record = segment_reader.read_record(1).await;
+        assert_eq!(record, Ok(Record::new(1, "hello", "world")));
+    }
+}
