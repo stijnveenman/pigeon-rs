@@ -90,8 +90,9 @@ impl LogWriter {
             .await
             .map_err(|_| PError::LogWriteFailed)?;
 
+        let prev_position = self.file_position;
         self.file_position += written;
-        Ok(written)
+        Ok(prev_position)
     }
 }
 

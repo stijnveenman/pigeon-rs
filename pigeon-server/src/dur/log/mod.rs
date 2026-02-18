@@ -43,8 +43,8 @@ mod test {
             value: "world".as_bytes().to_vec(),
         };
 
-        let end_offset = writer.append(&record).await.unwrap();
-        writer
+        writer.append(&record).await.unwrap();
+        let end_offset = writer
             .append(&Record {
                 offset: 2,
                 value: Vec::new(),
