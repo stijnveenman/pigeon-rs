@@ -1,5 +1,5 @@
-mod log_reader;
-mod log_writer;
+pub mod log_reader;
+pub mod log_writer;
 
 pub const LOG_EXTENSION: &str = "log";
 

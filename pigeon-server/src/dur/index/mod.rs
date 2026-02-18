@@ -1,6 +1,10 @@
-mod index_writer;
+pub mod index_writer;
 
-use std::{collections::BTreeMap, path::Path};
+use std::{
+    collections::{BTreeMap, btree_map::Range},
+    ops::RangeBounds,
+    path::Path,
+};
 
 use bytes::Buf;
 use pigeon_core::PError;
@@ -24,6 +28,13 @@ impl Index {
 
     pub fn get(&self, offset: u64) -> Option<&u64> {
         self.0.get(&offset)
+    }
+
+    pub fn range<R>(&self, range: R) -> Range<'_, u64, u64>
+    where
+        R: RangeBounds<u64>,
+    {
+        self.0.range(range)
     }
 
     pub async fn from_file(base_dir: &str, start_offset: u64) -> Result<Index, PError> {

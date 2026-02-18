@@ -23,4 +23,6 @@ pub enum PError {
     LogReadFailed,
     #[error("Failed to parse Record")]
     ParseRecordFailed,
+    #[error("Offset not found")]
+    OffsetNotFound,
 }
