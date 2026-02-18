@@ -36,12 +36,14 @@ impl LogReader {
 
         let bytes: Result<_, PError> = spawn_blocking(move || {
             let mut bytes = Vec::new();
+            let mut probe = [0u8; 32];
 
             loop {
-                match file.read_at(&mut bytes, start_offset) {
+                match file.read_at(&mut probe, start_offset) {
                     Ok(0) => break,
                     Ok(n) => {
                         start_offset += n as u64;
+                        bytes.extend_from_slice(&probe[..n]);
                     }
                     Err(ref e) if e.kind() == io::ErrorKind::Interrupted => {}
                     Err(_) => return Err(PError::LogReadFailed),

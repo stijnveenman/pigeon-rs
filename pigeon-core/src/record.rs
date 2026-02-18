@@ -1,3 +1,4 @@
+#[derive(Debug, PartialEq, Eq)]
 pub struct Record {
     pub offset: u64,
     pub key: Vec<u8>,
