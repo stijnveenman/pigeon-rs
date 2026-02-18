@@ -15,7 +15,7 @@ mod test {
         let dir = tempdir().unwrap();
         let base_dir = dir.path().to_str().unwrap();
 
-        let mut writer = LogWriter::new(base_dir, 0);
+        let mut writer = LogWriter::open(base_dir, 0).await.unwrap();
         let record = Record {
             offset: 1,
             key: "hello".as_bytes().to_vec(),
@@ -36,7 +36,7 @@ mod test {
         let dir = tempdir().unwrap();
         let base_dir = dir.path().to_str().unwrap();
 
-        let mut writer = LogWriter::new(base_dir, 0);
+        let mut writer = LogWriter::open(base_dir, 0).await.unwrap();
         let record = Record {
             offset: 1,
             key: "hello".as_bytes().to_vec(),

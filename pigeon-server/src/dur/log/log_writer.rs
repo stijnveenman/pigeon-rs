@@ -3,60 +3,44 @@ use std::path::{Path, PathBuf};
 use pigeon_core::{PError, record::Record};
 use tokio::{
     fs::{File, remove_file},
-    io::{AsyncSeekExt, AsyncWriteExt},
+    io::{AsyncReadExt, AsyncSeekExt, AsyncWriteExt},
 };
 
 use crate::dur::log::LOG_EXTENSION;
 
 pub struct LogWriter {
+    file: File,
     path: PathBuf,
-    file: Option<File>,
     file_position: u64,
 }
 
 impl LogWriter {
-    pub fn new(base_dir: &str, start_offset: u64) -> LogWriter {
+    pub async fn open(base_dir: &str, start_offset: u64) -> Result<LogWriter, PError> {
         let path = Path::new(base_dir)
             .join(Path::new(&start_offset.to_string()).with_extension(LOG_EXTENSION));
 
-        LogWriter {
+        let mut file = File::options()
+            .create(true)
+            .append(true)
+            .open(&path)
+            .await
+            .map_err(|_| PError::LogOpenFailed)?;
+
+        let file_position = file
+            .stream_position()
+            .await
+            .map_err(|_| PError::LogOpenFailed)?;
+
+        Ok(LogWriter {
+            file,
             path,
-            file: None,
-            file_position: 0,
-        }
-    }
-
-    pub async fn open(&mut self) -> Result<&mut File, PError> {
-        match self.file {
-            None => {
-                let mut file = File::options()
-                    .create(true)
-                    .append(true)
-                    .open(&self.path)
-                    .await
-                    .map_err(|_| PError::LogOpenFailed)?;
-
-                self.file_position = file
-                    .stream_position()
-                    .await
-                    .map_err(|_| PError::LogOpenFailed)?;
-
-                Ok(self.file.insert(file))
-            }
-            Some(_) => Ok(self.file.as_mut().unwrap()),
-        }
-    }
-
-    pub async fn close(&mut self) -> Result<(), PError> {
-        if let Some(mut file) = self.file.take() {
-            file.flush().await.map_err(|_| PError::LogWriteFailed)?;
-        }
-
-        Ok(())
+            file_position,
+        })
     }
 
     pub async fn delete(mut self) -> Result<(), PError> {
-        self.close().await?;
+        self.file.flush().await.map_err(|_| PError::LogWriteFailed);
+        drop(self.file);
 
         remove_file(self.path)
             .await
@@ -66,35 +50,42 @@ impl LogWriter {
     }
 
     pub async fn append(&mut self, record: &Record) -> Result<u64, PError> {
-        let file = self.open().await?;
         let mut written = 0u64;
 
-        file.write_u64(record.offset)
+        self.file
+            .write_u64(record.offset)
             .await
             .map_err(|_| PError::LogWriteFailed)?;
         written += 8;
 
-        file.write_u64(record.key.len() as u64)
+        self.file
+            .write_u64(record.key.len() as u64)
             .await
             .map_err(|_| PError::LogWriteFailed)?;
         written += 8;
 
-        file.write_all(&record.key)
+        self.file
+            .write_all(&record.key)
             .await
             .map_err(|_| PError::LogWriteFailed)?;
         written += record.key.len() as u64;
 
-        file.write_u64(record.value.len() as u64)
+        self.file
+            .write_u64(record.value.len() as u64)
             .await
             .map_err(|_| PError::LogWriteFailed)?;
         written += 8;
 
-        file.write_all(&record.value)
+        self.file
+            .write_all(&record.value)
             .await
             .map_err(|_| PError::LogWriteFailed)?;
         written += record.value.len() as u64;
 
-        file.flush().await.map_err(|_| PError::LogWriteFailed)?;
+        self.file
+            .flush()
+            .await
+            .map_err(|_| PError::LogWriteFailed)?;
 
         self.file_position += written;
         Ok(written)
@@ -113,7 +104,7 @@ mod test {
         let dir = tempdir().unwrap();
         let base_dir = dir.path().to_str().unwrap();
 
-        let mut writer = LogWriter::new(base_dir, 0);
+        let mut writer = LogWriter::open(base_dir, 0).await.unwrap();
         let record = Record {
             offset: 1,
             key: "hello".as_bytes().to_vec(),
@@ -128,9 +119,8 @@ mod test {
         let dir = tempdir().unwrap();
         let base_dir = dir.path().to_str().unwrap();
 
-        let mut writer = LogWriter::new(base_dir, 0);
-        writer.open().await.unwrap();
-        writer.close().await.unwrap();
+        let writer = LogWriter::open(base_dir, 0).await.unwrap();
+        drop(writer);
 
         let file = dir.path().join("0.log");
         assert!(file.exists())
@@ -141,8 +131,7 @@ mod test {
         let dir = tempdir().unwrap();
         let base_dir = dir.path().to_str().unwrap();
 
-        let mut writer = LogWriter::new(base_dir, 0);
-        writer.open().await.unwrap();
+        let writer = LogWriter::open(base_dir, 0).await.unwrap();
 
         let file = dir.path().join("0.log");
         assert!(file.exists());
