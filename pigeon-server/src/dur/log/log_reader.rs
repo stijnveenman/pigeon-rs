@@ -1,9 +1,9 @@
 use std::{
     fs::File,
-    io::{self, Read, Seek},
+    io::{self},
     os::unix::fs::FileExt,
-    path::{Path, PathBuf},
-    sync::{Arc, RwLock, RwLockReadGuard},
+    path::Path,
+    sync::Arc,
 };
 
 use bytes::{Buf, Bytes};

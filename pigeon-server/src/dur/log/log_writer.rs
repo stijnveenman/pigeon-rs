@@ -3,7 +3,7 @@ use std::path::{Path, PathBuf};
 use pigeon_core::{PError, record::Record};
 use tokio::{
     fs::{File, remove_file},
-    io::{AsyncReadExt, AsyncSeekExt, AsyncWriteExt},
+    io::{AsyncSeekExt, AsyncWriteExt},
 };
 
 use crate::dur::log::LOG_EXTENSION;
@@ -39,7 +39,10 @@ impl LogWriter {
     }
 
     pub async fn delete(mut self) -> Result<(), PError> {
-        self.file.flush().await.map_err(|_| PError::LogWriteFailed);
+        self.file
+            .flush()
+            .await
+            .map_err(|_| PError::LogWriteFailed)?;
         drop(self.file);
 
         remove_file(self.path)
