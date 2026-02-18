@@ -19,4 +19,8 @@ pub enum PError {
     LogOpenFailed,
     #[error("Failed to write to Log")]
     LogWriteFailed,
+    #[error("Failed to read record(s) from Log")]
+    LogReadFailed,
+    #[error("Failed to parse Record")]
+    ParseRecordFailed,
 }
