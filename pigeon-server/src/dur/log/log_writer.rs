@@ -15,9 +15,10 @@ pub struct LogWriter {
 }
 
 impl LogWriter {
-    pub async fn open(base_dir: &str, start_offset: u64) -> Result<LogWriter, PError> {
-        let path = Path::new(base_dir)
-            .join(Path::new(&start_offset.to_string()).with_extension(LOG_EXTENSION));
+    // TODO: only create when we want to, ie; when TopicSystem is creating a new topic
+    pub async fn open(base_dir: &Path, start_offset: u64) -> Result<LogWriter, PError> {
+        let path =
+            base_dir.join(Path::new(&start_offset.to_string()).with_extension(LOG_EXTENSION));
 
         let mut file = File::options()
             .create(true)
@@ -98,6 +99,8 @@ impl LogWriter {
 
 #[cfg(test)]
 mod test {
+    use std::path::Path;
+
     use pigeon_core::record::Record;
     use tempfile::tempdir;
 
@@ -108,7 +111,7 @@ mod test {
         let dir = tempdir().unwrap();
         let base_dir = dir.path().to_str().unwrap();
 
-        let mut writer = LogWriter::open(base_dir, 0).await.unwrap();
+        let mut writer = LogWriter::open(Path::new(base_dir), 0).await.unwrap();
         let record = Record {
             offset: 1,
             key: "hello".as_bytes().to_vec(),
@@ -123,7 +126,7 @@ mod test {
         let dir = tempdir().unwrap();
         let base_dir = dir.path().to_str().unwrap();
 
-        let writer = LogWriter::open(base_dir, 0).await.unwrap();
+        let writer = LogWriter::open(Path::new(base_dir), 0).await.unwrap();
         drop(writer);
 
         let file = dir.path().join("0.log");
@@ -135,7 +138,7 @@ mod test {
         let dir = tempdir().unwrap();
         let base_dir = dir.path().to_str().unwrap();
 
-        let writer = LogWriter::open(base_dir, 0).await.unwrap();
+        let writer = LogWriter::open(Path::new(base_dir), 0).await.unwrap();
 
         let file = dir.path().join("0.log");
         assert!(file.exists());

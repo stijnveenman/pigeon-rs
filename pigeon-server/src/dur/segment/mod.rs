@@ -1,8 +1,10 @@
-mod segment_reader;
-mod segment_writer;
+pub mod segment_reader;
+pub mod segment_writer;
 
 #[cfg(test)]
 mod test {
+    use std::path::Path;
+
     use pigeon_core::record::Record;
     use tempfile::tempdir;
 
@@ -13,7 +15,7 @@ mod test {
         let dir = tempdir().unwrap();
         let base_dir = dir.path().to_str().unwrap();
 
-        let mut segment_writer = SegmentWriter::open(base_dir, 0).await.unwrap();
+        let mut segment_writer = SegmentWriter::open(Path::new(base_dir), 0).await.unwrap();
         segment_writer
             .append(&Record::new(0, "key", "value"))
             .await

@@ -76,6 +76,8 @@ impl TryFrom<&[u8]> for Index {
 
 #[cfg(test)]
 mod test {
+    use std::path::Path;
+
     use pigeon_core::PError;
     use tempfile::tempdir;
 
@@ -161,7 +163,7 @@ mod test {
         let dir = tempdir().unwrap();
         let base_dir = dir.path().to_str().unwrap();
 
-        let mut writer = IndexWriter::open(base_dir, 0).await.unwrap();
+        let mut writer = IndexWriter::open(Path::new(base_dir), 0).await.unwrap();
 
         writer.append(0, 10).await.unwrap();
         writer.append(1, 20).await.unwrap();

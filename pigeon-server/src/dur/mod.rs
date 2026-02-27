@@ -1,3 +1,3 @@
 mod index;
 mod log;
-mod segment;
+pub mod segment;

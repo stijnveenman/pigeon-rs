@@ -14,9 +14,9 @@ pub struct IndexWriter {
 }
 
 impl IndexWriter {
-    pub async fn open(base_dir: &str, start_offset: u64) -> Result<IndexWriter, PError> {
-        let path = Path::new(base_dir)
-            .join(Path::new(&start_offset.to_string()).with_extension(INDEX_EXTENSION));
+    pub async fn open(base_dir: &Path, start_offset: u64) -> Result<IndexWriter, PError> {
+        let path =
+            base_dir.join(Path::new(&start_offset.to_string()).with_extension(INDEX_EXTENSION));
 
         let file = File::options()
             .create(true)
@@ -66,6 +66,8 @@ impl IndexWriter {
 
 #[cfg(test)]
 mod test {
+    use std::path::Path;
+
     use tempfile::tempdir;
 
     use crate::dur::index::index_writer::IndexWriter;
@@ -75,7 +77,7 @@ mod test {
         let dir = tempdir().unwrap();
         let base_dir = dir.path().to_str().unwrap();
 
-        let mut writer = IndexWriter::open(base_dir, 0).await.unwrap();
+        let mut writer = IndexWriter::open(Path::new(base_dir), 0).await.unwrap();
         assert_eq!(writer.append(10, 10).await, Ok(()));
     }
 
@@ -84,7 +86,7 @@ mod test {
         let dir = tempdir().unwrap();
         let base_dir = dir.path().to_str().unwrap();
 
-        let mut writer = IndexWriter::open(base_dir, 0).await.unwrap();
+        let mut writer = IndexWriter::open(Path::new(base_dir), 0).await.unwrap();
         writer.close().await.unwrap();
 
         let file = dir.path().join("0.index");
@@ -96,7 +98,7 @@ mod test {
         let dir = tempdir().unwrap();
         let base_dir = dir.path().to_str().unwrap();
 
-        let writer = IndexWriter::open(base_dir, 0).await.unwrap();
+        let writer = IndexWriter::open(Path::new(base_dir), 0).await.unwrap();
 
         let file = dir.path().join("0.index");
         assert!(file.exists());

@@ -5,6 +5,8 @@ pub const LOG_EXTENSION: &str = "log";
 
 #[cfg(test)]
 mod test {
+    use std::path::Path;
+
     use pigeon_core::record::Record;
     use tempfile::tempdir;
 
@@ -15,7 +17,7 @@ mod test {
         let dir = tempdir().unwrap();
         let base_dir = dir.path().to_str().unwrap();
 
-        let mut writer = LogWriter::open(base_dir, 0).await.unwrap();
+        let mut writer = LogWriter::open(Path::new(base_dir), 0).await.unwrap();
         let record = Record {
             offset: 1,
             key: "hello".as_bytes().to_vec(),
@@ -36,7 +38,7 @@ mod test {
         let dir = tempdir().unwrap();
         let base_dir = dir.path().to_str().unwrap();
 
-        let mut writer = LogWriter::open(base_dir, 0).await.unwrap();
+        let mut writer = LogWriter::open(Path::new(base_dir), 0).await.unwrap();
         let record = Record {
             offset: 1,
             key: "hello".as_bytes().to_vec(),
