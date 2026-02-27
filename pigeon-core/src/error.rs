@@ -25,4 +25,6 @@ pub enum PError {
     ParseRecordFailed,
     #[error("Offset not found")]
     OffsetNotFound,
+    #[error("Creating topic failed")]
+    CreateTopicFailed,
 }

@@ -18,23 +18,28 @@ impl TopicSystem {
         }
     }
 
-    pub async fn create_topic(&self, topic_name: &str, num_partitions: u64) {
+    pub async fn create_topic(&self, topic_name: &str, num_partitions: u64) -> Result<(), PError> {
         let topic_dir = self.base_dir.join(topic_name);
 
-        // should not fail, otherwise topic already exists
-        create_dir(&topic_dir).await.unwrap();
+        create_dir(&topic_dir)
+            .await
+            .map_err(|_| PError::CreateTopicFailed)?;
 
         let mut segments = Vec::with_capacity(num_partitions as usize);
         for i in 0..num_partitions {
             let partition_dir = topic_dir.join(i.to_string());
-            create_dir(&partition_dir).await.unwrap();
+            create_dir(&partition_dir)
+                .await
+                .map_err(|_| PError::CreateTopicFailed)?;
 
-            let segment = SegmentWriter::open(&partition_dir, i).await.unwrap();
+            let segment = SegmentWriter::open(&partition_dir, i).await?;
             segments.push(RwLock::new(segment));
         }
 
         let mut active_segments = self.active_segments.write().await;
         active_segments.insert(topic_name.to_string(), segments);
+
+        Ok(())
     }
 
     pub async fn append_record(
@@ -69,7 +74,7 @@ mod test {
         let base_dir = dir.path().to_str().unwrap();
 
         let system = TopicSystem::initialise(base_dir);
-        system.create_topic("test", 10).await;
+        system.create_topic("test", 10).await.unwrap();
 
         system
             .append_record("test", 0, &Record::new(0, "key", "value"))
