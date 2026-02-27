@@ -17,11 +17,11 @@ mod test {
 
         let mut segment_writer = SegmentWriter::open(Path::new(base_dir), 0).await.unwrap();
         segment_writer
-            .append(&Record::new(0, "key", "value"))
+            .append_record(&Record::new(0, "key", "value"))
             .await
             .unwrap();
         segment_writer
-            .append(&Record::new(1, "hello", "world"))
+            .append_record(&Record::new(1, "hello", "world"))
             .await
             .unwrap();
         drop(segment_writer);

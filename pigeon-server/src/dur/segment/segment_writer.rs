@@ -18,7 +18,7 @@ impl SegmentWriter {
         Ok(SegmentWriter { log, index })
     }
 
-    pub async fn append(&mut self, record: &Record) -> Result<u64, PError> {
+    pub async fn append_record(&mut self, record: &Record) -> Result<u64, PError> {
         let byte_offset = self.log.append(record).await?;
 
         self.index.append(record.offset, byte_offset).await?;

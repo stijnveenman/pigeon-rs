@@ -51,7 +51,7 @@ impl TopicSystem {
             .unwrap()
             .write()
             .await
-            .append(record)
+            .append_record(record)
             .await
     }
 }
