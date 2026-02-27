@@ -50,10 +50,13 @@ impl TopicSystem {
     ) -> Result<u64, PError> {
         let active_segments = self.active_segments.read().await;
 
-        let topic = active_segments.get(topic_name).unwrap();
+        let topic = active_segments
+            .get(topic_name)
+            .ok_or(PError::TopicNotFound)?;
+
         topic
             .get(partition as usize)
-            .unwrap()
+            .ok_or(PError::SegmentNotFound)?
             .write()
             .await
             .append_record(record)

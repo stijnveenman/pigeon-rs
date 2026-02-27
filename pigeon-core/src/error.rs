@@ -27,4 +27,8 @@ pub enum PError {
     OffsetNotFound,
     #[error("Creating topic failed")]
     CreateTopicFailed,
+    #[error("Topic not found")]
+    TopicNotFound,
+    #[error("Segment not found")]
+    SegmentNotFound,
 }
