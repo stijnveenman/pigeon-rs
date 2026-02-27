@@ -1,12 +1,12 @@
 use std::{collections::HashMap, path::PathBuf, sync::RwLock};
 
-use tokio::{fs::create_dir, io};
+use tokio::fs::create_dir;
 
 use crate::dur::segment::segment_writer::SegmentWriter;
 
 pub struct TopicSystem {
     base_dir: PathBuf,
-    active_segments: RwLock<HashMap<(String, u64), SegmentWriter>>,
+    active_segments: RwLock<HashMap<String, Vec<SegmentWriter>>>,
 }
 
 impl TopicSystem {
@@ -20,18 +20,19 @@ impl TopicSystem {
     pub async fn create_topic(&self, topic_name: &str, num_partitions: u64) {
         let topic_dir = self.base_dir.join(topic_name);
 
-        if !topic_dir.exists() {
-            // TODO:
-            create_dir(&topic_dir).await.unwrap();
-        }
+        // should not fail, otherwise topic already exists
+        create_dir(&topic_dir).await.unwrap();
 
+        let mut segments = Vec::with_capacity(num_partitions as usize);
         for i in 0..num_partitions {
-            // TODO:
-            let segment = SegmentWriter::open(&topic_dir, i).await.unwrap();
+            let partition_dir = topic_dir.join(i.to_string());
+            create_dir(&partition_dir).await.unwrap();
 
-            let mut active_segments = self.active_segments.write().unwrap();
-            active_segments.insert((topic_name.to_string(), i), segment);
+            segments.push(SegmentWriter::open(&partition_dir, i).await.unwrap());
         }
+
+        let mut active_segments = self.active_segments.write().unwrap();
+        active_segments.insert(topic_name.to_string(), segments);
     }
 }
 
