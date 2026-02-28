@@ -1,4 +1,7 @@
-use std::{collections::HashMap, path::PathBuf};
+use std::{
+    collections::{BTreeSet, HashMap},
+    path::PathBuf,
+};
 
 use pigeon_core::{PError, record::Record};
 use tokio::{fs::create_dir, sync::RwLock};
@@ -7,6 +10,7 @@ use crate::dur::segment::segment_writer::SegmentWriter;
 
 pub struct TopicSystem {
     base_dir: PathBuf,
+    segments: RwLock<HashMap<String, Vec<BTreeSet<u64>>>>,
     active_segments: RwLock<HashMap<String, Vec<RwLock<SegmentWriter>>>>,
 }
 
@@ -14,7 +18,8 @@ impl TopicSystem {
     pub fn initialise(base_dir: &str) -> TopicSystem {
         TopicSystem {
             base_dir: PathBuf::from(base_dir),
-            active_segments: RwLock::default(),
+            segments: Default::default(),
+            active_segments: Default::default(),
         }
     }
 
@@ -38,6 +43,12 @@ impl TopicSystem {
 
         let mut active_segments = self.active_segments.write().await;
         active_segments.insert(topic_name.to_string(), segments);
+
+        let mut topic_segments = self.segments.write().await;
+        topic_segments.insert(
+            topic_name.to_string(),
+            (0..num_partitions).map(|_| BTreeSet::default()).collect(),
+        );
 
         Ok(())
     }
