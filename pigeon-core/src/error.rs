@@ -29,6 +29,6 @@ pub enum PError {
     CreateTopicFailed,
     #[error("Topic not found")]
     TopicNotFound,
-    #[error("Segment not found")]
-    SegmentNotFound,
+    #[error("Partition not found")]
+    PartitionNotFound,
 }

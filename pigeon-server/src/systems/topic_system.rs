@@ -23,6 +23,34 @@ impl TopicSystem {
         }
     }
 
+    pub async fn read_record(
+        &self,
+        topic_name: &str,
+        partition: u64,
+        offset: u64,
+    ) -> Result<Record, PError> {
+        let read = self.segments.read().await;
+
+        let segments = read.get(topic_name).ok_or(PError::TopicNotFound)?;
+        dbg!(segments);
+
+        let segments = segments
+            .get(partition as usize)
+            .ok_or(PError::PartitionNotFound)?;
+
+        dbg!(segments);
+        dbg!(segments.range(0..=offset));
+
+        // get last segment with a offset before the target offset
+        let segment_start_offset = segments
+            .range(0..=offset)
+            .next_back()
+            .ok_or(PError::OffsetNotFound)?;
+
+        // TODO:
+        Ok(Record::new(0, "", ""))
+    }
+
     pub async fn create_topic(&self, topic_name: &str, num_partitions: u64) -> Result<(), PError> {
         let topic_dir = self.base_dir.join(topic_name);
 
@@ -47,7 +75,7 @@ impl TopicSystem {
         let mut topic_segments = self.segments.write().await;
         topic_segments.insert(
             topic_name.to_string(),
-            (0..num_partitions).map(|_| BTreeSet::default()).collect(),
+            (0..num_partitions).map(|_| BTreeSet::from([0])).collect(),
         );
 
         Ok(())
@@ -67,7 +95,7 @@ impl TopicSystem {
 
         topic
             .get(partition as usize)
-            .ok_or(PError::SegmentNotFound)?
+            .ok_or(PError::PartitionNotFound)?
             .write()
             .await
             .append_record(record)
@@ -96,8 +124,17 @@ mod test {
             .unwrap();
 
         system
+            .append_record("test", 1, &Record::new(0, "key", "value"))
+            .await
+            .unwrap();
+
+        system
             .append_record("test", 9, &Record::new(0, "key", "value"))
             .await
             .unwrap();
+
+        let record = system.read_record("test", 0, 0).await.unwrap();
+        let record = system.read_record("test", 1, 0).await.unwrap();
+        let record = system.read_record("test", 9, 0).await.unwrap();
     }
 }
