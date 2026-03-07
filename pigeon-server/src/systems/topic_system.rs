@@ -137,16 +137,23 @@ impl TopicSystem {
 #[cfg(test)]
 mod test {
     use pigeon_core::record::Record;
-    use tempfile::tempdir;
+    use tempfile::{TempDir, tempdir};
 
     use crate::systems::topic_system::TopicSystem;
 
-    #[tokio::test]
-    async fn basic_end_to_end() {
+    fn system() -> (TempDir, TopicSystem) {
         let dir = tempdir().unwrap();
         let base_dir = dir.path().to_str().unwrap();
 
         let system = TopicSystem::initialise(base_dir);
+
+        (dir, system)
+    }
+
+    #[tokio::test]
+    async fn basic_end_to_end() {
+        let (_dir, system) = system();
+
         system.create_topic("test", 10).await.unwrap();
 
         system
@@ -172,5 +179,28 @@ mod test {
 
         let record = system.read_record("test", 9, 0).await.unwrap();
         assert_eq!(&record.value_string().unwrap(), "t3");
+    }
+
+    #[tokio::test]
+    async fn multiple_read_writes() {
+        let (_dir, system) = system();
+
+        system.create_topic("world", 1).await.unwrap();
+
+        system
+            .append_record("world", 0, &Record::new(0, "k1", "value1"))
+            .await
+            .unwrap();
+
+        let record = system.read_record("world", 0, 0).await.unwrap();
+        assert_eq!(&record.value_string().unwrap(), "value1");
+
+        system
+            .append_record("world", 0, &Record::new(1, "k2", "value2"))
+            .await
+            .unwrap();
+
+        let record = system.read_record("world", 0, 1).await.unwrap();
+        assert_eq!(&record.value_string().unwrap(), "value2");
     }
 }
