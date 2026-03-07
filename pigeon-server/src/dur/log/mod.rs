@@ -27,7 +27,7 @@ mod test {
         writer.append(&record).await.unwrap();
         drop(writer);
 
-        let reader = LogReader::open(base_dir, 0).await.unwrap();
+        let reader = LogReader::open(Path::new(base_dir), 0).await.unwrap();
         let read_record = reader.read_record(0, None).await.unwrap();
 
         assert_eq!(record, read_record);
@@ -56,7 +56,7 @@ mod test {
             .unwrap();
         drop(writer);
 
-        let reader = LogReader::open(base_dir, 0).await.unwrap();
+        let reader = LogReader::open(Path::new(base_dir), 0).await.unwrap();
         let read_record = reader.read_record(0, Some(end_offset)).await.unwrap();
 
         assert_eq!(record, read_record);

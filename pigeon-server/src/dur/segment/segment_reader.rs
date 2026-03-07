@@ -1,3 +1,5 @@
+use std::path::Path;
+
 use pigeon_core::{PError, record::Record};
 
 use crate::dur::{index::Index, log::log_reader::LogReader};
@@ -8,7 +10,7 @@ pub struct SegmentReader {
 }
 
 impl SegmentReader {
-    pub async fn open(base_dir: &str, start_offset: u64) -> Result<SegmentReader, PError> {
+    pub async fn open(base_dir: &Path, start_offset: u64) -> Result<SegmentReader, PError> {
         let log = LogReader::open(base_dir, start_offset).await?;
 
         let index = Index::from_file(base_dir, start_offset).await?;

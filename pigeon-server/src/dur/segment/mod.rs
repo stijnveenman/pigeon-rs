@@ -3,7 +3,7 @@ pub mod segment_writer;
 
 #[cfg(test)]
 mod test {
-    use std::path::Path;
+    use std::path::{Path, PathBuf};
 
     use pigeon_core::record::Record;
     use tempfile::tempdir;
@@ -26,7 +26,7 @@ mod test {
             .unwrap();
         drop(segment_writer);
 
-        let segment_reader = SegmentReader::open(base_dir, 0).await.unwrap();
+        let segment_reader = SegmentReader::open(Path::new(base_dir), 0).await.unwrap();
 
         let record = segment_reader.read_record(0).await;
         assert_eq!(record, Ok(Record::new(0, "key", "value")));

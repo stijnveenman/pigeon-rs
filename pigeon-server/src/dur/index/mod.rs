@@ -37,9 +37,9 @@ impl Index {
         self.0.range(range)
     }
 
-    pub async fn from_file(base_dir: &str, start_offset: u64) -> Result<Index, PError> {
-        let path = Path::new(base_dir)
-            .join(Path::new(&start_offset.to_string()).with_extension(INDEX_EXTENSION));
+    pub async fn from_file(base_dir: &Path, start_offset: u64) -> Result<Index, PError> {
+        let path =
+            base_dir.join(Path::new(&start_offset.to_string()).with_extension(INDEX_EXTENSION));
 
         let mut file = File::options()
             .read(true)
@@ -170,7 +170,7 @@ mod test {
 
         writer.close().await.unwrap();
 
-        let index = Index::from_file(base_dir, 0).await.unwrap();
+        let index = Index::from_file(Path::new(base_dir), 0).await.unwrap();
 
         assert_eq!(index.get(0), Some(&10));
         assert_eq!(index.get(1), Some(&20));

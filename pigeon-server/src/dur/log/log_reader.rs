@@ -17,9 +17,9 @@ pub struct LogReader {
 }
 
 impl LogReader {
-    pub async fn open(base_dir: &str, start_offset: u64) -> Result<LogReader, PError> {
-        let path = Path::new(base_dir)
-            .join(Path::new(&start_offset.to_string()).with_extension(LOG_EXTENSION));
+    pub async fn open(base_dir: &Path, start_offset: u64) -> Result<LogReader, PError> {
+        let path =
+            base_dir.join(Path::new(&start_offset.to_string()).with_extension(LOG_EXTENSION));
 
         let file = File::options()
             .read(true)
