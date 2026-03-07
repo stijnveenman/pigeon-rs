@@ -215,4 +215,24 @@ mod test {
         let record = system.read_record("world", 0, 1).await.unwrap();
         assert_eq!(&record.value_string().unwrap(), "value2");
     }
+
+    #[tokio::test]
+    async fn read_in_middle() {
+        let (_dir, system) = system();
+
+        system.create_topic("test", 1).await.unwrap();
+
+        for i in 0..10 {
+            system
+                .append_record("test", 0, &Record::new(i, &i.to_string(), &i.to_string()))
+                .await
+                .unwrap();
+        }
+
+        for i in 0..10 {
+            let record = system.read_record("test", 0, i).await.unwrap();
+
+            assert_eq!(record, Record::new(i, &i.to_string(), &i.to_string()));
+        }
+    }
 }
