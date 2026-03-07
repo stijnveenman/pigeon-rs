@@ -6,7 +6,7 @@ use std::{
 use pigeon_core::{PError, record::Record};
 use tokio::{
     fs::create_dir,
-    sync::{RwLock, RwLockReadGuard},
+    sync::{RwLock, RwLockReadGuard, RwLockWriteGuard},
 };
 
 use crate::dur::segment::{segment_reader::SegmentReader, segment_writer::SegmentWriter};
@@ -42,27 +42,17 @@ impl TopicSystem {
             return Ok(reader);
         }
 
-        todo!()
+        let segment_dir = self.base_dir.join(topic_name).join(partition.to_string());
+        let segment = SegmentReader::open(&segment_dir, start_offset).await?;
 
-        // let read = self.read_segments.read();
-        // if let Ok(reader) = RwLockReadGuard::try_map(read, |read_segments| {
-        //     read_segments.get(&(topic_name.to_string(), partition, start_offset))
-        // }) {
-        //     return Ok(reader);
-        // }
-        //
-        // let segment_dir = self.base_dir.join(topic_name).join(partition.to_string());
-        // let segment = SegmentReader::open(&segment_dir, start_offset).await?;
-        //
-        // let mut write = self.read_segments.write();
-        // write.insert((topic_name.to_string(), partition, start_offset), segment);
-        //
-        // let read = RwLockWriteGuard::downgrade(write);
-        // Ok(RwLockReadGuard::map(read, |read| {
-        //     // we have just inserted this key, and are still carying a lock. so this unwrap is safe
-        //     read.get(&(topic_name.to_string(), partition, start_offset))
-        //         .unwrap()
-        // }))
+        let mut write = self.read_segments.write().await;
+        write.insert((topic_name.to_string(), partition, start_offset), segment);
+
+        Ok(RwLockReadGuard::map(write.downgrade(), |read| {
+            // we have just inserted this key, and are still carying a lock. so this unwrap is safe
+            read.get(&(topic_name.to_string(), partition, start_offset))
+                .unwrap()
+        }))
     }
 
     pub async fn read_record(
