@@ -1,3 +1,5 @@
+use std::string::FromUtf8Error;
+
 #[derive(Debug, PartialEq, Eq)]
 pub struct Record {
     pub offset: u64,
@@ -12,5 +14,9 @@ impl Record {
             key: key.as_bytes().to_vec(),
             value: value.as_bytes().to_vec(),
         }
+    }
+
+    pub fn value_string(&self) -> Result<String, FromUtf8Error> {
+        String::from_utf8(self.value.clone())
     }
 }

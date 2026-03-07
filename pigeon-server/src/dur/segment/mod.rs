@@ -3,7 +3,7 @@ pub mod segment_writer;
 
 #[cfg(test)]
 mod test {
-    use std::path::{Path, PathBuf};
+    use std::path::Path;
 
     use pigeon_core::record::Record;
     use tempfile::tempdir;

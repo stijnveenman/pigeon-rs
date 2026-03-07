@@ -6,7 +6,7 @@ use std::{
 use pigeon_core::{PError, record::Record};
 use tokio::{
     fs::create_dir,
-    sync::{RwLock, RwLockReadGuard, RwLockWriteGuard},
+    sync::{RwLock, RwLockReadGuard},
 };
 
 use crate::dur::segment::{segment_reader::SegmentReader, segment_writer::SegmentWriter};
@@ -75,8 +75,11 @@ impl TopicSystem {
             .next_back()
             .ok_or(PError::OffsetNotFound)?;
 
-        // TODO:
-        Ok(Record::new(0, "", ""))
+        let reader = self
+            .get_reader(topic_name, partition, *segment_start_offset)
+            .await?;
+
+        reader.read_record(offset).await
     }
 
     pub async fn create_topic(&self, topic_name: &str, num_partitions: u64) -> Result<(), PError> {
@@ -93,7 +96,7 @@ impl TopicSystem {
                 .await
                 .map_err(|_| PError::CreateTopicFailed)?;
 
-            let segment = SegmentWriter::open(&partition_dir, i).await?;
+            let segment = SegmentWriter::open(&partition_dir, 0).await?;
             segments.push(RwLock::new(segment));
         }
 
@@ -147,22 +150,27 @@ mod test {
         system.create_topic("test", 10).await.unwrap();
 
         system
-            .append_record("test", 0, &Record::new(0, "key", "value"))
+            .append_record("test", 0, &Record::new(0, "key", "t1"))
             .await
             .unwrap();
 
         system
-            .append_record("test", 1, &Record::new(0, "key", "value"))
+            .append_record("test", 1, &Record::new(0, "key", "t2"))
             .await
             .unwrap();
 
         system
-            .append_record("test", 9, &Record::new(0, "key", "value"))
+            .append_record("test", 9, &Record::new(0, "key", "t3"))
             .await
             .unwrap();
 
         let record = system.read_record("test", 0, 0).await.unwrap();
+        assert_eq!(&record.value_string().unwrap(), "t1");
+
         let record = system.read_record("test", 1, 0).await.unwrap();
+        assert_eq!(&record.value_string().unwrap(), "t2");
+
         let record = system.read_record("test", 9, 0).await.unwrap();
+        assert_eq!(&record.value_string().unwrap(), "t3");
     }
 }
