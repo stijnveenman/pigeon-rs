@@ -1,17 +1,13 @@
 use std::{
-    collections::{
-        BTreeSet, HashMap,
-        hash_map::Entry::{Occupied, Vacant},
-    },
+    collections::{BTreeSet, HashMap},
     path::PathBuf,
 };
 
-use parking_lot::{
-    RawRwLock, RwLock, RwLockReadGuard,
-    lock_api::{MappedRwLockReadGuard, RwLockWriteGuard},
-};
 use pigeon_core::{PError, record::Record};
-use tokio::fs::create_dir;
+use tokio::{
+    fs::create_dir,
+    sync::{RwLock, RwLockReadGuard},
+};
 
 use crate::dur::segment::{segment_reader::SegmentReader, segment_writer::SegmentWriter};
 
@@ -37,26 +33,36 @@ impl TopicSystem {
         topic_name: &str,
         partition: u64,
         start_offset: u64,
-    ) -> Result<MappedRwLockReadGuard<'_, RawRwLock, SegmentReader>, PError> {
-        let read = self.read_segments.read();
-        if let Ok(reader) = RwLockReadGuard::try_map(read, |read_segments| {
-            read_segments.get(&(topic_name.to_string(), partition, start_offset))
+    ) -> Result<RwLockReadGuard<'_, SegmentReader>, PError> {
+        let read = self.read_segments.read().await;
+
+        if let Ok(reader) = RwLockReadGuard::try_map(read, |read| {
+            read.get(&(topic_name.to_string(), partition, start_offset))
         }) {
             return Ok(reader);
         }
 
-        let segment_dir = self.base_dir.join(topic_name).join(partition.to_string());
-        let segment = SegmentReader::open(&segment_dir, start_offset).await?;
+        todo!()
 
-        let mut write = self.read_segments.write();
-        write.insert((topic_name.to_string(), partition, start_offset), segment);
-
-        let read = RwLockWriteGuard::downgrade(write);
-        Ok(RwLockReadGuard::map(read, |read| {
-            // we have just inserted this key, and are still carying a lock. so this unwrap is safe
-            read.get(&(topic_name.to_string(), partition, start_offset))
-                .unwrap()
-        }))
+        // let read = self.read_segments.read();
+        // if let Ok(reader) = RwLockReadGuard::try_map(read, |read_segments| {
+        //     read_segments.get(&(topic_name.to_string(), partition, start_offset))
+        // }) {
+        //     return Ok(reader);
+        // }
+        //
+        // let segment_dir = self.base_dir.join(topic_name).join(partition.to_string());
+        // let segment = SegmentReader::open(&segment_dir, start_offset).await?;
+        //
+        // let mut write = self.read_segments.write();
+        // write.insert((topic_name.to_string(), partition, start_offset), segment);
+        //
+        // let read = RwLockWriteGuard::downgrade(write);
+        // Ok(RwLockReadGuard::map(read, |read| {
+        //     // we have just inserted this key, and are still carying a lock. so this unwrap is safe
+        //     read.get(&(topic_name.to_string(), partition, start_offset))
+        //         .unwrap()
+        // }))
     }
 
     pub async fn read_record(
@@ -65,7 +71,7 @@ impl TopicSystem {
         partition: u64,
         offset: u64,
     ) -> Result<Record, PError> {
-        let read = self.segments.read();
+        let read = self.segments.read().await;
 
         let segments = read.get(topic_name).ok_or(PError::TopicNotFound)?;
 
@@ -101,10 +107,10 @@ impl TopicSystem {
             segments.push(RwLock::new(segment));
         }
 
-        let mut active_segments = self.active_segments.write();
+        let mut active_segments = self.active_segments.write().await;
         active_segments.insert(topic_name.to_string(), segments);
 
-        let mut topic_segments = self.segments.write();
+        let mut topic_segments = self.segments.write().await;
         topic_segments.insert(
             topic_name.to_string(),
             (0..num_partitions).map(|_| BTreeSet::from([0])).collect(),
@@ -119,7 +125,7 @@ impl TopicSystem {
         partition: u64,
         record: &Record,
     ) -> Result<u64, PError> {
-        let active_segments = self.active_segments.read();
+        let active_segments = self.active_segments.read().await;
 
         let topic = active_segments
             .get(topic_name)
@@ -129,6 +135,7 @@ impl TopicSystem {
             .get(partition as usize)
             .ok_or(PError::PartitionNotFound)?
             .write()
+            .await
             .append_record(record)
             .await
     }

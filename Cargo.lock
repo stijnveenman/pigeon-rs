@@ -347,7 +347,6 @@ dependencies = [
  "anyhow",
  "bytes",
  "clap",
- "parking_lot",
  "pigeon-core",
  "tempfile",
  "thiserror",
