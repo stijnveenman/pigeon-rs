@@ -26,4 +26,8 @@ impl SegmentReader {
             .read_record(*start_offset, end_offset.copied())
             .await
     }
+
+    pub fn append(&mut self, offset: u64, byte_offset: u64) -> Result<(), PError> {
+        self.index.append(offset, byte_offset)
+    }
 }

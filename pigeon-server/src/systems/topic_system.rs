@@ -124,13 +124,25 @@ impl TopicSystem {
             .get(topic_name)
             .ok_or(PError::TopicNotFound)?;
 
-        topic
+        let mut current_segment = topic
             .get(partition as usize)
             .ok_or(PError::PartitionNotFound)?
             .write()
-            .await
-            .append_record(record)
-            .await
+            .await;
+
+        let current_segment_start_offset = current_segment.start_offset;
+        let (offset, byte_offset) = current_segment.append_record(record).await?;
+
+        let mut read_segments = self.read_segments.write().await;
+        if let Some(current_read_segment) = read_segments.get_mut(&(
+            topic_name.to_string(),
+            partition,
+            current_segment_start_offset,
+        )) {
+            current_read_segment.append(offset, byte_offset)?;
+        }
+
+        Ok(offset)
     }
 }
 
