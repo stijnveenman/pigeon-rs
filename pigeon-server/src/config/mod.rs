@@ -1,9 +1,13 @@
+mod topic_config;
+
 use config::Config;
 use serde::{Deserialize, Serialize};
 
+use crate::config::topic_config::TopicConfig;
+
 #[derive(Debug, Serialize, Deserialize, Default)]
 pub struct ServerConfig {
-    topics: TopicConfig,
+    pub topics: TopicConfig,
 }
 
 impl ServerConfig {
@@ -29,7 +33,7 @@ mod test {
     use crate::config::ServerConfig;
 
     #[test]
-    fn use_defaults_with_overide() {
+    fn use_config_file_settings() {
         let dir = tempdir().unwrap();
         let config_file = dir.path().join("config.toml");
 
@@ -44,21 +48,22 @@ default_partitions = 5
 
         let config = ServerConfig::load_from_file(config_file.to_str().unwrap());
         assert_eq!(config.topics.default_partitions, 5);
-        assert_eq!(config.topics.foo, 5);
     }
-}
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct TopicConfig {
-    default_partitions: u64,
-    foo: u64,
-}
+    #[test]
+    fn use_defaults() {
+        let dir = tempdir().unwrap();
+        let config_file = dir.path().join("config.toml");
 
-impl Default for TopicConfig {
-    fn default() -> Self {
-        Self {
-            default_partitions: 1,
-            foo: 5,
-        }
+        fs::write(
+            &config_file,
+            "
+[topics]
+",
+        )
+        .unwrap();
+
+        let config = ServerConfig::load_from_file(config_file.to_str().unwrap());
+        assert_eq!(config.topics.default_partitions, 1);
     }
 }
