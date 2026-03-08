@@ -11,7 +11,7 @@ pub struct ServerConfig {
 }
 
 impl ServerConfig {
-    fn load_from_file(filename: &str) -> ServerConfig {
+    pub fn load_from_file(filename: &str) -> ServerConfig {
         let defaults = Config::try_from(&ServerConfig::default()).unwrap();
 
         Config::builder()
