@@ -1,8 +1,10 @@
 use std::{
     collections::{BTreeSet, HashMap},
+    fs,
     path::PathBuf,
 };
 
+use anyhow::{Context, bail};
 use pigeon_core::{PError, record::Record};
 use tokio::{
     fs::create_dir,
@@ -19,7 +21,32 @@ pub struct TopicSystem {
 }
 
 impl TopicSystem {
+    fn get_disk_topics(base_dir: &str) -> anyhow::Result<Vec<String>> {
+        let mut topics = Vec::new();
+        for entry in fs::read_dir(base_dir)? {
+            let entry = entry?;
+
+            if !entry.file_type()?.is_dir() {
+                bail!("Expected {:?} to be a directory", entry.path());
+            }
+
+            topics.push(
+                entry
+                    .path()
+                    .file_name()
+                    .context("Failed to get file_name from path")?
+                    .to_str()
+                    .context("Failed to convert path to string")?
+                    .to_string(),
+            );
+        }
+
+        Ok(topics)
+    }
+
     pub fn initialise(base_dir: &str) -> TopicSystem {
+        dbg!(Self::get_disk_topics(base_dir));
+
         TopicSystem {
             base_dir: PathBuf::from(base_dir),
             segments: Default::default(),
