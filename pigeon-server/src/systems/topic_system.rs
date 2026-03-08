@@ -32,7 +32,14 @@ impl TopicSystem {
                 .into_iter()
                 .map(|topic| (
                     topic.to_string(),
-                    disk::read_partitions(base_dir.join(topic)).unwrap()
+                    disk::read_partitions(base_dir.join(&topic))
+                        .unwrap()
+                        .into_iter()
+                        .map(move |partition| disk::read_segments(
+                            base_dir.join(topic.clone()).join(partition.to_string())
+                        )
+                        .unwrap())
+                        .collect::<Vec<_>>()
                 ))
                 .collect::<Vec<_>>()
         );
