@@ -1,5 +1,6 @@
 mod config;
 mod dur;
+mod http;
 mod systems;
 
 use anyhow::Result;
@@ -24,6 +25,8 @@ pub async fn main() -> Result<()> {
     let config = ServerConfig::load_from_file(&cli.config);
 
     info!("Starting with ServerConfig {config:?}");
+
+    http::serve(&config).await?;
 
     Ok(())
 }

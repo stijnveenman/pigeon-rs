@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Serialize, Deserialize)]
 pub struct HttpConfig {
     pub address: String,
-    pub port: usize,
+    pub port: u16,
 }
 
 impl Default for HttpConfig {
