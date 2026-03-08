@@ -1,29 +1,23 @@
 mod error;
+mod topics_router;
 
 use std::sync::Arc;
 
 use anyhow::Result;
-use axum::{Json, Router, routing::get};
-use pigeon_core::PError;
+use axum::{Router, routing::get};
 use tokio::net::TcpListener;
 use tracing::info;
 
-use crate::{http::error::HttpResult, systems::SystemContext};
+use crate::systems::SystemContext;
 
 async fn health() -> &'static str {
     "OK"
 }
 
-async fn create_topic() -> HttpResult<String> {
-    None.ok_or(PError::IndexParseFailed)?;
-
-    Ok(Json("foo".to_string()))
-}
-
 pub async fn serve(server: Arc<SystemContext>) -> Result<()> {
     let app = Router::new()
         .route("/health", get(health))
-        .route("/topics", get(create_topic))
+        .nest("/topics", topics_router::router())
         .with_state(server.clone());
 
     let listener =
