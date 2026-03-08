@@ -30,7 +30,7 @@ pub fn read_topics<P: AsRef<Path>>(base_dir: P) -> anyhow::Result<Vec<String>> {
     Ok(topics)
 }
 
-pub fn read_partitions<P: AsRef<Path>>(base_dir: P) -> anyhow::Result<Vec<String>> {
+pub fn read_partitions<P: AsRef<Path>>(base_dir: P) -> anyhow::Result<Vec<u64>> {
     let mut partitions = Vec::new();
     for entry in fs::read_dir(base_dir)? {
         let entry = entry?;
@@ -39,7 +39,7 @@ pub fn read_partitions<P: AsRef<Path>>(base_dir: P) -> anyhow::Result<Vec<String
             bail!("Expected {:?} to be a directory", entry.path());
         }
 
-        partitions.push(dir_entry_filename(entry)?);
+        partitions.push(dir_entry_filename(entry)?.parse()?);
     }
 
     Ok(partitions)
