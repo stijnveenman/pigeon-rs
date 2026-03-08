@@ -1,13 +1,15 @@
+mod http_config;
 mod topic_config;
 
 use config::Config;
 use serde::{Deserialize, Serialize};
 
-use crate::config::topic_config::TopicConfig;
+use crate::config::{http_config::HttpConfig, topic_config::TopicConfig};
 
 #[derive(Debug, Serialize, Deserialize, Default)]
 pub struct ServerConfig {
     pub topics: TopicConfig,
+    pub http: HttpConfig,
 }
 
 impl ServerConfig {
