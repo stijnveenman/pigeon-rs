@@ -7,7 +7,7 @@ use anyhow::Result;
 use clap::Parser;
 use tracing::info;
 
-use crate::config::ServerConfig;
+use crate::{config::ServerConfig, systems::SystemContext};
 
 #[derive(Parser, Debug)]
 #[command(name = "pigeon", version, author, about = "Run pegon server")]
@@ -26,7 +26,9 @@ pub async fn main() -> Result<()> {
 
     info!("Starting with ServerConfig {config:?}");
 
-    http::serve(&config).await?;
+    let system = SystemContext::initialise(config);
+
+    http::serve(system).await?;
 
     Ok(())
 }

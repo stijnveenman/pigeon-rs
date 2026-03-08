@@ -6,10 +6,21 @@ use serde::{Deserialize, Serialize};
 
 use crate::config::{http_config::HttpConfig, topic_config::TopicConfig};
 
-#[derive(Debug, Serialize, Deserialize, Default)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct ServerConfig {
+    pub data_dir: String,
     pub topics: TopicConfig,
     pub http: HttpConfig,
+}
+
+impl Default for ServerConfig {
+    fn default() -> Self {
+        ServerConfig {
+            topics: Default::default(),
+            http: Default::default(),
+            data_dir: "data".to_string(),
+        }
+    }
 }
 
 impl ServerConfig {
