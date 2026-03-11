@@ -1,4 +1,6 @@
 use std::{
+    any,
+    collections::HashMap,
     fs::{self, DirEntry},
     path::Path,
 };
@@ -73,4 +75,34 @@ pub fn read_segments<P: AsRef<Path>>(base_dir: P) -> anyhow::Result<Vec<u64>> {
     }
 
     Ok(segments)
+}
+
+pub fn read_partition_states<P: AsRef<Path>>(base_dir: P) -> anyhow::Result<Vec<Vec<u64>>> {
+    let partitions = read_partitions(&base_dir)?;
+
+    partitions
+        .into_iter()
+        .map(move |partition| {
+            let base_dir = base_dir.as_ref().join(partition.to_string());
+            let segments = read_segments(base_dir)?;
+
+            Ok(segments)
+        })
+        .collect::<Result<Vec<_>, _>>()
+}
+
+pub fn read_topic_states<P: AsRef<Path>>(
+    base_dir: P,
+) -> anyhow::Result<HashMap<String, Vec<Vec<u64>>>> {
+    let topics = read_topics(&base_dir)?;
+
+    topics
+        .into_iter()
+        .map(|topic| {
+            let base_dir = base_dir.as_ref().join(&topic);
+            let partitions = read_partition_states(base_dir)?;
+
+            Ok((topic, partitions))
+        })
+        .collect::<Result<HashMap<_, _>, _>>()
 }

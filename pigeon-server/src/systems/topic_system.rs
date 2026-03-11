@@ -12,7 +12,7 @@ use tokio::{
 };
 
 use crate::{
-    disk,
+    disk::{self, read_topic_states},
     dur::segment::{segment_reader::SegmentReader, segment_writer::SegmentWriter},
 };
 
@@ -26,23 +26,7 @@ pub struct TopicSystem {
 impl TopicSystem {
     pub fn initialise(base_dir: &str) -> TopicSystem {
         let base_dir = Path::new(base_dir);
-        dbg!(
-            disk::read_topics(base_dir)
-                .unwrap()
-                .into_iter()
-                .map(|topic| (
-                    topic.to_string(),
-                    disk::read_partitions(base_dir.join(&topic))
-                        .unwrap()
-                        .into_iter()
-                        .map(move |partition| disk::read_segments(
-                            base_dir.join(topic.clone()).join(partition.to_string())
-                        )
-                        .unwrap())
-                        .collect::<Vec<_>>()
-                ))
-                .collect::<Vec<_>>()
-        );
+        dbg!(read_topic_states(base_dir).unwrap());
 
         TopicSystem {
             base_dir: PathBuf::from(base_dir),
