@@ -1,5 +1,6 @@
-use pigeon_core::PError;
+use pigeon_core::{PError, record::Record, rpc};
 use reqwest::{Client, ClientBuilder, Method, Request, Url};
+use serde::de::DeserializeOwned;
 
 pub struct PigeonSdk {
     pub base_url: Url,
@@ -13,6 +14,23 @@ impl PigeonSdk {
 
     fn get(&self, path: &str) -> Request {
         self.request(Method::GET, path)
+    }
+
+    async fn execute<T: DeserializeOwned>(&self, request: Request) -> Result<T, PError> {
+        let response = self
+            .client
+            .execute(request)
+            .await
+            .map_err(|_| PError::TransportFailure)?;
+
+        match response.status().is_success() {
+            true => response.json().await.map_err(|_| PError::TransportFailure),
+            false => Err(response
+                .json::<rpc::Error>()
+                .await
+                .map_err(|_| PError::TransportFailure)?
+                .error),
+        }
     }
 
     pub fn new(base_url: impl Into<String>) -> Self {
@@ -35,18 +53,9 @@ impl PigeonSdk {
         topic_name: &str,
         partition_id: u64,
         offset: u64,
-    ) -> Result<String, PError> {
-        let response = self
-            .client
-            .execute(self.get(&format!("/topics/{topic_name}/{partition_id}/{offset}")))
-            .await
-            .map_err(|_| PError::TransportFailure)?;
+    ) -> Result<Record, PError> {
+        let request = self.get(&format!("/topics/{topic_name}/{partition_id}/{offset}"));
 
-        let text = response
-            .text()
-            .await
-            .map_err(|_| PError::TransportFailure)?;
-
-        Ok(text)
+        self.execute(request).await
     }
 }
