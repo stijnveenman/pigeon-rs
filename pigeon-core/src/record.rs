@@ -1,6 +1,8 @@
 use std::string::FromUtf8Error;
 
-#[derive(Debug, PartialEq, Eq)]
+use serde::Serialize;
+
+#[derive(Debug, PartialEq, Eq, Serialize)]
 pub struct Record {
     pub offset: u64,
     pub key: Vec<u8>,

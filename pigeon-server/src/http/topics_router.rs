@@ -1,7 +1,14 @@
 use std::sync::Arc;
 
-use axum::{Json, Router, extract::State, routing::post};
-use pigeon_core::rpc::create_topic::CreateTopic;
+use axum::{
+    Json, Router,
+    extract::{Path, State},
+    routing::{get, post},
+};
+use pigeon_core::{
+    record::Record,
+    rpc::{append_record::AppendRecord, create_topic::CreateTopic},
+};
 
 use crate::{http::error::HttpResult, systems::SystemContext};
 
@@ -22,6 +29,39 @@ async fn create_topic(
     Ok(Json(()))
 }
 
+async fn read_record(
+    state: State<Arc<SystemContext>>,
+    Path((topic_name, partition_id, offset)): Path<(String, u64, u64)>,
+) -> HttpResult<Record> {
+    let record = state
+        .topics
+        .read_record(&topic_name, partition_id, offset)
+        .await?;
+
+    Ok(Json(record))
+}
+
+async fn append_record(
+    state: State<Arc<SystemContext>>,
+    Path((topic_name, partition_id)): Path<(String, u64)>,
+    command: Json<AppendRecord>,
+) -> HttpResult<u64> {
+    let offset = state
+        .topics
+        .append_record(
+            &topic_name,
+            partition_id,
+            // TODO: offset
+            &Record::new(0, &command.key, &command.value),
+        )
+        .await?;
+
+    Ok(Json(offset))
+}
+
 pub fn router() -> Router<Arc<SystemContext>> {
-    Router::<Arc<SystemContext>>::new().route("/", post(create_topic))
+    Router::<Arc<SystemContext>>::new()
+        .route("/", post(create_topic))
+        .route("/{topic_name}/{partition_id}", post(append_record))
+        .route("/{topic_name}/{partition_id}/{offset}", get(read_record))
 }
