@@ -4,5 +4,6 @@ use pigeon_sdk::pigeon_sdk::PigeonSdk;
 async fn main() {
     let sdk = PigeonSdk::new("http://localhost:4111");
 
-    sdk.read_record("foo", 0, 5).await;
+    let result = sdk.read_record("foo", 0, 5).await;
+    dbg!(result.unwrap());
 }

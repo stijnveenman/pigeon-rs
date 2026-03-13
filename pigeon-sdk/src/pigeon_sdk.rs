@@ -1,3 +1,4 @@
+use pigeon_core::PError;
 use reqwest::{Client, ClientBuilder, Method, Request, Url};
 
 pub struct PigeonSdk {
@@ -29,14 +30,23 @@ impl PigeonSdk {
         }
     }
 
-    pub async fn read_record(&self, topic_name: &str, partition_id: u64, offset: u64) {
+    pub async fn read_record(
+        &self,
+        topic_name: &str,
+        partition_id: u64,
+        offset: u64,
+    ) -> Result<String, PError> {
         let response = self
             .client
             .execute(self.get(&format!("/topics/{topic_name}/{partition_id}/{offset}")))
             .await
-            .unwrap();
+            .map_err(|_| PError::TransportFailure)?;
 
-        dbg!(&response);
-        dbg!(response.text().await);
+        let text = response
+            .text()
+            .await
+            .map_err(|_| PError::TransportFailure)?;
+
+        Ok(text)
     }
 }

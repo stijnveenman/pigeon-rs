@@ -31,4 +31,6 @@ pub enum PError {
     TopicNotFound,
     #[error("Partition not found")]
     PartitionNotFound,
+    #[error("Error occured during transport")]
+    TransportFailure,
 }
