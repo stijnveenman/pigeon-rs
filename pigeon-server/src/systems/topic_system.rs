@@ -3,7 +3,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use pigeon_core::{PError, record::Record, uncommited_record::UncommitedRecord};
+use pigeon_core::{PError, record::Record};
 use tokio::{
     fs::create_dir,
     sync::{RwLock, RwLockReadGuard},
@@ -147,7 +147,7 @@ impl TopicSystem {
         &self,
         topic_name: &str,
         partition: u64,
-        record: UncommitedRecord,
+        record: Record,
     ) -> Result<u64, PError> {
         let active_segments = self.active_segments.read().await;
 
@@ -179,7 +179,7 @@ impl TopicSystem {
 
 #[cfg(test)]
 mod test {
-    use pigeon_core::{record::Record, uncommited_record::UncommitedRecord};
+    use pigeon_core::record::Record;
     use tempfile::{TempDir, tempdir};
 
     use crate::systems::topic_system::TopicSystem;
@@ -200,27 +200,27 @@ mod test {
         system.create_topic("test", 10).await.unwrap();
 
         system
-            .append_record("test", 0, UncommitedRecord::new("key", "t1"))
+            .append_record("test", 0, Record::new("key", "t1"))
             .await
             .unwrap();
 
         system
-            .append_record("test", 1, UncommitedRecord::new("key", "t2"))
+            .append_record("test", 1, Record::new("key", "t2"))
             .await
             .unwrap();
 
         system
-            .append_record("test", 9, UncommitedRecord::new("key", "t3"))
+            .append_record("test", 9, Record::new("key", "t3"))
             .await
             .unwrap();
 
-        let record = system.read_record("test", 0, 0).await.unwrap();
+        let record = system.read_record("test", 0, 1).await.unwrap();
         assert_eq!(&record.value_string().unwrap(), "t1");
 
-        let record = system.read_record("test", 1, 0).await.unwrap();
+        let record = system.read_record("test", 1, 1).await.unwrap();
         assert_eq!(&record.value_string().unwrap(), "t2");
 
-        let record = system.read_record("test", 9, 0).await.unwrap();
+        let record = system.read_record("test", 9, 1).await.unwrap();
         assert_eq!(&record.value_string().unwrap(), "t3");
     }
 
@@ -231,19 +231,19 @@ mod test {
         system.create_topic("world", 1).await.unwrap();
 
         system
-            .append_record("world", 0, UncommitedRecord::new("k1", "value1"))
-            .await
-            .unwrap();
-
-        let record = system.read_record("world", 0, 0).await.unwrap();
-        assert_eq!(&record.value_string().unwrap(), "value1");
-
-        system
-            .append_record("world", 0, UncommitedRecord::new("k2", "value2"))
+            .append_record("world", 0, Record::new("k1", "value1"))
             .await
             .unwrap();
 
         let record = system.read_record("world", 0, 1).await.unwrap();
+        assert_eq!(&record.value_string().unwrap(), "value1");
+
+        system
+            .append_record("world", 0, Record::new("k2", "value2"))
+            .await
+            .unwrap();
+
+        let record = system.read_record("world", 0, 2).await.unwrap();
         assert_eq!(&record.value_string().unwrap(), "value2");
     }
 
@@ -255,19 +255,18 @@ mod test {
 
         for i in 0..10 {
             system
-                .append_record(
-                    "test",
-                    0,
-                    UncommitedRecord::new(&i.to_string(), &i.to_string()),
-                )
+                .append_record("test", 0, Record::new(&i.to_string(), &i.to_string()))
                 .await
                 .unwrap();
         }
 
         for i in 0..10 {
-            let record = system.read_record("test", 0, i).await.unwrap();
+            let record = system.read_record("test", 0, i + 1).await.unwrap();
 
-            assert_eq!(record, Record::new(i, &i.to_string(), &i.to_string()));
+            assert_eq!(
+                record,
+                Record::with_offset(i + 1, &i.to_string(), &i.to_string())
+            );
         }
     }
 
@@ -278,14 +277,14 @@ mod test {
         system.create_topic("test", 5).await.unwrap();
 
         system
-            .append_record("test", 2, UncommitedRecord::new("foo", "bar"))
+            .append_record("test", 2, Record::new("foo", "bar"))
             .await
             .unwrap();
 
         let base_dir = dir.path().to_str().unwrap();
         let system = TopicSystem::initialise(base_dir).await;
 
-        let record = system.read_record("test", 2, 0).await.unwrap();
-        assert_eq!(record, Record::new(0, "foo", "bar"));
+        let record = system.read_record("test", 2, 1).await.unwrap();
+        assert_eq!(record, Record::with_offset(1, "foo", "bar"));
     }
 }

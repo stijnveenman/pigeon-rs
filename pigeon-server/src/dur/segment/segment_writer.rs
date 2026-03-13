@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use pigeon_core::{PError, uncommited_record::UncommitedRecord};
+use pigeon_core::{PError, record::Record};
 
 use crate::dur::{
     index::{Index, index_writer::IndexWriter},
@@ -20,7 +20,7 @@ impl SegmentWriter {
 
         let current_offset = match Index::from_file(base_dir, start_offset).await {
             Ok(index) => index.max().map(|offset| offset + 1).unwrap_or_default(),
-            Err(PError::IndexNotFound) => start_offset,
+            Err(PError::IndexNotFound) => start_offset.max(1),
             Err(e) => return Err(e),
         };
 
@@ -34,8 +34,11 @@ impl SegmentWriter {
         })
     }
 
-    pub async fn append_record(&mut self, record: UncommitedRecord) -> Result<(u64, u64), PError> {
-        let record = record.to_record(self.next_offset);
+    pub async fn append_record(&mut self, mut record: Record) -> Result<(u64, u64), PError> {
+        assert!(!record.is_commited());
+        record.offset = self.next_offset;
+        assert!(record.is_commited());
+
         self.next_offset += 1;
 
         let byte_offset = self.log.append(&record).await?;

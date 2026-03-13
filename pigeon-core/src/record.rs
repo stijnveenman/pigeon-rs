@@ -10,7 +10,15 @@ pub struct Record {
 }
 
 impl Record {
-    pub fn new(offset: u64, key: &str, value: &str) -> Record {
+    pub fn new(key: &str, value: &str) -> Record {
+        Record {
+            offset: 0,
+            key: key.as_bytes().to_vec(),
+            value: value.as_bytes().to_vec(),
+        }
+    }
+
+    pub fn with_offset(offset: u64, key: &str, value: &str) -> Record {
         Record {
             offset,
             key: key.as_bytes().to_vec(),
@@ -20,5 +28,9 @@ impl Record {
 
     pub fn value_string(&self) -> Result<String, FromUtf8Error> {
         String::from_utf8(self.value.clone())
+    }
+
+    pub fn is_commited(&self) -> bool {
+        self.offset != 0
     }
 }
