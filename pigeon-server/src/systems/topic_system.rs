@@ -3,7 +3,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use pigeon_core::{PError, record::Record};
+use pigeon_core::{PError, record::Record, uncommited_record::UncommitedRecord};
 use tokio::{
     fs::create_dir,
     sync::{RwLock, RwLockReadGuard},
@@ -147,7 +147,7 @@ impl TopicSystem {
         &self,
         topic_name: &str,
         partition: u64,
-        record: &Record,
+        record: UncommitedRecord,
     ) -> Result<u64, PError> {
         let active_segments = self.active_segments.read().await;
 
@@ -179,7 +179,7 @@ impl TopicSystem {
 
 #[cfg(test)]
 mod test {
-    use pigeon_core::record::Record;
+    use pigeon_core::{record::Record, uncommited_record::UncommitedRecord};
     use tempfile::{TempDir, tempdir};
 
     use crate::systems::topic_system::TopicSystem;
@@ -200,17 +200,17 @@ mod test {
         system.create_topic("test", 10).await.unwrap();
 
         system
-            .append_record("test", 0, &Record::new(0, "key", "t1"))
+            .append_record("test", 0, UncommitedRecord::new("key", "t1"))
             .await
             .unwrap();
 
         system
-            .append_record("test", 1, &Record::new(0, "key", "t2"))
+            .append_record("test", 1, UncommitedRecord::new("key", "t2"))
             .await
             .unwrap();
 
         system
-            .append_record("test", 9, &Record::new(0, "key", "t3"))
+            .append_record("test", 9, UncommitedRecord::new("key", "t3"))
             .await
             .unwrap();
 
@@ -231,7 +231,7 @@ mod test {
         system.create_topic("world", 1).await.unwrap();
 
         system
-            .append_record("world", 0, &Record::new(0, "k1", "value1"))
+            .append_record("world", 0, UncommitedRecord::new("k1", "value1"))
             .await
             .unwrap();
 
@@ -239,7 +239,7 @@ mod test {
         assert_eq!(&record.value_string().unwrap(), "value1");
 
         system
-            .append_record("world", 0, &Record::new(1, "k2", "value2"))
+            .append_record("world", 0, UncommitedRecord::new("k2", "value2"))
             .await
             .unwrap();
 
@@ -255,7 +255,11 @@ mod test {
 
         for i in 0..10 {
             system
-                .append_record("test", 0, &Record::new(i, &i.to_string(), &i.to_string()))
+                .append_record(
+                    "test",
+                    0,
+                    UncommitedRecord::new(&i.to_string(), &i.to_string()),
+                )
                 .await
                 .unwrap();
         }
@@ -274,7 +278,7 @@ mod test {
         system.create_topic("test", 5).await.unwrap();
 
         system
-            .append_record("test", 2, &Record::new(0, "foo", "bar"))
+            .append_record("test", 2, UncommitedRecord::new("foo", "bar"))
             .await
             .unwrap();
 

@@ -8,6 +8,7 @@ use axum::{
 use pigeon_core::{
     record::Record,
     rpc::{append_record::AppendRecord, create_topic::CreateTopic},
+    uncommited_record::UncommitedRecord,
 };
 
 use crate::{http::error::HttpResult, systems::SystemContext};
@@ -51,8 +52,7 @@ async fn append_record(
         .append_record(
             &topic_name,
             partition_id,
-            // TODO: offset
-            &Record::new(0, &command.key, &command.value),
+            UncommitedRecord::new(&command.key, &command.value),
         )
         .await?;
 
