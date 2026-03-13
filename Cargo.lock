@@ -1177,6 +1177,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "pigeon-cli"
+version = "0.1.0"
+dependencies = [
+ "pigeon-sdk",
+ "tokio",
+]
+
+[[package]]
 name = "pigeon-core"
 version = "0.1.0"
 dependencies = [

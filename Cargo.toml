@@ -21,6 +21,7 @@ reqwest = "0.13.2"
 
 # pigeon packages
 pigeon-core = { path = "./pigeon-core/" }
+pigeon-sdk = { path = "./pigeon-sdk/" }
 
 [workspace.lints.clippy]
 module_inception = "allow"
