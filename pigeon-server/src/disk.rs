@@ -1,6 +1,6 @@
 use std::{
     any,
-    collections::HashMap,
+    collections::{BTreeSet, HashMap},
     fs::{self, DirEntry},
     path::Path,
 };
@@ -49,8 +49,8 @@ pub fn read_partitions<P: AsRef<Path>>(base_dir: P) -> anyhow::Result<Vec<u64>> 
     Ok(partitions)
 }
 
-pub fn read_segments<P: AsRef<Path>>(base_dir: P) -> anyhow::Result<Vec<u64>> {
-    let mut segments = Vec::new();
+pub fn read_segments<P: AsRef<Path>>(base_dir: P) -> anyhow::Result<BTreeSet<u64>> {
+    let mut segments = BTreeSet::new();
     for entry in fs::read_dir(base_dir)? {
         let entry = entry?;
 
@@ -64,20 +64,20 @@ pub fn read_segments<P: AsRef<Path>>(base_dir: P) -> anyhow::Result<Vec<u64>> {
             continue;
         }
 
-        segments.push(
+        segments.insert(
             path.file_stem()
                 .context(format!("Failed to get file_name from path {path:?}"))?
                 .to_str()
                 .context(format!("Failed to convert path to string {path:?}"))?
                 .to_string()
                 .parse()?,
-        )
+        );
     }
 
     Ok(segments)
 }
 
-pub fn read_partition_states<P: AsRef<Path>>(base_dir: P) -> anyhow::Result<Vec<Vec<u64>>> {
+pub fn read_partition_states<P: AsRef<Path>>(base_dir: P) -> anyhow::Result<Vec<BTreeSet<u64>>> {
     let partitions = read_partitions(&base_dir)?;
 
     partitions
@@ -93,7 +93,7 @@ pub fn read_partition_states<P: AsRef<Path>>(base_dir: P) -> anyhow::Result<Vec<
 
 pub fn read_topic_states<P: AsRef<Path>>(
     base_dir: P,
-) -> anyhow::Result<HashMap<String, Vec<Vec<u64>>>> {
+) -> anyhow::Result<HashMap<String, Vec<BTreeSet<u64>>>> {
     let topics = read_topics(&base_dir)?;
 
     topics

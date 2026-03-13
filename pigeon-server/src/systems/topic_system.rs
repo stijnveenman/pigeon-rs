@@ -8,7 +8,7 @@ use anyhow::{Context, bail};
 use pigeon_core::{PError, record::Record};
 use tokio::{
     fs::create_dir,
-    sync::{RwLock, RwLockReadGuard},
+    sync::{RwLock, RwLockReadGuard, RwLockWriteGuard},
 };
 
 use crate::{
@@ -24,14 +24,39 @@ pub struct TopicSystem {
 }
 
 impl TopicSystem {
-    pub fn initialise(base_dir: &str) -> TopicSystem {
-        let base_dir = Path::new(base_dir);
-        dbg!(read_topic_states(base_dir).unwrap());
+    async fn initialise_active_segments(
+        base_dir: &str,
+        segments: &HashMap<String, Vec<BTreeSet<u64>>>,
+    ) -> HashMap<String, Vec<RwLock<SegmentWriter>>> {
+        let mut topics = HashMap::new();
+
+        for (topic, partitions) in segments {
+            let mut writers = Vec::new();
+            let base_dir = Path::new(base_dir).join(topic);
+
+            for (index, partition) in partitions.iter().enumerate() {
+                let base_dir = base_dir.join(index.to_string());
+                let start_offset = partition.iter().max().cloned().unwrap_or_default();
+
+                let writer = SegmentWriter::open(&base_dir, start_offset).await.unwrap();
+
+                writers.push(RwLock::new(writer));
+            }
+
+            topics.insert(topic.to_string(), writers);
+        }
+
+        topics
+    }
+
+    pub async fn initialise(base_dir: &str) -> TopicSystem {
+        let segments = read_topic_states(base_dir).expect("TopicSystem::initialise failed");
+        let active_segments = Self::initialise_active_segments(base_dir, &segments).await;
 
         TopicSystem {
             base_dir: PathBuf::from(base_dir),
-            segments: Default::default(),
-            active_segments: Default::default(),
+            segments: RwLock::new(segments),
+            active_segments: RwLock::new(active_segments),
             read_segments: Default::default(),
         }
     }
@@ -161,18 +186,18 @@ mod test {
 
     use crate::systems::topic_system::TopicSystem;
 
-    fn system() -> (TempDir, TopicSystem) {
+    async fn system() -> (TempDir, TopicSystem) {
         let dir = tempdir().unwrap();
         let base_dir = dir.path().to_str().unwrap();
 
-        let system = TopicSystem::initialise(base_dir);
+        let system = TopicSystem::initialise(base_dir).await;
 
         (dir, system)
     }
 
     #[tokio::test]
     async fn basic_end_to_end() {
-        let (_dir, system) = system();
+        let (_dir, system) = system().await;
 
         system.create_topic("test", 10).await.unwrap();
 
@@ -203,7 +228,7 @@ mod test {
 
     #[tokio::test]
     async fn multiple_read_writes() {
-        let (_dir, system) = system();
+        let (_dir, system) = system().await;
 
         system.create_topic("world", 1).await.unwrap();
 
@@ -226,7 +251,7 @@ mod test {
 
     #[tokio::test]
     async fn read_in_middle() {
-        let (_dir, system) = system();
+        let (_dir, system) = system().await;
 
         system.create_topic("test", 1).await.unwrap();
 
@@ -243,4 +268,6 @@ mod test {
             assert_eq!(record, Record::new(i, &i.to_string(), &i.to_string()));
         }
     }
+
+    // TODO: topic_system continue unit tests
 }

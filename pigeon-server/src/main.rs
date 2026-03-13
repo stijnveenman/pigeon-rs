@@ -27,7 +27,7 @@ pub async fn main() -> Result<()> {
 
     info!("Starting with ServerConfig {config:?}");
 
-    let system = SystemContext::initialise(config);
+    let system = SystemContext::initialise(config).await;
 
     http::serve(system).await?;
 
