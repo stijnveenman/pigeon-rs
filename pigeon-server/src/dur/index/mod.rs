@@ -26,6 +26,10 @@ impl Index {
         Ok(())
     }
 
+    pub fn max(&self) -> Option<u64> {
+        self.0.keys().max().cloned()
+    }
+
     pub fn get(&self, offset: u64) -> Option<&u64> {
         self.0.get(&offset)
     }
