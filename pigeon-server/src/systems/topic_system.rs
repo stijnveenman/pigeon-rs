@@ -269,5 +269,21 @@ mod test {
         }
     }
 
-    // TODO: topic_system continue unit tests
+    #[tokio::test]
+    async fn reinitialise_system() {
+        let (dir, system) = system().await;
+
+        system.create_topic("test", 5).await.unwrap();
+
+        system
+            .append_record("test", 2, &Record::new(0, "foo", "bar"))
+            .await
+            .unwrap();
+
+        let base_dir = dir.path().to_str().unwrap();
+        let system = TopicSystem::initialise(base_dir).await;
+
+        let record = system.read_record("test", 2, 0).await.unwrap();
+        assert_eq!(record, Record::new(0, "foo", "bar"));
+    }
 }
