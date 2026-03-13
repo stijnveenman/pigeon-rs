@@ -1,18 +1,16 @@
 use std::{
     collections::{BTreeSet, HashMap},
-    fs,
     path::{Path, PathBuf},
 };
 
-use anyhow::{Context, bail};
 use pigeon_core::{PError, record::Record};
 use tokio::{
     fs::create_dir,
-    sync::{RwLock, RwLockReadGuard, RwLockWriteGuard},
+    sync::{RwLock, RwLockReadGuard},
 };
 
 use crate::{
-    disk::{self, read_topic_states},
+    disk::read_topic_states,
     dur::segment::{segment_reader::SegmentReader, segment_writer::SegmentWriter},
 };
 

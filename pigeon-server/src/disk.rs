@@ -1,5 +1,4 @@
 use std::{
-    any,
     collections::{BTreeSet, HashMap},
     fs::{self, DirEntry},
     path::Path,
