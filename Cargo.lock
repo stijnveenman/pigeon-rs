@@ -800,6 +800,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "pigeon-sdk"
+version = "0.1.0"
+
+[[package]]
 name = "pigeon-server"
 version = "0.1.0"
 dependencies = [
