@@ -1188,6 +1188,7 @@ dependencies = [
 name = "pigeon-core"
 version = "0.1.0"
 dependencies = [
+ "base64",
  "serde",
  "thiserror 2.0.18",
 ]
