@@ -1,5 +1,9 @@
-use pigeon_core::{PError, record::Record, rpc};
-use reqwest::{Client, ClientBuilder, Method, Request, Url};
+use pigeon_core::{
+    PError,
+    record::Record,
+    rpc::{self, create_topic::CreateTopic},
+};
+use reqwest::{Client, ClientBuilder, Method, Request, RequestBuilder, Url};
 use serde::de::DeserializeOwned;
 
 pub struct PigeonSdk {
@@ -8,18 +12,23 @@ pub struct PigeonSdk {
 }
 
 impl PigeonSdk {
-    fn request(&self, method: Method, path: &str) -> Request {
-        Request::new(method, self.base_url.join(path).unwrap())
+    fn request(&self, method: Method, path: &str) -> RequestBuilder {
+        self.client
+            .request(method, self.base_url.join(path).unwrap())
     }
 
-    fn get(&self, path: &str) -> Request {
+    fn get(&self, path: &str) -> RequestBuilder {
         self.request(Method::GET, path)
     }
 
-    async fn execute<T: DeserializeOwned>(&self, request: Request) -> Result<T, PError> {
+    fn post(&self, path: &str) -> RequestBuilder {
+        self.request(Method::POST, path)
+    }
+
+    async fn execute<T: DeserializeOwned>(&self, request: RequestBuilder) -> Result<T, PError> {
         let response = self
             .client
-            .execute(request)
+            .execute(request.build().map_err(|_| PError::TransportFailure)?)
             .await
             .map_err(|_| PError::TransportFailure)?;
 
@@ -55,6 +64,19 @@ impl PigeonSdk {
         offset: u64,
     ) -> Result<Record, PError> {
         let request = self.get(&format!("/topics/{topic_name}/{partition_id}/{offset}"));
+
+        self.execute(request).await
+    }
+
+    pub async fn create_topic(
+        &self,
+        topic_name: impl Into<String>,
+        num_partitions: Option<u64>,
+    ) -> Result<(), PError> {
+        let request = self.post("/topics").json(&CreateTopic {
+            topic_name: topic_name.into(),
+            num_partitions,
+        });
 
         self.execute(request).await
     }
