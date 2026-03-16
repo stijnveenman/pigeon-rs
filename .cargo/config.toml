@@ -1,4 +1,4 @@
 [alias]
-server = "run --bin server"
-cli = "run --bin cli"
+server = "run --bin pigeon-server"
+cli = "run --bin pigeon-cli"
 tui = "run --bin tui"
