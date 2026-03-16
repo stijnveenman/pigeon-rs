@@ -22,9 +22,12 @@ impl SegmentReader {
         let start_offset = self.index.get(offset).ok_or(PError::OffsetNotFound)?;
         let end_offset = self.index.range(offset + 1..).next().map(|v| v.1);
 
-        self.log
-            .read_record(*start_offset, end_offset.copied())
-            .await
+        let mut records = self
+            .log
+            .read_records(*start_offset, end_offset.copied())
+            .await?;
+
+        records.pop().ok_or(PError::OffsetNotFound)
     }
 
     pub fn append(&mut self, offset: u64, byte_offset: u64) -> Result<(), PError> {

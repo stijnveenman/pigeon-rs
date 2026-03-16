@@ -31,7 +31,7 @@ impl LogReader {
         })
     }
 
-    async fn read_from(&self, mut start_offset: u64) -> Result<Vec<u8>, PError> {
+    async fn read_bytes_from(&self, mut start_offset: u64) -> Result<Vec<u8>, PError> {
         let file = self.file.clone();
 
         let bytes: Result<_, PError> = spawn_blocking(move || {
@@ -59,7 +59,11 @@ impl LogReader {
         Ok(bytes)
     }
 
-    async fn read_range(&self, start_offset: u64, end_offset: u64) -> Result<Vec<u8>, PError> {
+    async fn read_bytes_range(
+        &self,
+        start_offset: u64,
+        end_offset: u64,
+    ) -> Result<Vec<u8>, PError> {
         let byte_length = end_offset - start_offset;
         let file = self.file.clone();
 
@@ -77,38 +81,43 @@ impl LogReader {
         Ok(bytes)
     }
 
-    pub async fn read_record(
+    pub async fn read_records(
         &self,
         start_offset: u64,
         end_offset: Option<u64>,
-    ) -> Result<Record, PError> {
+    ) -> Result<Vec<Record>, PError> {
         let bytes = match end_offset {
-            Some(end_offset) => self.read_range(start_offset, end_offset).await,
-            None => self.read_from(start_offset).await,
+            Some(end_offset) => self.read_bytes_range(start_offset, end_offset).await,
+            None => self.read_bytes_from(start_offset).await,
         }?;
 
         let mut bytes = Bytes::from(bytes);
+        let mut records = Vec::new();
 
-        let offset = bytes.try_get_u64().map_err(|_| PError::ParseRecordFailed)?;
+        while !bytes.is_empty() {
+            let offset = bytes.try_get_u64().map_err(|_| PError::ParseRecordFailed)?;
 
-        let key_len = bytes.try_get_u64().map_err(|_| PError::ParseRecordFailed)? as usize;
-        if bytes.remaining() < key_len {
-            return Err(PError::ParseRecordFailed);
+            let key_len = bytes.try_get_u64().map_err(|_| PError::ParseRecordFailed)? as usize;
+            if bytes.remaining() < key_len {
+                return Err(PError::ParseRecordFailed);
+            }
+            let key = bytes.slice(0..key_len);
+            bytes.advance(key_len);
+
+            let value_len = bytes.try_get_u64().map_err(|_| PError::ParseRecordFailed)? as usize;
+            if bytes.remaining() < value_len {
+                return Err(PError::ParseRecordFailed);
+            }
+            let value = bytes.slice(0..value_len);
+            bytes.advance(value_len);
+
+            records.push(Record {
+                offset,
+                key: key.to_vec(),
+                value: value.to_vec(),
+            });
         }
-        let key = bytes.slice(0..key_len);
-        bytes.advance(key_len);
 
-        let value_len = bytes.try_get_u64().map_err(|_| PError::ParseRecordFailed)? as usize;
-        if bytes.remaining() < value_len {
-            return Err(PError::ParseRecordFailed);
-        }
-        let value = bytes.slice(0..value_len);
-        bytes.advance(value_len);
-
-        Ok(Record {
-            offset,
-            key: key.to_vec(),
-            value: value.to_vec(),
-        })
+        Ok(records)
     }
 }

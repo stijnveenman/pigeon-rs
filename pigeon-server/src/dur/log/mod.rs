@@ -28,9 +28,9 @@ mod test {
         drop(writer);
 
         let reader = LogReader::open(Path::new(base_dir), 0).await.unwrap();
-        let read_record = reader.read_record(0, None).await.unwrap();
+        let read_record = reader.read_records(0, None).await.unwrap();
 
-        assert_eq!(record, read_record);
+        assert_eq!(vec![record], read_record);
     }
 
     #[tokio::test]
@@ -57,8 +57,37 @@ mod test {
         drop(writer);
 
         let reader = LogReader::open(Path::new(base_dir), 0).await.unwrap();
-        let read_record = reader.read_record(0, Some(end_offset)).await.unwrap();
+        let read_record = reader.read_records(0, Some(end_offset)).await.unwrap();
 
-        assert_eq!(record, read_record);
+        assert_eq!(vec![record], read_record);
+    }
+
+    #[tokio::test]
+    async fn read_multiple() {
+        let dir = tempdir().unwrap();
+        let base_dir = dir.path().to_str().unwrap();
+
+        let mut writer = LogWriter::open(Path::new(base_dir), 0).await.unwrap();
+
+        let record1 = Record {
+            offset: 1,
+            key: b"hello".to_vec(),
+            value: b"world".to_vec(),
+        };
+        let record2 = Record {
+            offset: 2,
+            key: b"hello1".to_vec(),
+            value: b"world1".to_vec(),
+        };
+
+        writer.append(&record1).await.unwrap();
+        writer.append(&record2).await.unwrap();
+
+        drop(writer);
+
+        let reader = LogReader::open(Path::new(base_dir), 0).await.unwrap();
+
+        let records = reader.read_records(0, None).await.unwrap();
+        assert_eq!(vec![record1, record2], records);
     }
 }
