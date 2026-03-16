@@ -3,7 +3,7 @@ use pigeon_core::{
     record::Record,
     rpc::{self, append_record::AppendRecord, create_topic::CreateTopic},
 };
-use reqwest::{Client, ClientBuilder, Method, Request, RequestBuilder, Url};
+use reqwest::{Client, ClientBuilder, Method, RequestBuilder, Url};
 use serde::de::DeserializeOwned;
 
 pub struct PigeonSdk {

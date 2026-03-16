@@ -5,14 +5,20 @@ use pigeon_sdk::{pigeon_sdk::PigeonSdk, rpc::append_record::AppendRecord};
 #[command(name = "pg", version, author)]
 struct Cli {
     #[command(subcommand)]
-    command: Command,
+    command: Commands,
 }
 
 #[derive(Debug, Subcommand)]
-enum Command {
+enum Commands {
     Topic {
         #[command(subcommand)]
         command: TopicCommands,
+    },
+    Produce {
+        topic: String,
+        partition: u64,
+        key: String,
+        value: String,
     },
 }
 
@@ -31,13 +37,25 @@ async fn main() {
     let sdk = PigeonSdk::new("http://localhost:4111");
 
     match cli.command {
-        Command::Topic { command } => match command {
+        Commands::Topic { command } => match command {
             TopicCommands::Create { name, partitions } => {
                 match sdk.create_topic(&name, partitions).await {
                     Ok(()) => println!("Created topic {name} succesfully"),
                     Err(e) => eprintln!("Error creating topic: {e} [{e:?}]"),
                 }
             }
+        },
+        Commands::Produce {
+            topic,
+            partition,
+            key,
+            value,
+        } => match sdk
+            .append_record(&topic, partition, AppendRecord { key, value })
+            .await
+        {
+            Ok(offset) => println!("Produced record with offset {offset}"),
+            Err(e) => eprintln!("Error producing record: {e} [{e:?}]"),
         },
     }
 }
