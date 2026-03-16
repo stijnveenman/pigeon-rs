@@ -1,7 +1,7 @@
 use pigeon_core::{
     PError,
     record::Record,
-    rpc::{self, create_topic::CreateTopic},
+    rpc::{self, append_record::AppendRecord, create_topic::CreateTopic},
 };
 use reqwest::{Client, ClientBuilder, Method, Request, RequestBuilder, Url};
 use serde::de::DeserializeOwned;
@@ -77,6 +77,19 @@ impl PigeonSdk {
             topic_name: topic_name.into(),
             num_partitions,
         });
+
+        self.execute(request).await
+    }
+
+    pub async fn append_record(
+        &self,
+        topic_name: &str,
+        partition_id: u64,
+        record: AppendRecord,
+    ) -> Result<u64, PError> {
+        let request = self
+            .post(&format!("/topics/{topic_name}/{partition_id}"))
+            .json(&record);
 
         self.execute(request).await
     }

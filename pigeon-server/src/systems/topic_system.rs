@@ -150,6 +150,7 @@ impl TopicSystem {
         record: Record,
     ) -> Result<u64, PError> {
         let active_segments = self.active_segments.read().await;
+        dbg!("active_segments");
 
         let topic = active_segments
             .get(topic_name)
