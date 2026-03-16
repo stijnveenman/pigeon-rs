@@ -2,6 +2,7 @@ mod config;
 mod disk;
 mod dur;
 mod http;
+mod metadata;
 mod systems;
 
 use anyhow::Result;

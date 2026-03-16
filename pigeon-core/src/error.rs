@@ -29,6 +29,8 @@ pub enum PError {
     CreateTopicFailed,
     #[error("Topic not found")]
     TopicNotFound,
+    #[error("Topic with this name already exists")]
+    TopicAlreadyExists,
     #[error("Partition not found")]
     PartitionNotFound,
     #[error("Error occured during transport")]

@@ -14,5 +14,6 @@ tracing-subscriber = { workspace = true }
 thiserror = { workspace = true }
 tempfile.workspace = true
 serde.workspace = true
+serde_json.workspace = true
 config.workspace = true
 axum.workspace = true
