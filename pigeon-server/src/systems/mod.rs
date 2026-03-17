@@ -23,8 +23,8 @@ impl SystemContext {
             create_dir(&config.data_dir).unwrap();
         }
 
-        let topics = TopicSystem::initialise(&config.data_dir).await;
-        let meta = Metadata::initialise(&topics).await;
+        let mut topics = TopicSystem::initialise(&config.data_dir).await;
+        let meta = Metadata::initialise(&mut topics).await;
 
         dbg!(&meta);
 

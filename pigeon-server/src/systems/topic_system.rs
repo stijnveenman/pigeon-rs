@@ -1,5 +1,5 @@
 use std::{
-    collections::{BTreeSet, HashMap},
+    collections::{BTreeSet, HashMap, HashSet},
     ops::{Bound, RangeBounds},
     path::{Path, PathBuf},
 };
@@ -11,8 +11,9 @@ use tokio::{
 };
 
 use crate::{
-    disk::read_topic_states,
+    disk::{self, read_topic_states},
     dur::segment::{segment_reader::SegmentReader, segment_writer::SegmentWriter},
+    metadata::TopicMetadata,
 };
 
 pub struct TopicSystem {
@@ -57,6 +58,20 @@ impl TopicSystem {
             segments: RwLock::new(segments),
             active_segments: RwLock::new(active_segments),
             read_segments: Default::default(),
+        }
+    }
+
+    pub async fn sync(&mut self, topics: &HashMap<String, TopicMetadata>) {
+        let segments = self.segments.read().await;
+        let disk_topics = segments.keys().cloned().collect::<HashSet<_>>();
+        drop(segments);
+
+        for topic in topics.values() {
+            if !disk_topics.contains(&topic.topic_name) {
+                self.create_topic(&topic.topic_name, topic.num_partitions)
+                    .await
+                    .expect("failed to sync metadata topic on disk");
+            }
         }
     }
 

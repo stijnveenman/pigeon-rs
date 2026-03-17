@@ -34,7 +34,7 @@ impl Metadata {
         Ok(())
     }
 
-    pub async fn initialise(topics: &TopicSystem) -> Self {
+    pub async fn initialise(topics: &mut TopicSystem) -> Self {
         let records = match topics.read_range(".metadata", 0, 0u64..).await {
             Ok(records) => records,
             Err(PError::TopicNotFound) => vec![],
@@ -65,6 +65,7 @@ impl Metadata {
             );
         }
 
+        topics.sync(&metadata.topics).await;
         metadata
     }
 }
