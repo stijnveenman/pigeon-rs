@@ -10,7 +10,7 @@ struct Cli {
 
 #[derive(Debug, Subcommand)]
 enum Commands {
-    Topic {
+    Topics {
         #[command(subcommand)]
         command: TopicCommands,
     },
@@ -42,7 +42,7 @@ async fn main() {
     let sdk = PigeonSdk::new("http://localhost:4111");
 
     match cli.command {
-        Commands::Topic { command } => match command {
+        Commands::Topics { command } => match command {
             TopicCommands::Create { name, partitions } => {
                 match sdk.create_topic(&name, partitions).await {
                     Ok(()) => println!("Created topic {name} succesfully"),

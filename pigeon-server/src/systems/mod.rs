@@ -2,7 +2,6 @@ use std::{fs::create_dir, path::Path, sync::Arc};
 
 use pigeon_core::{PError, record::Record};
 use tokio::sync::RwLock;
-use tracing::info;
 
 use crate::{
     config::ServerConfig,
@@ -25,7 +24,9 @@ impl SystemContext {
         }
 
         let topics = TopicSystem::initialise(&config.data_dir).await;
-        let meta = Metadata::initialise(&config, &topics).await;
+        let meta = Metadata::initialise(&topics).await;
+
+        dbg!(&meta);
 
         Arc::new(SystemContext {
             topics,

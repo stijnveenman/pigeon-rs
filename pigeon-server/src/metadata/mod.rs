@@ -1,19 +1,18 @@
 use std::collections::{HashMap, hash_map::Entry};
 
 use pigeon_core::PError;
-use tracing::info;
 
-use crate::{
-    config::ServerConfig, metadata::entry::MetadataEntry, systems::topic_system::TopicSystem,
-};
+use crate::{metadata::entry::MetadataEntry, systems::topic_system::TopicSystem};
 
 pub mod entry;
 
+#[derive(Debug)]
 pub struct TopicMetadata {
     pub topic_name: String,
     pub num_partitions: u64,
 }
 
+#[derive(Debug)]
 pub struct Metadata {
     topics: HashMap<String, TopicMetadata>,
 }
@@ -35,22 +34,37 @@ impl Metadata {
         Ok(())
     }
 
-    pub async fn initialise(config: &ServerConfig, topics: &TopicSystem) -> Self {
-        let records = topics
-            .read_range(".metadata", 0, 0u64..)
-            .await
-            .expect("Failed to read .metadata records");
+    pub async fn initialise(topics: &TopicSystem) -> Self {
+        let records = match topics.read_range(".metadata", 0, 0u64..).await {
+            Ok(records) => records,
+            Err(PError::TopicNotFound) => vec![],
+            Err(e) => panic!("Failed to read .metadata records: {e}"),
+        };
+
+        let mut metadata = Metadata {
+            topics: Default::default(),
+        };
 
         for record in records {
             let entry = record
                 .json::<MetadataEntry>()
                 .expect("Failed to deserialize MetadataEntry");
 
-            info!("{:?}", entry);
+            metadata
+                .apply(&entry)
+                .expect("Failed to apply metadata state from disk");
         }
 
-        Self {
-            topics: Default::default(),
+        if !metadata.topics.contains_key(".metadata") {
+            metadata.topics.insert(
+                ".metadata".to_string(),
+                TopicMetadata {
+                    topic_name: ".metadata".to_string(),
+                    num_partitions: 1,
+                },
+            );
         }
+
+        metadata
     }
 }
