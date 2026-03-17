@@ -1,7 +1,7 @@
 use crate::base64_vec;
 use std::string::FromUtf8Error;
 
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize, de::DeserializeOwned};
 
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Record {
@@ -29,8 +29,19 @@ impl Record {
         }
     }
 
-    pub fn value_string(&self) -> Result<String, FromUtf8Error> {
+    pub fn key_text(&self) -> Result<String, FromUtf8Error> {
         String::from_utf8(self.value.clone())
+    }
+
+    pub fn text(&self) -> Result<String, FromUtf8Error> {
+        String::from_utf8(self.value.clone())
+    }
+
+    pub fn json<T>(&self) -> Result<T, serde_json::Error>
+    where
+        T: DeserializeOwned,
+    {
+        serde_json::from_slice(&self.value)
     }
 
     pub fn is_commited(&self) -> bool {

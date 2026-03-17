@@ -140,12 +140,10 @@ impl TopicSystem {
         };
 
         // get last segment with a offset before the target offset
-        let mut segment_start_offsets = vec![
-            segments
-                .range(0..=start_offset)
-                .next_back()
-                .ok_or(PError::OffsetNotFound)?,
-        ];
+        let mut segment_start_offsets = Vec::new();
+        if let Some(previous) = segments.range(0..start_offset).next_back() {
+            segment_start_offsets.push(previous);
+        }
         segment_start_offsets.extend(segments.range(offsets.clone()));
 
         let mut records = Vec::new();
@@ -262,13 +260,13 @@ mod test {
             .unwrap();
 
         let record = system.read_record("test", 0, 1).await.unwrap();
-        assert_eq!(&record.value_string().unwrap(), "t1");
+        assert_eq!(&record.text().unwrap(), "t1");
 
         let record = system.read_record("test", 1, 1).await.unwrap();
-        assert_eq!(&record.value_string().unwrap(), "t2");
+        assert_eq!(&record.text().unwrap(), "t2");
 
         let record = system.read_record("test", 9, 1).await.unwrap();
-        assert_eq!(&record.value_string().unwrap(), "t3");
+        assert_eq!(&record.text().unwrap(), "t3");
     }
 
     #[tokio::test]
@@ -283,7 +281,7 @@ mod test {
             .unwrap();
 
         let record = system.read_record("world", 0, 1).await.unwrap();
-        assert_eq!(&record.value_string().unwrap(), "value1");
+        assert_eq!(&record.text().unwrap(), "value1");
 
         system
             .append_record("world", 0, Record::new("k2", "value2"))
@@ -291,7 +289,7 @@ mod test {
             .unwrap();
 
         let record = system.read_record("world", 0, 2).await.unwrap();
-        assert_eq!(&record.value_string().unwrap(), "value2");
+        assert_eq!(&record.text().unwrap(), "value2");
     }
 
     #[tokio::test]

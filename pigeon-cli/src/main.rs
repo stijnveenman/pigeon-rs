@@ -67,7 +67,12 @@ async fn main() {
             partition,
             offset,
         } => match sdk.read_record(&topic, partition, offset).await {
-            Ok(e) => println!("Record {} {}", e.offset, e.value_string().unwrap()),
+            Ok(e) => println!(
+                "Record {:4} {}:{}",
+                e.offset,
+                e.key_text().unwrap(),
+                e.text().unwrap()
+            ),
             Err(e) => eprintln!("Error reading record {e}"),
         },
     }

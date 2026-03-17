@@ -36,8 +36,18 @@ impl Metadata {
     }
 
     pub async fn initialise(config: &ServerConfig, topics: &TopicSystem) -> Self {
-        let records = topics.read_range(".metadata", 0, 0u64..).await;
-        info!("{records:?}");
+        let records = topics
+            .read_range(".metadata", 0, 0u64..)
+            .await
+            .expect("Failed to read .metadata records");
+
+        for record in records {
+            let entry = record
+                .json::<MetadataEntry>()
+                .expect("Failed to deserialize MetadataEntry");
+
+            info!("{:?}", entry);
+        }
 
         Self {
             topics: Default::default(),
