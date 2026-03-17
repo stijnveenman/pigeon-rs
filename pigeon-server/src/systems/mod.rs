@@ -2,6 +2,7 @@ use std::{fs::create_dir, path::Path, sync::Arc};
 
 use pigeon_core::{PError, record::Record};
 use tokio::sync::RwLock;
+use tracing::info;
 
 use crate::{
     config::ServerConfig,
@@ -9,7 +10,7 @@ use crate::{
     systems::topic_system::TopicSystem,
 };
 
-mod topic_system;
+pub mod topic_system;
 
 pub struct SystemContext {
     pub config: ServerConfig,
@@ -23,9 +24,12 @@ impl SystemContext {
             create_dir(&config.data_dir).unwrap();
         }
 
+        let topics = TopicSystem::initialise(&config.data_dir).await;
+        let meta = Metadata::initialise(&config, &topics).await;
+
         Arc::new(SystemContext {
-            topics: TopicSystem::initialise(&config.data_dir).await,
-            meta: RwLock::default(),
+            topics,
+            meta: RwLock::new(meta),
             config,
         })
     }

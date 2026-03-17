@@ -19,7 +19,7 @@ impl SegmentWriter {
         let log = LogWriter::open(base_dir, start_offset).await?;
 
         let current_offset = match Index::from_file(base_dir, start_offset).await {
-            Ok(index) => index.max().map(|offset| offset + 1).unwrap_or_default(),
+            Ok(index) => index.max().map(|offset| offset + 1).unwrap_or(1),
             Err(PError::IndexNotFound) => start_offset.max(1),
             Err(e) => return Err(e),
         };

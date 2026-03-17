@@ -20,6 +20,11 @@ enum Commands {
         key: String,
         value: String,
     },
+    Fetch {
+        topic: String,
+        partition: u64,
+        offset: u64,
+    },
 }
 
 #[derive(Debug, Subcommand)]
@@ -56,6 +61,14 @@ async fn main() {
         {
             Ok(offset) => println!("Produced record with offset {offset}"),
             Err(e) => eprintln!("Error producing record: {e} [{e:?}]"),
+        },
+        Commands::Fetch {
+            topic,
+            partition,
+            offset,
+        } => match sdk.read_record(&topic, partition, offset).await {
+            Ok(e) => println!("Record {} {}", e.offset, e.value_string().unwrap()),
+            Err(e) => eprintln!("Error reading record {e}"),
         },
     }
 }

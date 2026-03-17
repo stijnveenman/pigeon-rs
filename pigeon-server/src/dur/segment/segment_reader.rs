@@ -1,4 +1,7 @@
-use std::path::Path;
+use std::{
+    ops::{Range, RangeBounds},
+    path::Path,
+};
 
 use pigeon_core::{PError, record::Record};
 
@@ -28,6 +31,19 @@ impl SegmentReader {
             .await?;
 
         records.pop().ok_or(PError::OffsetNotFound)
+    }
+
+    pub async fn read_range<R>(&self, offsets: R) -> Result<Vec<Record>, PError>
+    where
+        R: RangeBounds<u64> + Clone,
+    {
+        let mut range = self.index.range(offsets);
+        let Some(start_offset) = range.next() else {
+            return Ok(Vec::new());
+        };
+        let end_offset = range.next_back().map(|i| *i.1);
+
+        self.log.read_records(*start_offset.1, end_offset).await
     }
 
     pub fn append(&mut self, offset: u64, byte_offset: u64) -> Result<(), PError> {

@@ -28,7 +28,7 @@ impl LogWriter {
             .map_err(|_| PError::LogOpenFailed)?;
 
         let file_position = file
-            .stream_position()
+            .seek(std::io::SeekFrom::End(0))
             .await
             .map_err(|_| PError::LogOpenFailed)?;
 

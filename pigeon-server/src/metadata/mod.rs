@@ -1,8 +1,11 @@
 use std::collections::{HashMap, hash_map::Entry};
 
 use pigeon_core::PError;
+use tracing::info;
 
-use crate::metadata::entry::MetadataEntry;
+use crate::{
+    config::ServerConfig, metadata::entry::MetadataEntry, systems::topic_system::TopicSystem,
+};
 
 pub mod entry;
 
@@ -11,7 +14,6 @@ pub struct TopicMetadata {
     pub num_partitions: u64,
 }
 
-#[derive(Default)]
 pub struct Metadata {
     topics: HashMap<String, TopicMetadata>,
 }
@@ -31,5 +33,14 @@ impl Metadata {
         };
 
         Ok(())
+    }
+
+    pub async fn initialise(config: &ServerConfig, topics: &TopicSystem) -> Self {
+        let records = topics.read_range(".metadata", 0, 0u64..).await;
+        info!("{records:?}");
+
+        Self {
+            topics: Default::default(),
+        }
     }
 }

@@ -1,5 +1,6 @@
 use std::{
     collections::{BTreeSet, HashMap},
+    ops::{Bound, RangeBounds},
     path::{Path, PathBuf},
 };
 
@@ -111,6 +112,52 @@ impl TopicSystem {
             .await?;
 
         reader.read_record(offset).await
+    }
+
+    pub async fn read_range<R>(
+        &self,
+        topic_name: &str,
+        partition: u64,
+        offsets: R,
+    ) -> Result<Vec<Record>, PError>
+    where
+        R: RangeBounds<u64> + Clone,
+    {
+        let read = self.segments.read().await;
+
+        let segments = read.get(topic_name).ok_or(PError::TopicNotFound)?;
+
+        let segments = segments
+            .get(partition as usize)
+            .ok_or(PError::PartitionNotFound)?;
+
+        // TODO: test reading from multiple segments
+
+        let start_offset = match offsets.start_bound() {
+            Bound::Included(start) => *start,
+            Bound::Excluded(start) => *start + 1,
+            Bound::Unbounded => 0u64,
+        };
+
+        // get last segment with a offset before the target offset
+        let mut segment_start_offsets = vec![
+            segments
+                .range(0..=start_offset)
+                .next_back()
+                .ok_or(PError::OffsetNotFound)?,
+        ];
+        segment_start_offsets.extend(segments.range(offsets.clone()));
+
+        let mut records = Vec::new();
+        for start_offset in segment_start_offsets {
+            let reader = self
+                .get_reader(topic_name, partition, *start_offset)
+                .await?;
+
+            records.extend(reader.read_range(offsets.clone()).await?);
+        }
+
+        Ok(records)
     }
 
     pub async fn create_topic(&self, topic_name: &str, num_partitions: u64) -> Result<(), PError> {
