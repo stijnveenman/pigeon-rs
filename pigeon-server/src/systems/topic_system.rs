@@ -13,6 +13,7 @@ use tokio::{
 use crate::{
     disk::read_topic_states,
     dur::segment::{segment_reader::SegmentReader, segment_writer::SegmentWriter},
+    execution_context::ExecutionContext,
     metadata::{TopicMetadata, entry::create_topic::CreateTopicEntry},
     systems::SystemContext,
 };
@@ -27,10 +28,13 @@ pub struct TopicSystem {
 impl SystemContext {
     pub async fn append_record(
         &self,
+        context: &ExecutionContext,
         topic_name: &str,
         partition_id: u64,
         record: Record,
     ) -> Result<u64, PError> {
+        context.can_write_topic(topic_name)?;
+
         self.topics
             .append_record(&topic_name, partition_id, record)
             .await
@@ -38,10 +42,13 @@ impl SystemContext {
 
     pub async fn read_record(
         &self,
+        context: &ExecutionContext,
         topic_name: &str,
         partition_id: u64,
         offset: u64,
     ) -> Result<Record, PError> {
+        context.can_read_topic(topic_name)?;
+
         self.topics
             .read_record(&topic_name, partition_id, offset)
             .await
@@ -49,6 +56,7 @@ impl SystemContext {
 
     pub async fn read_range<R>(
         &self,
+        context: &ExecutionContext,
         topic_name: &str,
         partition_id: u64,
         offsets: R,
@@ -56,6 +64,8 @@ impl SystemContext {
     where
         R: RangeBounds<u64> + Clone,
     {
+        context.can_read_topic(topic_name)?;
+
         self.topics
             .read_range(topic_name, partition_id, offsets)
             .await
@@ -63,9 +73,12 @@ impl SystemContext {
 
     pub async fn create_topic(
         &self,
+        context: &ExecutionContext,
         topic_name: &str,
         num_partitions: Option<u64>,
     ) -> Result<(), PError> {
+        context.can_write_topic(topic_name)?;
+
         let num_partitions = num_partitions.unwrap_or(self.config.topics.default_partitions);
 
         self.apply_metadata(CreateTopicEntry {

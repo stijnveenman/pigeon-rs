@@ -35,4 +35,6 @@ pub enum PError {
     PartitionNotFound,
     #[error("Error occured during transport")]
     TransportFailure,
+    #[error("Unauthorized")]
+    Unauthorized,
 }

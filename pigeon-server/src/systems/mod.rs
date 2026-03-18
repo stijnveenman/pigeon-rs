@@ -5,6 +5,7 @@ use tokio::sync::RwLock;
 
 use crate::{
     config::ServerConfig,
+    execution_context::ExecutionContext,
     metadata::{Metadata, entry::MetadataEntry},
     systems::topic_system::TopicSystem,
 };
@@ -49,6 +50,7 @@ impl SystemContext {
 
         let value = serde_json::to_string(&entry).expect("Failed to serialize metadata entry");
         self.append_record(
+            &ExecutionContext::system(),
             ".metadata",
             0,
             Record {
