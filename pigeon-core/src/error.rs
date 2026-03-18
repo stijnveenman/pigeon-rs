@@ -37,4 +37,6 @@ pub enum PError {
     TransportFailure,
     #[error("Unauthorized")]
     Unauthorized,
+    #[error("Error deleting topic")]
+    DeleteTopicFailed,
 }

@@ -19,7 +19,7 @@ impl Default for ExecutionContext {
 }
 
 impl ExecutionContext {
-    pub fn can_read_topic(&self, topic_name: &str) -> Result<(), PError> {
+    pub fn can_read_topic(&self, _topic_name: &str) -> Result<(), PError> {
         Ok(())
     }
 

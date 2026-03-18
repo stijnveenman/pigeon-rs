@@ -25,6 +25,10 @@ impl PigeonSdk {
         self.request(Method::POST, path)
     }
 
+    fn delete(&self, path: &str) -> RequestBuilder {
+        self.request(Method::DELETE, path)
+    }
+
     async fn execute<T: DeserializeOwned>(&self, request: RequestBuilder) -> Result<T, PError> {
         let response = self
             .client
@@ -77,6 +81,12 @@ impl PigeonSdk {
             topic_name: topic_name.into(),
             num_partitions,
         });
+
+        self.execute(request).await
+    }
+
+    pub async fn delete_topic(&self, topic_name: &str) -> Result<(), PError> {
+        let request = self.delete(&format!("/topics/{topic_name}"));
 
         self.execute(request).await
     }

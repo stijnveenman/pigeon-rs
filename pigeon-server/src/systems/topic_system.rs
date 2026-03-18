@@ -6,7 +6,7 @@ use std::{
 
 use pigeon_core::{PError, record::Record};
 use tokio::{
-    fs::create_dir,
+    fs::{create_dir, remove_dir_all},
     sync::{RwLock, RwLockReadGuard},
 };
 
@@ -92,6 +92,16 @@ impl SystemContext {
             .await?;
 
         Ok(())
+    }
+
+    pub async fn delete_topic(
+        &self,
+        context: &ExecutionContext,
+        topic_name: &str,
+    ) -> Result<(), PError> {
+        context.can_write_topic(topic_name)?;
+
+        self.topics.delete_topic(topic_name).await
     }
 }
 
@@ -271,6 +281,25 @@ impl TopicSystem {
             topic_name.to_string(),
             (0..num_partitions).map(|_| BTreeSet::from([0])).collect(),
         );
+
+        Ok(())
+    }
+
+    // TODO: test
+    async fn delete_topic(&self, topic_name: &str) -> Result<(), PError> {
+        let mut active_segments = self.active_segments.write().await;
+        active_segments.remove(topic_name);
+
+        let mut segments = self.segments.write().await;
+        segments.remove(topic_name);
+
+        let mut read_segments = self.read_segments.write().await;
+        read_segments.retain(|k, _| k.0 != topic_name);
+
+        let topic_dir = self.base_dir.join(topic_name);
+        remove_dir_all(topic_dir)
+            .await
+            .map_err(|_| PError::DeleteTopicFailed)?;
 
         Ok(())
     }

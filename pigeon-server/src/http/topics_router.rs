@@ -3,7 +3,7 @@ use std::sync::Arc;
 use axum::{
     Json, Router,
     extract::{Path, State},
-    routing::{get, post},
+    routing::{delete, get, post},
 };
 use pigeon_core::{
     record::Record,
@@ -61,9 +61,21 @@ async fn append_record(
     Ok(Json(offset))
 }
 
+async fn delete_topic(
+    state: State<Arc<SystemContext>>,
+    Path(topic_name): Path<String>,
+) -> HttpResult<()> {
+    state
+        .delete_topic(&ExecutionContext::default(), &topic_name)
+        .await?;
+
+    Ok(Json(()))
+}
+
 pub fn router() -> Router<Arc<SystemContext>> {
     Router::<Arc<SystemContext>>::new()
         .route("/", post(create_topic))
+        .route("/{topic_name}", delete(delete_topic))
         .route("/{topic_name}/{partition_id}", post(append_record))
         .route("/{topic_name}/{partition_id}/{offset}", get(read_record))
 }

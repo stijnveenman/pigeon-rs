@@ -33,6 +33,9 @@ enum TopicCommands {
         name: String,
         partitions: Option<u64>,
     },
+    Delete {
+        name: String,
+    },
 }
 
 #[tokio::main]
@@ -49,6 +52,10 @@ async fn main() {
                     Err(e) => eprintln!("Error creating topic: {e} [{e:?}]"),
                 }
             }
+            TopicCommands::Delete { name } => match sdk.delete_topic(&name).await {
+                Ok(()) => println!("Deleted topic {name} succesfully"),
+                Err(e) => eprintln!("Error deleting topic: {e} [{e:?}]"),
+            },
         },
         Commands::Produce {
             topic,
