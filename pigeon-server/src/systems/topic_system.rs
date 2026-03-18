@@ -11,9 +11,10 @@ use tokio::{
 };
 
 use crate::{
-    disk::{self, read_topic_states},
+    disk::read_topic_states,
     dur::segment::{segment_reader::SegmentReader, segment_writer::SegmentWriter},
-    metadata::TopicMetadata,
+    metadata::{TopicMetadata, entry::create_topic::CreateTopicEntry},
+    systems::SystemContext,
 };
 
 pub struct TopicSystem {
@@ -21,6 +22,64 @@ pub struct TopicSystem {
     segments: RwLock<HashMap<String, Vec<BTreeSet<u64>>>>,
     read_segments: RwLock<HashMap<(String, u64, u64), SegmentReader>>,
     active_segments: RwLock<HashMap<String, Vec<RwLock<SegmentWriter>>>>,
+}
+
+impl SystemContext {
+    pub async fn append_record(
+        &self,
+        topic_name: &str,
+        partition_id: u64,
+        record: Record,
+    ) -> Result<u64, PError> {
+        self.topics
+            .append_record(&topic_name, partition_id, record)
+            .await
+    }
+
+    pub async fn read_record(
+        &self,
+        topic_name: &str,
+        partition_id: u64,
+        offset: u64,
+    ) -> Result<Record, PError> {
+        self.topics
+            .read_record(&topic_name, partition_id, offset)
+            .await
+    }
+
+    pub async fn read_range<R>(
+        &self,
+        topic_name: &str,
+        partition_id: u64,
+        offsets: R,
+    ) -> Result<Vec<Record>, PError>
+    where
+        R: RangeBounds<u64> + Clone,
+    {
+        self.topics
+            .read_range(topic_name, partition_id, offsets)
+            .await
+    }
+
+    pub async fn create_topic(
+        &self,
+        topic_name: &str,
+        num_partitions: Option<u64>,
+    ) -> Result<(), PError> {
+        let num_partitions = num_partitions.unwrap_or(self.config.topics.default_partitions);
+
+        self.apply_metadata(CreateTopicEntry {
+            topic_name: topic_name.to_string(),
+            num_partitions,
+        })
+        .await?;
+
+        self.topics
+            .create_topic(&topic_name, num_partitions)
+            .await?;
+
+        Ok(())
+    }
 }
 
 impl TopicSystem {
@@ -102,7 +161,7 @@ impl TopicSystem {
         }))
     }
 
-    pub async fn read_record(
+    async fn read_record(
         &self,
         topic_name: &str,
         partition: u64,
@@ -129,10 +188,10 @@ impl TopicSystem {
         reader.read_record(offset).await
     }
 
-    pub async fn read_range<R>(
+    pub(super) async fn read_range<R>(
         &self,
         topic_name: &str,
-        partition: u64,
+        partition_id: u64,
         offsets: R,
     ) -> Result<Vec<Record>, PError>
     where
@@ -143,7 +202,7 @@ impl TopicSystem {
         let segments = read.get(topic_name).ok_or(PError::TopicNotFound)?;
 
         let segments = segments
-            .get(partition as usize)
+            .get(partition_id as usize)
             .ok_or(PError::PartitionNotFound)?;
 
         // TODO: test reading from multiple segments
@@ -164,7 +223,7 @@ impl TopicSystem {
         let mut records = Vec::new();
         for start_offset in segment_start_offsets {
             let reader = self
-                .get_reader(topic_name, partition, *start_offset)
+                .get_reader(topic_name, partition_id, *start_offset)
                 .await?;
 
             records.extend(reader.read_range(offsets.clone()).await?);
@@ -173,7 +232,7 @@ impl TopicSystem {
         Ok(records)
     }
 
-    pub async fn create_topic(&self, topic_name: &str, num_partitions: u64) -> Result<(), PError> {
+    async fn create_topic(&self, topic_name: &str, num_partitions: u64) -> Result<(), PError> {
         let topic_dir = self.base_dir.join(topic_name);
 
         create_dir(&topic_dir)
@@ -203,7 +262,7 @@ impl TopicSystem {
         Ok(())
     }
 
-    pub async fn append_record(
+    async fn append_record(
         &self,
         topic_name: &str,
         partition: u64,

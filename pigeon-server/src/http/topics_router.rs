@@ -10,30 +10,15 @@ use pigeon_core::{
     rpc::{append_record::AppendRecord, create_topic::CreateTopic},
 };
 
-use crate::{
-    http::error::HttpResult, metadata::entry::create_topic::CreateTopicEntry,
-    systems::SystemContext,
-};
+use crate::{http::error::HttpResult, systems::SystemContext};
 
 #[axum::debug_handler]
 async fn create_topic(
     state: State<Arc<SystemContext>>,
     command: Json<CreateTopic>,
 ) -> HttpResult<()> {
-    let num_partitions = command
-        .num_partitions
-        .unwrap_or(state.config.topics.default_partitions);
-
     state
-        .apply_metadata(CreateTopicEntry {
-            topic_name: command.topic_name.to_string(),
-            num_partitions,
-        })
-        .await?;
-
-    state
-        .topics
-        .create_topic(&command.topic_name, num_partitions)
+        .create_topic(&command.topic_name, command.num_partitions)
         .await?;
 
     Ok(Json(()))
@@ -43,10 +28,7 @@ async fn read_record(
     state: State<Arc<SystemContext>>,
     Path((topic_name, partition_id, offset)): Path<(String, u64, u64)>,
 ) -> HttpResult<Record> {
-    let record = state
-        .topics
-        .read_record(&topic_name, partition_id, offset)
-        .await?;
+    let record = state.read_record(&topic_name, partition_id, offset).await?;
 
     Ok(Json(record))
 }
@@ -57,7 +39,6 @@ async fn append_record(
     command: Json<AppendRecord>,
 ) -> HttpResult<u64> {
     let offset = state
-        .topics
         .append_record(
             &topic_name,
             partition_id,
