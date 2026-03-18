@@ -1,6 +1,7 @@
 use std::collections::{HashMap, hash_map::Entry};
 
 use pigeon_core::{PError, record::Record};
+use tracing::info;
 
 use crate::metadata::entry::MetadataEntry;
 
@@ -23,11 +24,16 @@ impl Metadata {
             MetadataEntry::CreateTopic(entry) => {
                 match self.topics.entry(entry.topic_name.to_string()) {
                     Entry::Occupied(_) => return Err(PError::TopicAlreadyExists),
-                    Entry::Vacant(vacant) => vacant.insert(TopicMetadata {
-                        topic_name: entry.topic_name.to_string(),
-                        num_partitions: entry.num_partitions,
-                    }),
+                    Entry::Vacant(vacant) => {
+                        vacant.insert(TopicMetadata {
+                            topic_name: entry.topic_name.to_string(),
+                            num_partitions: entry.num_partitions,
+                        });
+                    }
                 }
+            }
+            MetadataEntry::DeleteTopic(entry) => {
+                self.topics.remove(&entry.topic_name);
             }
         };
 

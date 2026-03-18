@@ -1,5 +1,5 @@
 use std::{
-    ops::{Range, RangeBounds},
+    ops::{Bound, Range, RangeBounds},
     path::Path,
 };
 
@@ -37,11 +37,15 @@ impl SegmentReader {
     where
         R: RangeBounds<u64> + Clone,
     {
-        let mut range = self.index.range(offsets);
+        let mut range = self.index.range(offsets.clone());
         let Some(start_offset) = range.next() else {
             return Ok(Vec::new());
         };
-        let end_offset = range.next_back().map(|i| *i.1);
+
+        let end_offset = match offsets.end_bound() {
+            Bound::Included(_) | Bound::Excluded(_) => range.next_back().map(|i| *i.1),
+            Bound::Unbounded => None,
+        };
 
         self.log.read_records(*start_offset.1, end_offset).await
     }

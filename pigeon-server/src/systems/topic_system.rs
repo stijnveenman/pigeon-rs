@@ -9,12 +9,16 @@ use tokio::{
     fs::{create_dir, remove_dir_all},
     sync::{RwLock, RwLockReadGuard},
 };
+use tracing::warn;
 
 use crate::{
     disk::read_topic_states,
     dur::segment::{segment_reader::SegmentReader, segment_writer::SegmentWriter},
     execution_context::ExecutionContext,
-    metadata::{TopicMetadata, entry::create_topic::CreateTopicEntry},
+    metadata::{
+        TopicMetadata,
+        entry::{create_topic::CreateTopicEntry, delete_topic::DeleteTopicEntry},
+    },
     systems::SystemContext,
 };
 
@@ -101,6 +105,11 @@ impl SystemContext {
     ) -> Result<(), PError> {
         context.can_write_topic(topic_name)?;
 
+        self.apply_metadata(DeleteTopicEntry {
+            topic_name: topic_name.to_string(),
+        })
+        .await?;
+
         self.topics.delete_topic(topic_name).await
     }
 }
@@ -150,6 +159,7 @@ impl TopicSystem {
 
         for topic in topics.values() {
             if !disk_topics.contains(&topic.topic_name) {
+                warn!("Topic {} missing from disk, creating", topic.topic_name);
                 self.create_topic(&topic.topic_name, topic.num_partitions)
                     .await
                     .expect("failed to sync metadata topic on disk");
