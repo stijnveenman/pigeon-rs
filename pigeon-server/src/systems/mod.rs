@@ -1,30 +1,32 @@
-use std::{fs::create_dir, path::Path, sync::Arc};
+use std::{collections::HashMap, fs::create_dir, path::Path, sync::Arc};
 
 use pigeon_core::{PError, record::Record};
 use tokio::sync::RwLock;
 
 use crate::{
     config::ServerConfig,
-    execution_context::ExecutionContext,
     metadata::{Metadata, entry::MetadataEntry},
-    systems::topic_system::TopicSystem,
+    systems::{topic_system::TopicSystem, topics::TopicState},
 };
 
+pub mod execution_context;
 pub mod topic_system;
+mod topics;
 
 pub struct SystemContext {
-    pub config: ServerConfig,
+    pub config: Arc<ServerConfig>,
     metadata: RwLock<Metadata>,
     topics: TopicSystem,
+    topic_states: RwLock<HashMap<String, TopicState>>,
 }
 
 impl SystemContext {
-    pub async fn initialise(config: ServerConfig) -> Arc<Self> {
+    pub async fn initialise(config: Arc<ServerConfig>) -> Arc<Self> {
         if !Path::new(&config.data_dir).exists() {
             create_dir(&config.data_dir).unwrap();
         }
 
-        let mut topics = TopicSystem::initialise(&config.data_dir).await;
+        let mut topics = TopicSystem::initialise(config.data_dir.to_str().unwrap()).await;
         let records = match topics.read_range(".metadata", 0, 0u64..).await {
             Ok(records) => records,
             Err(PError::TopicNotFound) => vec![],
@@ -38,6 +40,7 @@ impl SystemContext {
             topics,
             metadata: RwLock::new(metadata),
             config,
+            topic_states: Default::default(),
         })
     }
 
@@ -50,7 +53,6 @@ impl SystemContext {
 
         let value = serde_json::to_string(&entry).expect("Failed to serialize metadata entry");
         self.append_record(
-            &ExecutionContext::system(),
             ".metadata",
             0,
             Record {

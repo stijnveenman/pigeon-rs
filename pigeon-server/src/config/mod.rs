@@ -1,6 +1,8 @@
 mod http_config;
 mod topic_config;
 
+use std::path::PathBuf;
+
 use config::Config;
 use serde::{Deserialize, Serialize};
 
@@ -8,7 +10,7 @@ use crate::config::{http_config::HttpConfig, topic_config::TopicConfig};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ServerConfig {
-    pub data_dir: String,
+    pub data_dir: PathBuf,
     pub topics: TopicConfig,
     pub http: HttpConfig,
 }
@@ -18,7 +20,7 @@ impl Default for ServerConfig {
         ServerConfig {
             topics: Default::default(),
             http: Default::default(),
-            data_dir: "data".to_string(),
+            data_dir: PathBuf::from("data"),
         }
     }
 }

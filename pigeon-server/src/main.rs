@@ -1,10 +1,11 @@
 mod config;
 mod disk;
 mod dur;
-mod execution_context;
 mod http;
 mod metadata;
 mod systems;
+
+use std::sync::Arc;
 
 use anyhow::Result;
 use clap::Parser;
@@ -29,7 +30,7 @@ pub async fn main() -> Result<()> {
 
     info!("Starting with ServerConfig {config:?}");
 
-    let system = SystemContext::initialise(config).await;
+    let system = SystemContext::initialise(Arc::new(config)).await;
 
     http::serve(system).await?;
 

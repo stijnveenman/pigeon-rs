@@ -10,31 +10,31 @@ use pigeon_core::{
     rpc::{append_record::AppendRecord, create_topic::CreateTopic},
 };
 
-use crate::{execution_context::ExecutionContext, http::error::HttpResult, systems::SystemContext};
+use crate::{
+    http::error::HttpResult,
+    systems::{SystemContext, execution_context::ExecutionContext},
+};
 
 #[axum::debug_handler]
 async fn create_topic(
-    state: State<Arc<SystemContext>>,
+    State(state): State<Arc<SystemContext>>,
     command: Json<CreateTopic>,
 ) -> HttpResult<()> {
-    state
-        .create_topic(
-            &ExecutionContext::default(),
-            &command.topic_name,
-            command.num_partitions,
-        )
+    ExecutionContext::user(state)
+        .create_topic(&command.topic_name, command.num_partitions)
         .await?;
 
     Ok(Json(()))
 }
 
 async fn read_record(
-    state: State<Arc<SystemContext>>,
+    State(state): State<Arc<SystemContext>>,
     Path((topic_name, partition_id, offset)): Path<(String, u64, u64)>,
 ) -> HttpResult<Record> {
     let record = state
+        .clone()
         .read_record(
-            &ExecutionContext::default(),
+            &ExecutionContext::user(state),
             &topic_name,
             partition_id,
             offset,
@@ -51,7 +51,6 @@ async fn append_record(
 ) -> HttpResult<u64> {
     let offset = state
         .append_record(
-            &ExecutionContext::default(),
             &topic_name,
             partition_id,
             Record::new(&command.key, &command.value),
@@ -62,11 +61,12 @@ async fn append_record(
 }
 
 async fn delete_topic(
-    state: State<Arc<SystemContext>>,
+    State(state): State<Arc<SystemContext>>,
     Path(topic_name): Path<String>,
 ) -> HttpResult<()> {
     state
-        .delete_topic(&ExecutionContext::default(), &topic_name)
+        .clone()
+        .delete_topic(&ExecutionContext::user(state), &topic_name)
         .await?;
 
     Ok(Json(()))

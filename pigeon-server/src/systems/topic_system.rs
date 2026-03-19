@@ -14,12 +14,11 @@ use tracing::warn;
 use crate::{
     disk::read_topic_states,
     dur::segment::{segment_reader::SegmentReader, segment_writer::SegmentWriter},
-    execution_context::ExecutionContext,
     metadata::{
         TopicMetadata,
         entry::{create_topic::CreateTopicEntry, delete_topic::DeleteTopicEntry},
     },
-    systems::SystemContext,
+    systems::{SystemContext, execution_context::ExecutionContext},
 };
 
 pub struct TopicSystem {
@@ -32,13 +31,10 @@ pub struct TopicSystem {
 impl SystemContext {
     pub async fn append_record(
         &self,
-        context: &ExecutionContext,
         topic_name: &str,
         partition_id: u64,
         record: Record,
     ) -> Result<u64, PError> {
-        context.can_write_topic(topic_name)?;
-
         self.topics
             .append_record(&topic_name, partition_id, record)
             .await
