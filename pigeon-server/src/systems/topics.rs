@@ -2,7 +2,7 @@ use std::collections::{BTreeSet, HashMap};
 
 use pigeon_core::{PError, record::Record};
 use tokio::{
-    fs::create_dir,
+    fs::{create_dir, remove_dir_all},
     sync::{RwLock, RwLockMappedWriteGuard, RwLockReadGuard, RwLockWriteGuard},
 };
 
@@ -170,5 +170,19 @@ impl ExecutionContext {
         };
 
         reader.read_record(offset).await
+    }
+
+    pub async fn delete_topic(&self, topic_name: &str) -> Result<(), PError> {
+        self.can_write_topic(topic_name)?;
+
+        let mut topics = self.system.topic_states.write().await;
+        topics.remove(topic_name);
+
+        let topic_dir = self.config.data_dir.join(topic_name);
+        remove_dir_all(topic_dir)
+            .await
+            .map_err(|_| PError::DeleteTopicFailed)?;
+
+        Ok(())
     }
 }

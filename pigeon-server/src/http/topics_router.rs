@@ -58,9 +58,8 @@ async fn delete_topic(
     State(state): State<Arc<SystemContext>>,
     Path(topic_name): Path<String>,
 ) -> HttpResult<()> {
-    state
-        .clone()
-        .delete_topic(&ExecutionContext::user(state), &topic_name)
+    ExecutionContext::user(state)
+        .delete_topic(&topic_name)
         .await?;
 
     Ok(Json(()))
