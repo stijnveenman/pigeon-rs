@@ -17,6 +17,7 @@ pub struct SystemContext {
     pub config: Arc<ServerConfig>,
     metadata: RwLock<Metadata>,
     topics: TopicSystem,
+    /// List of open topics in memory, not necessarily all existing topics
     topic_states: RwLock<HashMap<String, TopicState>>,
 }
 

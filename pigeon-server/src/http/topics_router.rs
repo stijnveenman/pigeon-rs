@@ -45,11 +45,11 @@ async fn read_record(
 }
 
 async fn append_record(
-    state: State<Arc<SystemContext>>,
+    State(state): State<Arc<SystemContext>>,
     Path((topic_name, partition_id)): Path<(String, u64)>,
     command: Json<AppendRecord>,
 ) -> HttpResult<u64> {
-    let offset = state
+    let offset = ExecutionContext::user(state)
         .append_record(
             &topic_name,
             partition_id,

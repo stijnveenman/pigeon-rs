@@ -36,7 +36,7 @@ impl SystemContext {
         record: Record,
     ) -> Result<u64, PError> {
         self.topics
-            .append_record(&topic_name, partition_id, record)
+            .append_record(topic_name, partition_id, record)
             .await
     }
 
@@ -52,46 +52,6 @@ impl SystemContext {
         self.topics
             .read_record(&topic_name, partition_id, offset)
             .await
-    }
-
-    pub async fn read_range<R>(
-        &self,
-        context: &ExecutionContext,
-        topic_name: &str,
-        partition_id: u64,
-        offsets: R,
-    ) -> Result<Vec<Record>, PError>
-    where
-        R: RangeBounds<u64> + Clone,
-    {
-        context.can_read_topic(topic_name)?;
-
-        self.topics
-            .read_range(topic_name, partition_id, offsets)
-            .await
-    }
-
-    pub async fn create_topic(
-        &self,
-        context: &ExecutionContext,
-        topic_name: &str,
-        num_partitions: Option<u64>,
-    ) -> Result<(), PError> {
-        context.can_write_topic(topic_name)?;
-
-        let num_partitions = num_partitions.unwrap_or(self.config.topics.default_partitions);
-
-        self.apply_metadata(CreateTopicEntry {
-            topic_name: topic_name.to_string(),
-            num_partitions,
-        })
-        .await?;
-
-        self.topics
-            .create_topic(&topic_name, num_partitions)
-            .await?;
-
-        Ok(())
     }
 
     pub async fn delete_topic(

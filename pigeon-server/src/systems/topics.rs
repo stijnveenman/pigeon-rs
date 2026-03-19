@@ -1,11 +1,10 @@
-use std::{
-    collections::{BTreeSet, HashMap},
-    hash::Hash,
-    sync::RwLock,
-};
+use std::collections::{BTreeSet, HashMap};
 
-use pigeon_core::PError;
-use tokio::fs::create_dir;
+use pigeon_core::{PError, record::Record};
+use tokio::{
+    fs::create_dir,
+    sync::{RwLock, RwLockMappedWriteGuard, RwLockReadGuard, RwLockWriteGuard},
+};
 
 use crate::{
     dur::segment::{segment_reader::SegmentReader, segment_writer::SegmentWriter},
@@ -16,7 +15,7 @@ use crate::{
 struct PartitionState {
     segments: BTreeSet<u64>,
     read_segments: HashMap<u64, SegmentReader>,
-    active_segment: RwLock<SegmentWriter>,
+    active_segment: SegmentWriter,
 }
 
 pub struct TopicState {
@@ -56,7 +55,7 @@ impl ExecutionContext {
             partitions.push(PartitionState {
                 segments: BTreeSet::from([0]),
                 read_segments: HashMap::new(),
-                active_segment: RwLock::new(active_segment),
+                active_segment,
             });
         }
 
@@ -65,5 +64,59 @@ impl ExecutionContext {
         topic_states.insert(topic_name.to_string(), TopicState { partitions });
 
         Ok(())
+    }
+
+    async fn get_topic(&self, topic_name: &str) -> Result<RwLockReadGuard<'_, TopicState>, PError> {
+        self.can_read_topic(topic_name)?;
+
+        let topics = self.system.topic_states.read().await;
+
+        // TODO: open topic if not in memory
+        RwLockReadGuard::try_map(topics, |topics| topics.get(topic_name))
+            .map_err(|_| PError::TopicNotFound)
+    }
+
+    async fn get_topic_mut(
+        &self,
+        topic_name: &str,
+    ) -> Result<RwLockMappedWriteGuard<'_, TopicState>, PError> {
+        self.can_write_topic(topic_name)?;
+
+        let topics = self.system.topic_states.write().await;
+
+        // TODO: open topic if not in memory
+        RwLockWriteGuard::try_map(topics, |topics| topics.get_mut(topic_name))
+            .map_err(|_| PError::TopicNotFound)
+    }
+
+    async fn get_partition_mut(
+        &self,
+        topic_name: &str,
+        partition_id: u64,
+    ) -> Result<RwLockMappedWriteGuard<'_, PartitionState>, PError> {
+        let topic = self.get_topic_mut(topic_name).await?;
+
+        RwLockMappedWriteGuard::try_map(topic, |topic| {
+            topic.partitions.get_mut(partition_id as usize)
+        })
+        .map_err(|_| PError::PartitionNotFound)
+    }
+
+    pub async fn append_record(
+        &self,
+        topic_name: &str,
+        partition_id: u64,
+        record: Record,
+    ) -> Result<u64, PError> {
+        let mut partition = self.get_partition_mut(topic_name, partition_id).await?;
+
+        let active_segment_start = partition.active_segment.start_offset;
+        let (offset, byte_offset) = partition.active_segment.append_record(record).await?;
+
+        if let Some(read_segment) = partition.read_segments.get_mut(&active_segment_start) {
+            read_segment.append(offset, byte_offset)?;
+        }
+
+        Ok(offset)
     }
 }
