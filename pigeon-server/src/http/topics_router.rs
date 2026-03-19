@@ -31,14 +31,8 @@ async fn read_record(
     State(state): State<Arc<SystemContext>>,
     Path((topic_name, partition_id, offset)): Path<(String, u64, u64)>,
 ) -> HttpResult<Record> {
-    let record = state
-        .clone()
-        .read_record(
-            &ExecutionContext::user(state),
-            &topic_name,
-            partition_id,
-            offset,
-        )
+    let record = ExecutionContext::user(state)
+        .read_record(&topic_name, partition_id, offset)
         .await?;
 
     Ok(Json(record))

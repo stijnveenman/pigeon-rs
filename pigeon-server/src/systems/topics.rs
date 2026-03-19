@@ -102,6 +102,17 @@ impl ExecutionContext {
         .map_err(|_| PError::PartitionNotFound)
     }
 
+    async fn get_partition(
+        &self,
+        topic_name: &str,
+        partition_id: u64,
+    ) -> Result<RwLockReadGuard<'_, PartitionState>, PError> {
+        let topic = self.get_topic(topic_name).await?;
+
+        RwLockReadGuard::try_map(topic, |topic| topic.partitions.get(partition_id as usize))
+            .map_err(|_| PError::PartitionNotFound)
+    }
+
     pub async fn append_record(
         &self,
         topic_name: &str,
@@ -118,5 +129,46 @@ impl ExecutionContext {
         }
 
         Ok(offset)
+    }
+
+    pub async fn read_record(
+        &self,
+        topic_name: &str,
+        partition_id: u64,
+        offset: u64,
+    ) -> Result<Record, PError> {
+        let mut partition = self.get_partition(topic_name, partition_id).await?;
+
+        let segment_start_offset = *partition
+            .segments
+            .range(0..=offset)
+            .next_back()
+            .ok_or(PError::OffsetNotFound)?;
+
+        let reader = match partition.read_segments.get(&segment_start_offset) {
+            Some(reader) => reader,
+            None => {
+                let segment_dir = self
+                    .config
+                    .data_dir
+                    .join(topic_name)
+                    .join(partition_id.to_string());
+
+                let segment = SegmentReader::open(&segment_dir, segment_start_offset).await?;
+
+                drop(partition);
+
+                let mut partition_m = self.get_partition_mut(topic_name, partition_id).await?;
+                partition_m
+                    .read_segments
+                    .insert(segment_start_offset, segment);
+                drop(partition_m);
+
+                partition = self.get_partition(topic_name, partition_id).await?;
+                partition.read_segments.get(&segment_start_offset).unwrap()
+            }
+        };
+
+        reader.read_record(offset).await
     }
 }
