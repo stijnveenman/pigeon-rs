@@ -127,11 +127,25 @@ impl ExecutionContext {
     ) -> Result<RwLockMappedWriteGuard<'_, TopicState>, PError> {
         self.can_write_topic(topic_name)?;
 
-        let topics = self.system.topic_states.write().await;
+        if let Ok(topic) =
+            RwLockWriteGuard::try_map(self.system.topic_states.write().await, |topics| {
+                topics.get_mut(topic_name)
+            })
+        {
+            return Ok(topic);
+        }
 
-        // TODO: open topic if not in memory
-        RwLockWriteGuard::try_map(topics, |topics| topics.get_mut(topic_name))
-            .map_err(|_| PError::TopicNotFound)
+        self.open_topic(topic_name).await?;
+
+        Ok(RwLockWriteGuard::map(
+            self.system.topic_states.write().await,
+            |topics| {
+                // SAFETY: as we have just succesfully open the tpoic, it should already be open
+                topics
+                    .get_mut(topic_name)
+                    .expect("Expected topic to be open")
+            },
+        ))
     }
 
     async fn get_partition_mut(
