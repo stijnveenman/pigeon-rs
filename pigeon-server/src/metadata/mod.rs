@@ -40,7 +40,7 @@ impl Metadata {
         Ok(())
     }
 
-    pub async fn initialise(records: &[Record]) -> Self {
+    pub fn initialise(records: &[Record]) -> Self {
         let mut metadata = Metadata {
             topics: Default::default(),
         };

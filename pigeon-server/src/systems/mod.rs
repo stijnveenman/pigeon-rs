@@ -35,7 +35,7 @@ impl SystemContext {
             Err(e) => panic!("Failed to read .metadata records: {e}"),
         };
 
-        let metadata = Metadata::initialise(&records).await;
+        let metadata = Metadata::initialise(&records);
         topics.sync(&metadata.topics).await;
 
         let system = Arc::new(SystemContext {
