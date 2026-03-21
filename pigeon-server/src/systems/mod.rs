@@ -6,10 +6,11 @@ use tokio::sync::RwLock;
 use crate::{
     config::ServerConfig,
     metadata::{Metadata, entry::MetadataEntry},
-    systems::{topic_system::TopicSystem, topics::TopicState},
+    systems::{execution_context::ExecutionContext, topic_system::TopicSystem, topics::TopicState},
 };
 
 pub mod execution_context;
+mod metadata;
 pub mod topic_system;
 mod topics;
 
@@ -37,12 +38,20 @@ impl SystemContext {
         let metadata = Metadata::initialise(&records).await;
         topics.sync(&metadata.topics).await;
 
-        Arc::new(SystemContext {
+        let system = Arc::new(SystemContext {
             topics,
             metadata: RwLock::new(metadata),
             config,
             topic_states: Default::default(),
-        })
+        });
+
+        let _ = dbg!(
+            ExecutionContext::system(system.clone())
+                .read_metadata()
+                .await
+        );
+
+        system
     }
 
     pub async fn apply_metadata(&self, entry: impl Into<MetadataEntry>) -> Result<(), PError> {

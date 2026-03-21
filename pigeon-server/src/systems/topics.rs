@@ -70,6 +70,7 @@ impl ExecutionContext {
 
     async fn open_topic(&self, topic_name: &str) -> Result<(), PError> {
         info!("Opening topic {topic_name}");
+
         let topics = read_partition_states(self.config.data_dir.join(topic_name))
             .map_err(|_| PError::OpenTopicFailed)?;
 
