@@ -1,4 +1,7 @@
-use std::collections::{BTreeSet, HashMap};
+use std::{
+    collections::{BTreeSet, HashMap},
+    ops::{Bound, RangeBounds},
+};
 
 use pigeon_core::{PError, record::Record};
 use tokio::{
@@ -243,6 +246,44 @@ impl ExecutionContext {
             .await?;
 
         reader.read_record(offset).await
+    }
+
+    pub async fn read_range<R>(
+        &self,
+        topic_name: &str,
+        partition_id: u64,
+        offsets: R,
+    ) -> Result<Vec<Record>, PError>
+    where
+        R: RangeBounds<u64> + Clone,
+    {
+        let partition = self.get_partition(topic_name, partition_id).await?;
+
+        let start_offset = match offsets.start_bound() {
+            Bound::Included(start) => *start,
+            Bound::Excluded(start) => *start + 1,
+            Bound::Unbounded => 0u64,
+        };
+
+        // get last segment with a offset before the target offset
+        let mut segment_start_offsets = Vec::new();
+        if let Some(previous) = partition.segments.range(0..start_offset).next_back() {
+            segment_start_offsets.push(*previous);
+        }
+        segment_start_offsets.extend(partition.segments.range(offsets.clone()));
+
+        drop(partition);
+
+        let mut records = Vec::new();
+        for start_offset in segment_start_offsets {
+            let reader = self
+                .get_segment_reader(topic_name, partition_id, start_offset)
+                .await?;
+
+            records.extend(reader.read_range(offsets.clone()).await?);
+        }
+
+        Ok(records)
     }
 
     pub async fn delete_topic(&self, topic_name: &str) -> Result<(), PError> {
