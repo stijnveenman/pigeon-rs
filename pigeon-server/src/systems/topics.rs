@@ -3,12 +3,12 @@ use std::collections::{BTreeSet, HashMap};
 use pigeon_core::{PError, record::Record};
 use tokio::{
     fs::{create_dir, remove_dir_all},
-    sync::{RwLock, RwLockMappedWriteGuard, RwLockReadGuard, RwLockWriteGuard},
+    sync::{RwLockMappedWriteGuard, RwLockReadGuard, RwLockWriteGuard},
 };
 use tracing::info;
 
 use crate::{
-    disk::{read_partition_states, read_topic_states},
+    disk::read_partition_states,
     dur::segment::{segment_reader::SegmentReader, segment_writer::SegmentWriter},
     metadata::entry::create_topic::CreateTopicEntry,
     systems::execution_context::ExecutionContext,
@@ -191,13 +191,44 @@ impl ExecutionContext {
         Ok(offset)
     }
 
+    async fn get_segment_reader(
+        &self,
+        topic_name: &str,
+        partition_id: u64,
+        start_offset: u64,
+    ) -> Result<RwLockReadGuard<'_, SegmentReader>, PError> {
+        let mut partition = self.get_partition(topic_name, partition_id).await?;
+
+        if !partition.read_segments.contains_key(&start_offset) {
+            drop(partition);
+
+            let segment_dir = self
+                .config
+                .data_dir
+                .join(topic_name)
+                .join(partition_id.to_string());
+
+            let segment = SegmentReader::open(&segment_dir, start_offset).await?;
+
+            let mut partition_m = self.get_partition_mut(topic_name, partition_id).await?;
+            partition_m.read_segments.insert(start_offset, segment);
+            drop(partition_m);
+
+            partition = self.get_partition(topic_name, partition_id).await?;
+        }
+
+        Ok(RwLockReadGuard::map(partition, |partition| {
+            partition.read_segments.get(&start_offset).unwrap()
+        }))
+    }
+
     pub async fn read_record(
         &self,
         topic_name: &str,
         partition_id: u64,
         offset: u64,
     ) -> Result<Record, PError> {
-        let mut partition = self.get_partition(topic_name, partition_id).await?;
+        let partition = self.get_partition(topic_name, partition_id).await?;
 
         let segment_start_offset = *partition
             .segments
@@ -205,29 +236,11 @@ impl ExecutionContext {
             .next_back()
             .ok_or(PError::OffsetNotFound)?;
 
-        let reader = match partition.read_segments.get(&segment_start_offset) {
-            Some(reader) => reader,
-            None => {
-                let segment_dir = self
-                    .config
-                    .data_dir
-                    .join(topic_name)
-                    .join(partition_id.to_string());
+        drop(partition);
 
-                let segment = SegmentReader::open(&segment_dir, segment_start_offset).await?;
-
-                drop(partition);
-
-                let mut partition_m = self.get_partition_mut(topic_name, partition_id).await?;
-                partition_m
-                    .read_segments
-                    .insert(segment_start_offset, segment);
-                drop(partition_m);
-
-                partition = self.get_partition(topic_name, partition_id).await?;
-                partition.read_segments.get(&segment_start_offset).unwrap()
-            }
-        };
+        let reader = self
+            .get_segment_reader(topic_name, partition_id, segment_start_offset)
+            .await?;
 
         reader.read_record(offset).await
     }
