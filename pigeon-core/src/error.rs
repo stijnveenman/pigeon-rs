@@ -27,6 +27,8 @@ pub enum PError {
     OffsetNotFound,
     #[error("Creating topic failed")]
     CreateTopicFailed,
+    #[error("Opening topic failed")]
+    OpenTopicFailed,
     #[error("Topic not found")]
     TopicNotFound,
     #[error("Topic with this name already exists")]

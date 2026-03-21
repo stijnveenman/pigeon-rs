@@ -5,8 +5,10 @@ use tokio::{
     fs::{create_dir, remove_dir_all},
     sync::{RwLock, RwLockMappedWriteGuard, RwLockReadGuard, RwLockWriteGuard},
 };
+use tracing::info;
 
 use crate::{
+    disk::{read_partition_states, read_topic_states},
     dur::segment::{segment_reader::SegmentReader, segment_writer::SegmentWriter},
     metadata::entry::create_topic::CreateTopicEntry,
     systems::execution_context::ExecutionContext,
@@ -66,14 +68,57 @@ impl ExecutionContext {
         Ok(())
     }
 
+    async fn open_topic(&self, topic_name: &str) -> Result<(), PError> {
+        info!("Opening topic {topic_name}");
+        let topics = read_partition_states(self.config.data_dir.join(topic_name))
+            .map_err(|_| PError::OpenTopicFailed)?;
+
+        let mut partitions = Vec::with_capacity(topics.len());
+
+        for (index, segments) in topics.into_iter().enumerate() {
+            let base_dir = self
+                .config
+                .data_dir
+                .join(topic_name)
+                .join(index.to_string());
+
+            let start_offset = segments.last().cloned().unwrap_or(0);
+
+            let writer = SegmentWriter::open(&base_dir, start_offset).await?;
+
+            partitions.push(PartitionState {
+                segments,
+                read_segments: HashMap::new(),
+                active_segment: writer,
+            });
+        }
+
+        let mut topics = self.system.topic_states.write().await;
+        topics.insert(topic_name.to_string(), TopicState { partitions });
+
+        Ok(())
+    }
+
     async fn get_topic(&self, topic_name: &str) -> Result<RwLockReadGuard<'_, TopicState>, PError> {
         self.can_read_topic(topic_name)?;
 
-        let topics = self.system.topic_states.read().await;
+        if let Ok(topic) =
+            RwLockReadGuard::try_map(self.system.topic_states.read().await, |topics| {
+                topics.get(topic_name)
+            })
+        {
+            return Ok(topic);
+        }
 
-        // TODO: open topic if not in memory
-        RwLockReadGuard::try_map(topics, |topics| topics.get(topic_name))
-            .map_err(|_| PError::TopicNotFound)
+        self.open_topic(topic_name).await?;
+
+        Ok(RwLockReadGuard::map(
+            self.system.topic_states.read().await,
+            |topics| {
+                // SAFETY: as we have just succesfully open the tpoic, it should already be open
+                topics.get(topic_name).expect("Expected topic to be open")
+            },
+        ))
     }
 
     async fn get_topic_mut(
