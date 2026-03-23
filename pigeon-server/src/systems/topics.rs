@@ -13,7 +13,7 @@ use tracing::info;
 use crate::{
     disk::read_partition_states,
     dur::segment::{segment_reader::SegmentReader, segment_writer::SegmentWriter},
-    metadata::entry::create_topic::CreateTopicEntry,
+    metadata::entry::{create_topic::CreateTopicEntry, delete_topic::DeleteTopicEntry},
     systems::execution_context::ExecutionContext,
 };
 
@@ -37,12 +37,11 @@ impl ExecutionContext {
 
         let num_partitions = num_partitions.unwrap_or(self.system.config.topics.default_partitions);
 
-        self.system
-            .apply_metadata(CreateTopicEntry {
-                topic_name: topic_name.to_string(),
-                num_partitions,
-            })
-            .await?;
+        self.apply_metadata(CreateTopicEntry {
+            topic_name: topic_name.to_string(),
+            num_partitions,
+        })
+        .await?;
 
         let topic_dir = self.config.data_dir.join(topic_name);
         create_dir(&topic_dir)
@@ -289,6 +288,11 @@ impl ExecutionContext {
     // TODO: add test
     pub async fn delete_topic(&self, topic_name: &str) -> Result<(), PError> {
         self.can_write_topic(topic_name)?;
+
+        self.apply_metadata(DeleteTopicEntry {
+            topic_name: topic_name.to_string(),
+        })
+        .await?;
 
         let mut topics = self.system.topic_states.write().await;
         topics.remove(topic_name);
