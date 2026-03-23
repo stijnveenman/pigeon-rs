@@ -1,6 +1,6 @@
-use pigeon_core::PError;
+use pigeon_core::{PError, record::Record};
 
-use crate::systems::execution_context::ExecutionContext;
+use crate::{metadata::entry::MetadataEntry, systems::execution_context::ExecutionContext};
 
 impl ExecutionContext {
     pub async fn initialise_metadata(&self) -> Result<(), PError> {
@@ -16,6 +16,29 @@ impl ExecutionContext {
         metadata.initialise(&records);
 
         // TODO: initialise if doesn't exist
+
+        Ok(())
+    }
+
+    pub async fn apply_metadata(&self, entry: impl Into<MetadataEntry>) -> Result<(), PError> {
+        let entry = entry.into();
+
+        let mut meta = self.system.metadata.write().await;
+        meta.apply(&entry)?;
+        drop(meta);
+
+        let value = serde_json::to_string(&entry).expect("Failed to serialize metadata entry");
+        ExecutionContext::system(self.system.clone())
+            .append_record(
+                ".metadata",
+                0,
+                Record {
+                    value: value.into_bytes(),
+                    offset: 0,
+                    key: b"metadata".to_vec(),
+                },
+            )
+            .await?;
 
         Ok(())
     }
