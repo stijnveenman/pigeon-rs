@@ -1,12 +1,12 @@
 use std::{collections::HashMap, fs::create_dir, path::Path, sync::Arc};
 
-use pigeon_core::{PError, record::Record};
+use pigeon_core::PError;
 use tokio::sync::RwLock;
 
 use crate::{
     config::ServerConfig,
     metadata::{Metadata, entry::MetadataEntry},
-    systems::{execution_context::ExecutionContext, topic_system::TopicSystem, topics::TopicState},
+    systems::{execution_context::ExecutionContext, topics::TopicState},
 };
 
 pub mod execution_context;
@@ -17,7 +17,6 @@ mod topics;
 pub struct SystemContext {
     pub config: Arc<ServerConfig>,
     metadata: RwLock<Metadata>,
-    topics: TopicSystem,
     /// List of open topics in memory, not necessarily all existing topics
     topic_states: RwLock<HashMap<String, TopicState>>,
 }
@@ -28,28 +27,16 @@ impl SystemContext {
             create_dir(&config.data_dir).unwrap();
         }
 
-        let mut topics = TopicSystem::initialise(config.data_dir.to_str().unwrap()).await;
-        let records = match topics.read_range(".metadata", 0, 0u64..).await {
-            Ok(records) => records,
-            Err(PError::TopicNotFound) => vec![],
-            Err(e) => panic!("Failed to read .metadata records: {e}"),
-        };
-
-        let metadata = Metadata::initialise(&records);
-        topics.sync(&metadata.topics).await;
-
         let system = Arc::new(SystemContext {
-            topics,
-            metadata: RwLock::new(metadata),
+            metadata: RwLock::default(),
             config,
             topic_states: Default::default(),
         });
 
-        let _ = dbg!(
-            ExecutionContext::system(system.clone())
-                .read_metadata()
-                .await
-        );
+        ExecutionContext::system(system.clone())
+            .initialise_metadata()
+            .await
+            .expect("Failed to load metadata");
 
         system
     }
@@ -62,16 +49,17 @@ impl SystemContext {
         drop(meta);
 
         let value = serde_json::to_string(&entry).expect("Failed to serialize metadata entry");
-        self.append_record(
-            ".metadata",
-            0,
-            Record {
-                offset: 0,
-                key: b"metadata".to_vec(),
-                value: value.into_bytes(),
-            },
-        )
-        .await?;
+        // TODO:
+        // self.append_record(
+        //     ".metadata",
+        //     0,
+        //     Record {
+        //         offset: 0,
+        //         key: b"metadata".to_vec(),
+        //         value: value.into_bytes(),
+        //     },
+        // )
+        // .await?;
 
         Ok(())
     }

@@ -1,7 +1,6 @@
 use std::collections::{HashMap, hash_map::Entry};
 
 use pigeon_core::{PError, record::Record};
-use tracing::info;
 
 use crate::metadata::entry::MetadataEntry;
 
@@ -13,7 +12,7 @@ pub struct TopicMetadata {
     pub num_partitions: u64,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct Metadata {
     pub topics: HashMap<String, TopicMetadata>,
 }
@@ -40,23 +39,18 @@ impl Metadata {
         Ok(())
     }
 
-    pub fn initialise(records: &[Record]) -> Self {
-        let mut metadata = Metadata {
-            topics: Default::default(),
-        };
-
+    pub fn initialise(&mut self, records: &[Record]) {
         for record in records {
             let entry = record
                 .json::<MetadataEntry>()
                 .expect("Failed to deserialize MetadataEntry");
 
-            metadata
-                .apply(&entry)
+            self.apply(&entry)
                 .expect("Failed to apply metadata state from disk");
         }
 
-        if !metadata.topics.contains_key(".metadata") {
-            metadata.topics.insert(
+        if !self.topics.contains_key(".metadata") {
+            self.topics.insert(
                 ".metadata".to_string(),
                 TopicMetadata {
                     topic_name: ".metadata".to_string(),
@@ -64,7 +58,5 @@ impl Metadata {
                 },
             );
         }
-
-        metadata
     }
 }

@@ -14,11 +14,7 @@ use tracing::warn;
 use crate::{
     disk::read_topic_states,
     dur::segment::{segment_reader::SegmentReader, segment_writer::SegmentWriter},
-    metadata::{
-        TopicMetadata,
-        entry::{create_topic::CreateTopicEntry, delete_topic::DeleteTopicEntry},
-    },
-    systems::{SystemContext, execution_context::ExecutionContext},
+    metadata::TopicMetadata,
 };
 
 pub struct TopicSystem {
@@ -26,48 +22,6 @@ pub struct TopicSystem {
     segments: RwLock<HashMap<String, Vec<BTreeSet<u64>>>>,
     read_segments: RwLock<HashMap<(String, u64, u64), SegmentReader>>,
     active_segments: RwLock<HashMap<String, Vec<RwLock<SegmentWriter>>>>,
-}
-
-impl SystemContext {
-    pub async fn append_record(
-        &self,
-        topic_name: &str,
-        partition_id: u64,
-        record: Record,
-    ) -> Result<u64, PError> {
-        self.topics
-            .append_record(topic_name, partition_id, record)
-            .await
-    }
-
-    pub async fn read_record(
-        &self,
-        context: &ExecutionContext,
-        topic_name: &str,
-        partition_id: u64,
-        offset: u64,
-    ) -> Result<Record, PError> {
-        context.can_read_topic(topic_name)?;
-
-        self.topics
-            .read_record(&topic_name, partition_id, offset)
-            .await
-    }
-
-    pub async fn delete_topic(
-        &self,
-        context: &ExecutionContext,
-        topic_name: &str,
-    ) -> Result<(), PError> {
-        context.can_write_topic(topic_name)?;
-
-        self.apply_metadata(DeleteTopicEntry {
-            topic_name: topic_name.to_string(),
-        })
-        .await?;
-
-        self.topics.delete_topic(topic_name).await
-    }
 }
 
 impl TopicSystem {
@@ -150,33 +104,6 @@ impl TopicSystem {
         }))
     }
 
-    async fn read_record(
-        &self,
-        topic_name: &str,
-        partition: u64,
-        offset: u64,
-    ) -> Result<Record, PError> {
-        let read = self.segments.read().await;
-
-        let segments = read.get(topic_name).ok_or(PError::TopicNotFound)?;
-
-        let segments = segments
-            .get(partition as usize)
-            .ok_or(PError::PartitionNotFound)?;
-
-        // get last segment with a offset before the target offset
-        let segment_start_offset = segments
-            .range(0..=offset)
-            .next_back()
-            .ok_or(PError::OffsetNotFound)?;
-
-        let reader = self
-            .get_reader(topic_name, partition, *segment_start_offset)
-            .await?;
-
-        reader.read_record(offset).await
-    }
-
     pub(super) async fn read_range<R>(
         &self,
         topic_name: &str,
@@ -247,25 +174,6 @@ impl TopicSystem {
             topic_name.to_string(),
             (0..num_partitions).map(|_| BTreeSet::from([0])).collect(),
         );
-
-        Ok(())
-    }
-
-    // TODO: test
-    async fn delete_topic(&self, topic_name: &str) -> Result<(), PError> {
-        let mut active_segments = self.active_segments.write().await;
-        active_segments.remove(topic_name);
-
-        let mut segments = self.segments.write().await;
-        segments.remove(topic_name);
-
-        let mut read_segments = self.read_segments.write().await;
-        read_segments.retain(|k, _| k.0 != topic_name);
-
-        let topic_dir = self.base_dir.join(topic_name);
-        remove_dir_all(topic_dir)
-            .await
-            .map_err(|_| PError::DeleteTopicFailed)?;
 
         Ok(())
     }
@@ -341,14 +249,15 @@ mod test {
             .await
             .unwrap();
 
-        let record = system.read_record("test", 0, 1).await.unwrap();
-        assert_eq!(&record.text().unwrap(), "t1");
-
-        let record = system.read_record("test", 1, 1).await.unwrap();
-        assert_eq!(&record.text().unwrap(), "t2");
-
-        let record = system.read_record("test", 9, 1).await.unwrap();
-        assert_eq!(&record.text().unwrap(), "t3");
+        todo!();
+        // let record = system.read_record("test", 0, 1).await.unwrap();
+        // assert_eq!(&record.text().unwrap(), "t1");
+        //
+        // let record = system.read_record("test", 1, 1).await.unwrap();
+        // assert_eq!(&record.text().unwrap(), "t2");
+        //
+        // let record = system.read_record("test", 9, 1).await.unwrap();
+        // assert_eq!(&record.text().unwrap(), "t3");
     }
 
     #[tokio::test]
@@ -362,16 +271,17 @@ mod test {
             .await
             .unwrap();
 
-        let record = system.read_record("world", 0, 1).await.unwrap();
-        assert_eq!(&record.text().unwrap(), "value1");
-
-        system
-            .append_record("world", 0, Record::new("k2", "value2"))
-            .await
-            .unwrap();
-
-        let record = system.read_record("world", 0, 2).await.unwrap();
-        assert_eq!(&record.text().unwrap(), "value2");
+        todo!();
+        // let record = system.read_record("world", 0, 1).await.unwrap();
+        // assert_eq!(&record.text().unwrap(), "value1");
+        //
+        // system
+        //     .append_record("world", 0, Record::new("k2", "value2"))
+        //     .await
+        //     .unwrap();
+        //
+        // let record = system.read_record("world", 0, 2).await.unwrap();
+        // assert_eq!(&record.text().unwrap(), "value2");
     }
 
     #[tokio::test]
@@ -387,14 +297,15 @@ mod test {
                 .unwrap();
         }
 
-        for i in 0..10 {
-            let record = system.read_record("test", 0, i + 1).await.unwrap();
-
-            assert_eq!(
-                record,
-                Record::with_offset(i + 1, &i.to_string(), &i.to_string())
-            );
-        }
+        todo!();
+        // for i in 0..10 {
+        //     let record = system.read_record("test", 0, i + 1).await.unwrap();
+        //
+        //     assert_eq!(
+        //         record,
+        //         Record::with_offset(i + 1, &i.to_string(), &i.to_string())
+        //     );
+        // }
     }
 
     #[tokio::test]
@@ -411,7 +322,8 @@ mod test {
         let base_dir = dir.path().to_str().unwrap();
         let system = TopicSystem::initialise(base_dir).await;
 
-        let record = system.read_record("test", 2, 1).await.unwrap();
-        assert_eq!(record, Record::with_offset(1, "foo", "bar"));
+        todo!();
+        // let record = system.read_record("test", 2, 1).await.unwrap();
+        // assert_eq!(record, Record::with_offset(1, "foo", "bar"));
     }
 }

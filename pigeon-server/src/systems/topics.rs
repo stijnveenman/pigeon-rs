@@ -286,6 +286,7 @@ impl ExecutionContext {
         Ok(records)
     }
 
+    // TODO: add test
     pub async fn delete_topic(&self, topic_name: &str) -> Result<(), PError> {
         self.can_write_topic(topic_name)?;
 
