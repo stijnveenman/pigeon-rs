@@ -16,7 +16,6 @@ pub struct ExecutionContext {
     pub user: User,
 }
 
-// TODO: start unit testing permissions
 impl ExecutionContext {
     pub fn can_read_topic(&self, _topic_name: &str) -> Result<(), PError> {
         Ok(())
@@ -42,6 +41,14 @@ impl ExecutionContext {
             user: User::Anonymous,
             config: system.config.clone(),
             system,
+        }
+    }
+
+    pub fn elevate(&self) -> Self {
+        Self {
+            user: User::System,
+            config: self.config.clone(),
+            system: self.system.clone(),
         }
     }
 }

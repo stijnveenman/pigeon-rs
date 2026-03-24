@@ -32,7 +32,7 @@ impl ExecutionContext {
         drop(meta);
 
         let value = serde_json::to_string(&entry).expect("Failed to serialize metadata entry");
-        ExecutionContext::system(self.system.clone())
+        self.elevate()
             .append_record(
                 ".metadata",
                 0,

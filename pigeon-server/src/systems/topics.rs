@@ -320,9 +320,9 @@ impl ExecutionContext {
 #[cfg(test)]
 mod test {
 
-    use pigeon_core::record::Record;
+    use pigeon_core::{PError, record::Record};
 
-    use crate::systems::test_system::TestSystem;
+    use crate::systems::{execution_context::ExecutionContext, test_system::TestSystem};
 
     #[tokio::test]
     async fn basic_end_to_end() {
@@ -418,5 +418,40 @@ mod test {
 
         let record = system.read_record("test", 2, 1).await.unwrap();
         assert_eq!(record, Record::with_offset(1, "foo", "bar"));
+    }
+
+    #[tokio::test]
+    async fn users_cannot_write_to_metadata() {
+        let system = TestSystem::create().await;
+
+        let user = ExecutionContext::user(system.system.clone());
+
+        let result = user
+            .append_record(".metadata", 0, Record::new("foo", "bar"))
+            .await;
+
+        assert_eq!(result, Err(PError::Unauthorized))
+    }
+
+    #[tokio::test]
+    async fn users_cannot_delete_metadata() {
+        let system = TestSystem::create().await;
+
+        let user = ExecutionContext::user(system.system.clone());
+
+        let result = user.delete_topic(".metadata").await;
+
+        assert_eq!(result, Err(PError::Unauthorized))
+    }
+
+    #[tokio::test]
+    async fn users_cannot_create_internal_topics() {
+        let system = TestSystem::create().await;
+
+        let user = ExecutionContext::user(system.system.clone());
+
+        let result = user.create_topic(".foobar", None).await;
+
+        assert_eq!(result, Err(PError::Unauthorized))
     }
 }
