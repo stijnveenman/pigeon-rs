@@ -305,3 +305,107 @@ impl ExecutionContext {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod test {
+
+    use pigeon_core::record::Record;
+
+    use crate::systems::test_system::TestSystem;
+
+    #[tokio::test]
+    async fn basic_end_to_end() {
+        let system = TestSystem::create().await;
+
+        system.create_topic("test", Some(10)).await.unwrap();
+
+        system
+            .append_record("test", 0, Record::new("key", "t1"))
+            .await
+            .unwrap();
+
+        system
+            .append_record("test", 1, Record::new("key", "t2"))
+            .await
+            .unwrap();
+
+        system
+            .append_record("test", 9, Record::new("key", "t3"))
+            .await
+            .unwrap();
+
+        let record = system.read_record("test", 0, 1).await.unwrap();
+        assert_eq!(&record.text().unwrap(), "t1");
+
+        let record = system.read_record("test", 1, 1).await.unwrap();
+        assert_eq!(&record.text().unwrap(), "t2");
+
+        let record = system.read_record("test", 9, 1).await.unwrap();
+        assert_eq!(&record.text().unwrap(), "t3");
+    }
+
+    #[tokio::test]
+    async fn multiple_read_writes() {
+        let system = TestSystem::create().await;
+
+        system.create_topic("world", Some(1)).await.unwrap();
+
+        system
+            .append_record("world", 0, Record::new("k1", "value1"))
+            .await
+            .unwrap();
+
+        let record = system.read_record("world", 0, 1).await.unwrap();
+        assert_eq!(&record.text().unwrap(), "value1");
+
+        system
+            .append_record("world", 0, Record::new("k2", "value2"))
+            .await
+            .unwrap();
+
+        let record = system.read_record("world", 0, 2).await.unwrap();
+        assert_eq!(&record.text().unwrap(), "value2");
+    }
+
+    #[tokio::test]
+    async fn read_in_middle() {
+        let system = TestSystem::create().await;
+
+        system.create_topic("test", Some(1)).await.unwrap();
+
+        for i in 0..10 {
+            system
+                .append_record("test", 0, Record::new(&i.to_string(), &i.to_string()))
+                .await
+                .unwrap();
+        }
+
+        for i in 0..10 {
+            let record = system.read_record("test", 0, i + 1).await.unwrap();
+
+            assert_eq!(
+                record,
+                Record::with_offset(i + 1, &i.to_string(), &i.to_string())
+            );
+        }
+    }
+
+    #[tokio::test]
+    async fn reinitialise_system() {
+        let system = TestSystem::create().await;
+
+        system.create_topic("test", Some(5)).await.unwrap();
+
+        system
+            .append_record("test", 2, Record::new("foo", "bar"))
+            .await
+            .unwrap();
+
+        let dir = system.close();
+
+        let system = TestSystem::from(dir).await;
+
+        let record = system.read_record("test", 2, 1).await.unwrap();
+        assert_eq!(record, Record::with_offset(1, "foo", "bar"));
+    }
+}

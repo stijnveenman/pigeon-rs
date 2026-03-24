@@ -8,6 +8,9 @@ use crate::{
     systems::{execution_context::ExecutionContext, topics::TopicState},
 };
 
+#[cfg(test)]
+mod test_system;
+
 pub mod execution_context;
 mod metadata;
 pub mod topic_system;
