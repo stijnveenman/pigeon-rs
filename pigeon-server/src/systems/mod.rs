@@ -13,14 +13,13 @@ mod test_system;
 
 pub mod execution_context;
 mod metadata;
-pub mod topic_system;
 mod topics;
 
 pub struct SystemContext {
     pub config: Arc<ServerConfig>,
     metadata: RwLock<Metadata>,
     /// List of open topics in memory, not necessarily all existing topics
-    topic_states: RwLock<HashMap<String, TopicState>>,
+    topics: RwLock<HashMap<String, TopicState>>,
 }
 
 impl SystemContext {
@@ -32,7 +31,7 @@ impl SystemContext {
         let system = Arc::new(SystemContext {
             metadata: RwLock::default(),
             config,
-            topic_states: Default::default(),
+            topics: Default::default(),
         });
 
         ExecutionContext::system(system.clone())

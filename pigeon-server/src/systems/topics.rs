@@ -63,7 +63,7 @@ impl ExecutionContext {
             });
         }
 
-        let mut topic_states = self.system.topic_states.write().await;
+        let mut topic_states = self.system.topics.write().await;
 
         topic_states.insert(topic_name.to_string(), TopicState { partitions });
 
@@ -96,7 +96,7 @@ impl ExecutionContext {
             });
         }
 
-        let mut topics = self.system.topic_states.write().await;
+        let mut topics = self.system.topics.write().await;
         topics.insert(topic_name.to_string(), TopicState { partitions });
 
         Ok(())
@@ -105,18 +105,16 @@ impl ExecutionContext {
     async fn get_topic(&self, topic_name: &str) -> Result<RwLockReadGuard<'_, TopicState>, PError> {
         self.can_read_topic(topic_name)?;
 
-        if let Ok(topic) =
-            RwLockReadGuard::try_map(self.system.topic_states.read().await, |topics| {
-                topics.get(topic_name)
-            })
-        {
+        if let Ok(topic) = RwLockReadGuard::try_map(self.system.topics.read().await, |topics| {
+            topics.get(topic_name)
+        }) {
             return Ok(topic);
         }
 
         self.open_topic(topic_name).await?;
 
         Ok(RwLockReadGuard::map(
-            self.system.topic_states.read().await,
+            self.system.topics.read().await,
             |topics| {
                 // SAFETY: as we have just succesfully open the tpoic, it should already be open
                 topics.get(topic_name).expect("Expected topic to be open")
@@ -130,18 +128,16 @@ impl ExecutionContext {
     ) -> Result<RwLockMappedWriteGuard<'_, TopicState>, PError> {
         self.can_write_topic(topic_name)?;
 
-        if let Ok(topic) =
-            RwLockWriteGuard::try_map(self.system.topic_states.write().await, |topics| {
-                topics.get_mut(topic_name)
-            })
-        {
+        if let Ok(topic) = RwLockWriteGuard::try_map(self.system.topics.write().await, |topics| {
+            topics.get_mut(topic_name)
+        }) {
             return Ok(topic);
         }
 
         self.open_topic(topic_name).await?;
 
         Ok(RwLockWriteGuard::map(
-            self.system.topic_states.write().await,
+            self.system.topics.write().await,
             |topics| {
                 // SAFETY: as we have just succesfully open the tpoic, it should already be open
                 topics
@@ -294,7 +290,7 @@ impl ExecutionContext {
         })
         .await?;
 
-        let mut topics = self.system.topic_states.write().await;
+        let mut topics = self.system.topics.write().await;
         topics.remove(topic_name);
 
         let topic_dir = self.config.data_dir.join(topic_name);
