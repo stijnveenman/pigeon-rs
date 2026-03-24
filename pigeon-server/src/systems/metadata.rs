@@ -6,7 +6,7 @@ impl ExecutionContext {
     pub async fn initialise_metadata(&self) -> Result<(), PError> {
         let records = match self.read_range(".metadata", 0, 0u64..).await {
             Ok(records) => records,
-            Err(PError::OpenTopicFailed) => vec![],
+            Err(PError::TopicNotFound) => vec![],
             Err(e) => panic!("Failed to read .metadata records: {e}"),
         };
 

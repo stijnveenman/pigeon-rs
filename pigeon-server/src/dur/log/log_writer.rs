@@ -15,7 +15,6 @@ pub struct LogWriter {
 }
 
 impl LogWriter {
-    // TODO: only create when we want to, ie; when TopicSystem is creating a new topic
     pub async fn open(base_dir: &Path, start_offset: u64) -> Result<LogWriter, PError> {
         let path =
             base_dir.join(Path::new(&start_offset.to_string()).with_extension(LOG_EXTENSION));
@@ -39,6 +38,7 @@ impl LogWriter {
         })
     }
 
+    #[allow(dead_code)]
     pub async fn delete(mut self) -> Result<(), PError> {
         self.file
             .flush()

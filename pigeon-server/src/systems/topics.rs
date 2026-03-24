@@ -15,7 +15,7 @@ use crate::{
     disk::read_partition_states,
     dur::segment::{segment_reader::SegmentReader, segment_writer::SegmentWriter},
     metadata::entry::{create_topic::CreateTopicEntry, delete_topic::DeleteTopicEntry},
-    systems::{execution_context::ExecutionContext, topics},
+    systems::execution_context::ExecutionContext,
 };
 
 struct PartitionState {
@@ -88,8 +88,14 @@ impl ExecutionContext {
     async fn open_topic(&self, topic_name: &str) -> Result<(), PError> {
         info!("Opening topic {topic_name}");
 
-        let topics = read_partition_states(self.config.data_dir.join(topic_name))
-            .map_err(|_| PError::OpenTopicFailed)?;
+        let Ok(topics) = read_partition_states(self.config.data_dir.join(topic_name)) else {
+            let metadata = self.system.metadata.read().await;
+
+            return match metadata.topics.contains_key(topic_name) {
+                true => Err(PError::OpenTopicFailed),
+                false => Err(PError::TopicNotFound),
+            };
+        };
 
         let mut partitions = Vec::with_capacity(topics.len());
 
@@ -296,7 +302,6 @@ impl ExecutionContext {
         Ok(records)
     }
 
-    // TODO: add test
     pub async fn delete_topic(&self, topic_name: &str) -> Result<(), PError> {
         self.can_write_topic(topic_name)?;
 
@@ -453,5 +458,41 @@ mod test {
         let result = user.create_topic(".foobar", None).await;
 
         assert_eq!(result, Err(PError::Unauthorized))
+    }
+
+    #[tokio::test]
+    async fn topic_delete_test() {
+        let system = TestSystem::create().await;
+
+        system.create_topic("foo", None).await.unwrap();
+
+        system
+            .append_record("foo", 0, Record::new("foo", "bar"))
+            .await
+            .unwrap();
+
+        system.delete_topic("foo").await.unwrap();
+
+        let result = system.read_record("foo", 0, 1).await;
+
+        assert_eq!(result, Err(PError::TopicNotFound));
+
+        system.create_topic("foo", None).await.unwrap();
+
+        system
+            .append_record("foo", 0, Record::new("hello", "world"))
+            .await
+            .unwrap();
+
+        let record = system.read_record("foo", 0, 1).await;
+
+        assert_eq!(
+            record,
+            Ok(Record {
+                offset: 1,
+                key: b"hello".into(),
+                value: b"world".into(),
+            })
+        );
     }
 }
