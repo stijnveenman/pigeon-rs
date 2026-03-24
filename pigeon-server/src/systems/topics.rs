@@ -1,5 +1,6 @@
 use std::{
     collections::{BTreeSet, HashMap},
+    fmt::Debug,
     ops::{Bound, RangeBounds},
 };
 
@@ -14,7 +15,7 @@ use crate::{
     disk::read_partition_states,
     dur::segment::{segment_reader::SegmentReader, segment_writer::SegmentWriter},
     metadata::entry::{create_topic::CreateTopicEntry, delete_topic::DeleteTopicEntry},
-    systems::execution_context::ExecutionContext,
+    systems::{execution_context::ExecutionContext, topics},
 };
 
 struct PartitionState {
@@ -23,6 +24,20 @@ struct PartitionState {
     active_segment: SegmentWriter,
 }
 
+impl Debug for PartitionState {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("PartitionState")
+            .field("segments", &self.segments)
+            .field(
+                "read_segments",
+                &self.read_segments.iter().map(|v| v.0).collect::<Vec<_>>(),
+            )
+            // .field("active_segment", &self.active_segment)
+            .finish()
+    }
+}
+
+#[derive(Debug)]
 pub struct TopicState {
     partitions: Vec<PartitionState>,
 }
@@ -36,12 +51,6 @@ impl ExecutionContext {
         self.can_write_topic(topic_name)?;
 
         let num_partitions = num_partitions.unwrap_or(self.system.config.topics.default_partitions);
-
-        self.apply_metadata(CreateTopicEntry {
-            topic_name: topic_name.to_string(),
-            num_partitions,
-        })
-        .await?;
 
         let topic_dir = self.config.data_dir.join(topic_name);
         create_dir(&topic_dir)
@@ -64,8 +73,14 @@ impl ExecutionContext {
         }
 
         let mut topic_states = self.system.topics.write().await;
-
         topic_states.insert(topic_name.to_string(), TopicState { partitions });
+        drop(topic_states);
+
+        self.apply_metadata(CreateTopicEntry {
+            topic_name: topic_name.to_string(),
+            num_partitions,
+        })
+        .await?;
 
         Ok(())
     }

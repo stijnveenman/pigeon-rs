@@ -48,15 +48,5 @@ impl Metadata {
             self.apply(&entry)
                 .expect("Failed to apply metadata state from disk");
         }
-
-        if !self.topics.contains_key(".metadata") {
-            self.topics.insert(
-                ".metadata".to_string(),
-                TopicMetadata {
-                    topic_name: ".metadata".to_string(),
-                    num_partitions: 1,
-                },
-            );
-        }
     }
 }

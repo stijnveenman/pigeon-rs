@@ -4,18 +4,22 @@ use crate::{metadata::entry::MetadataEntry, systems::execution_context::Executio
 
 impl ExecutionContext {
     pub async fn initialise_metadata(&self) -> Result<(), PError> {
-        let records = self.read_range(".metadata", 0, 0..).await?;
-        // let records = match topics.read_range(".metadata", 0, 0u64..).await {
-        //     Ok(records) => records,
-        //     Err(PError::TopicNotFound) => vec![],
-        //     Err(e) => panic!("Failed to read .metadata records: {e}"),
-        // };
+        let records = match self.read_range(".metadata", 0, 0u64..).await {
+            Ok(records) => records,
+            Err(PError::OpenTopicFailed) => vec![],
+            Err(e) => panic!("Failed to read .metadata records: {e}"),
+        };
 
         let mut metadata = self.system.metadata.write().await;
 
         metadata.initialise(&records);
 
-        // TODO: initialise if doesn't exist
+        if !metadata.topics.contains_key(".metadata") {
+            drop(metadata);
+            self.create_topic(".metadata", Some(1))
+                .await
+                .expect("Failed to create .metadata topic");
+        }
 
         Ok(())
     }
