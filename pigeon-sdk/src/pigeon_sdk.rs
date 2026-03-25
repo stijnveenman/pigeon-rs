@@ -109,4 +109,14 @@ impl PigeonSdk {
 
         self.execute(request).await
     }
+
+    pub async fn join_consumer_group(
+        &self,
+        group_id: &str,
+        consumer_id: &str,
+    ) -> Result<usize, PError> {
+        let request = self.post(&format!("/groups/{group_id}/{consumer_id}"));
+
+        self.execute(request).await
+    }
 }

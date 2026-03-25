@@ -43,4 +43,8 @@ pub enum PError {
     DeleteTopicFailed,
     #[error("Consumer group already exists")]
     ConsumerGroupExists,
+    #[error("Consumer group not found")]
+    ConsumerGroupNotFound,
+    #[error("Consumer has already joined this consumer group")]
+    ConsumerAlreadyInGroup,
 }

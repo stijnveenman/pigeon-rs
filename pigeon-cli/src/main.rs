@@ -1,5 +1,6 @@
 use clap::{Parser, Subcommand};
 use pigeon_sdk::{pigeon_sdk::PigeonSdk, rpc::append_record::AppendRecord};
+use uuid::Uuid;
 
 #[derive(Debug, Parser)]
 #[command(name = "pg", version, author)]
@@ -44,7 +45,13 @@ enum TopicCommands {
 
 #[derive(Debug, Subcommand)]
 enum GroupsCommands {
-    Create { group_id: String },
+    Create {
+        group_id: String,
+    },
+    Join {
+        group_id: String,
+        consumer_id: Option<String>,
+    },
 }
 
 #[tokio::main]
@@ -73,6 +80,19 @@ async fn main() {
                     Err(e) => eprintln!("Error creating group: {e} [{e:?}]"),
                 }
             }
+            GroupsCommands::Join {
+                group_id,
+                consumer_id,
+            } => match sdk
+                .join_consumer_group(
+                    &group_id,
+                    &consumer_id.unwrap_or(Uuid::new_v4().to_string()),
+                )
+                .await
+            {
+                Ok(epoch) => println!("Joined group {group_id} with epoch {epoch}"),
+                Err(e) => println!("Error joining group: {e}"),
+            },
         },
         Commands::Produce {
             topic,
