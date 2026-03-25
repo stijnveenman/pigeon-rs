@@ -12,10 +12,10 @@ use crate::{
 };
 
 async fn create_consumer_group(
-    State(state): State<Arc<SystemContext>>,
+    context: ExecutionContext,
     Path(group_id): Path<String>,
 ) -> HttpResult<()> {
-    ExecutionContext::user(state).create_consumer_group(&group_id)?;
+    context.create_consumer_group(&group_id)?;
 
     Ok(Json(()))
 }

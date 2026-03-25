@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use axum::{
     Json, Router,
-    extract::{Path, State},
+    extract::Path,
     routing::{delete, get, post},
 };
 use pigeon_core::{
@@ -15,12 +15,8 @@ use crate::{
     systems::{SystemContext, execution_context::ExecutionContext},
 };
 
-#[axum::debug_handler]
-async fn create_topic(
-    State(state): State<Arc<SystemContext>>,
-    command: Json<CreateTopic>,
-) -> HttpResult<()> {
-    ExecutionContext::user(state)
+async fn create_topic(context: ExecutionContext, command: Json<CreateTopic>) -> HttpResult<()> {
+    context
         .create_topic(&command.topic_name, command.num_partitions)
         .await?;
 
@@ -28,10 +24,10 @@ async fn create_topic(
 }
 
 async fn read_record(
-    State(state): State<Arc<SystemContext>>,
+    context: ExecutionContext,
     Path((topic_name, partition_id, offset)): Path<(String, u64, u64)>,
 ) -> HttpResult<Record> {
-    let record = ExecutionContext::user(state)
+    let record = context
         .read_record(&topic_name, partition_id, offset)
         .await?;
 
@@ -39,11 +35,11 @@ async fn read_record(
 }
 
 async fn append_record(
-    State(state): State<Arc<SystemContext>>,
+    context: ExecutionContext,
     Path((topic_name, partition_id)): Path<(String, u64)>,
     command: Json<AppendRecord>,
 ) -> HttpResult<u64> {
-    let offset = ExecutionContext::user(state)
+    let offset = context
         .append_record(
             &topic_name,
             partition_id,
@@ -54,13 +50,8 @@ async fn append_record(
     Ok(Json(offset))
 }
 
-async fn delete_topic(
-    State(state): State<Arc<SystemContext>>,
-    Path(topic_name): Path<String>,
-) -> HttpResult<()> {
-    ExecutionContext::user(state)
-        .delete_topic(&topic_name)
-        .await?;
+async fn delete_topic(context: ExecutionContext, Path(topic_name): Path<String>) -> HttpResult<()> {
+    context.delete_topic(&topic_name).await?;
 
     Ok(Json(()))
 }
