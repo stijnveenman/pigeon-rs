@@ -103,4 +103,10 @@ impl PigeonSdk {
 
         self.execute(request).await
     }
+
+    pub async fn create_consumer_group(&self, group_id: &str) -> Result<(), PError> {
+        let request = self.post(&format!("/groups/{group_id}"));
+
+        self.execute(request).await
+    }
 }

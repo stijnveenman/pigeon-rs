@@ -14,6 +14,10 @@ enum Commands {
         #[command(subcommand)]
         command: TopicCommands,
     },
+    Groups {
+        #[command(subcommand)]
+        command: GroupsCommands,
+    },
     Produce {
         topic: String,
         partition: u64,
@@ -38,6 +42,11 @@ enum TopicCommands {
     },
 }
 
+#[derive(Debug, Subcommand)]
+enum GroupsCommands {
+    Create { group_id: String },
+}
+
 #[tokio::main]
 async fn main() {
     let cli = Cli::parse();
@@ -56,6 +65,14 @@ async fn main() {
                 Ok(()) => println!("Deleted topic {name} succesfully"),
                 Err(e) => eprintln!("Error deleting topic: {e} [{e:?}]"),
             },
+        },
+        Commands::Groups { command } => match command {
+            GroupsCommands::Create { group_id } => {
+                match sdk.create_consumer_group(&group_id).await {
+                    Ok(()) => println!("Created group {group_id} succesfully"),
+                    Err(e) => eprintln!("Error creating group: {e} [{e:?}]"),
+                }
+            }
         },
         Commands::Produce {
             topic,

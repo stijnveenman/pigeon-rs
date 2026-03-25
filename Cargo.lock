@@ -1214,6 +1214,7 @@ dependencies = [
  "bytes",
  "clap",
  "config",
+ "parking_lot",
  "pigeon-core",
  "serde",
  "serde_json",

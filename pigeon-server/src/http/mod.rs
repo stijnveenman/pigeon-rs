@@ -1,4 +1,5 @@
 mod error;
+mod groups_router;
 mod topics_router;
 
 use std::sync::Arc;
@@ -18,6 +19,7 @@ pub async fn serve(server: Arc<SystemContext>) -> Result<()> {
     let app = Router::new()
         .route("/health", get(health))
         .nest("/topics", topics_router::router())
+        .nest("/groups", groups_router::router())
         .with_state(server.clone());
 
     let listener =

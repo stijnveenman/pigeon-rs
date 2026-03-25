@@ -41,4 +41,6 @@ pub enum PError {
     Unauthorized,
     #[error("Error deleting topic")]
     DeleteTopicFailed,
+    #[error("Consumer group already exists")]
+    ConsumerGroupExists,
 }
