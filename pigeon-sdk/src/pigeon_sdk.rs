@@ -1,7 +1,10 @@
 use pigeon_core::{
     PError,
     record::Record,
-    rpc::{self, append_record::AppendRecord, create_topic::CreateTopic},
+    rpc::{
+        self, append_record::AppendRecord, create_topic::CreateTopic,
+        join_consumer_group::JoinConsumerGroupParams,
+    },
 };
 use reqwest::{Client, ClientBuilder, Method, RequestBuilder, Url};
 use serde::de::DeserializeOwned;
@@ -114,8 +117,11 @@ impl PigeonSdk {
         &self,
         group_id: &str,
         consumer_id: &str,
+        epoch: Option<usize>,
     ) -> Result<usize, PError> {
-        let request = self.post(&format!("/groups/{group_id}/{consumer_id}"));
+        let request = self
+            .post(&format!("/groups/{group_id}/{consumer_id}"))
+            .query(&JoinConsumerGroupParams { epoch });
 
         self.execute(request).await
     }

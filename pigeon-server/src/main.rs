@@ -10,6 +10,7 @@ use std::sync::Arc;
 use anyhow::Result;
 use clap::Parser;
 use tracing::info;
+use tracing_subscriber::EnvFilter;
 
 use crate::{config::ServerConfig, systems::SystemContext};
 
@@ -22,7 +23,9 @@ struct Cli {
 
 #[tokio::main]
 pub async fn main() -> Result<()> {
-    tracing_subscriber::fmt().init();
+    tracing_subscriber::fmt()
+        .with_env_filter(EnvFilter::from_default_env())
+        .init();
 
     let cli = Cli::parse();
 

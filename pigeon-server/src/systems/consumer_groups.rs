@@ -25,8 +25,20 @@ pub struct ConsumerGroup {
 
 impl ConsumerGroup {
     fn start_epoch(&mut self) {
+        self.consumers.clear();
         self.state = ConsumerGroupState::Rebalancing(Utc::now());
         self.epoch += 1;
+    }
+
+    fn add_consumer(&mut self, consumer_id: String) -> Result<usize, PError> {
+        self.consumers.insert(
+            consumer_id,
+            ConsumerClient {
+                last_seen: Utc::now(),
+            },
+        );
+
+        Ok(self.epoch)
     }
 }
 
@@ -66,33 +78,28 @@ impl ExecutionContext {
         Ok(())
     }
 
-    pub fn join_consumer_group(&self, group_id: &str, consumer_id: &str) -> Result<usize, PError> {
+    pub fn join_consumer_group(
+        &self,
+        group_id: &str,
+        consumer_id: &str,
+        epoch: Option<usize>,
+    ) -> Result<usize, PError> {
         let mut group = self.get_group(group_id)?;
 
-        if group.consumers.contains_key(consumer_id) {
-            return Err(PError::ConsumerAlreadyInGroup);
+        match group.state {
+            ConsumerGroupState::Rebalancing(_) | ConsumerGroupState::Stable => {
+                // If the consumer is not waiting for the current epoch to start
+                // start a new one
+                if epoch.is_none_or(|epoch| group.epoch != epoch) {
+                    group.start_epoch();
+                }
+            }
+            ConsumerGroupState::Empty => {
+                group.start_epoch();
+            }
         }
 
-        match group.state {
-            ConsumerGroupState::Rebalancing(_) => {
-                group.consumers.insert(
-                    consumer_id.to_string(),
-                    ConsumerClient {
-                        last_seen: Utc::now(),
-                    },
-                );
-            }
-            // Start a new epoch
-            ConsumerGroupState::Empty | ConsumerGroupState::Stable => {
-                group.start_epoch();
-                group.consumers = HashMap::from([(
-                    consumer_id.to_string(),
-                    ConsumerClient {
-                        last_seen: Utc::now(),
-                    },
-                )])
-            }
-        }
+        group.add_consumer(consumer_id.to_string())?;
 
         Ok(group.epoch)
     }

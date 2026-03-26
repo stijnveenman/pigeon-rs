@@ -51,6 +51,7 @@ enum GroupsCommands {
     Join {
         group_id: String,
         consumer_id: Option<String>,
+        epoch: Option<usize>,
     },
 }
 
@@ -83,10 +84,12 @@ async fn main() {
             GroupsCommands::Join {
                 group_id,
                 consumer_id,
+                epoch,
             } => match sdk
                 .join_consumer_group(
                     &group_id,
                     &consumer_id.unwrap_or(Uuid::new_v4().to_string()),
+                    epoch,
                 )
                 .await
             {

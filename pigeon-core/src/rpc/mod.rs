@@ -4,6 +4,7 @@ use crate::PError;
 
 pub mod append_record;
 pub mod create_topic;
+pub mod join_consumer_group;
 
 #[derive(Serialize, Deserialize)]
 pub struct Error {

@@ -1,6 +1,11 @@
 use std::sync::Arc;
 
-use axum::{Json, Router, extract::Path, routing::post};
+use axum::{
+    Json, Router,
+    extract::{Path, Query},
+    routing::post,
+};
+use pigeon_core::rpc::join_consumer_group::JoinConsumerGroupParams;
 
 use crate::{
     http::error::HttpResult,
@@ -19,8 +24,9 @@ async fn create_consumer_group(
 async fn join_consumer_group(
     context: ExecutionContext,
     Path((group_id, consumer_id)): Path<(String, String)>,
+    Query(params): Query<JoinConsumerGroupParams>,
 ) -> HttpResult<usize> {
-    let epoch = context.join_consumer_group(&group_id, &consumer_id)?;
+    let epoch = context.join_consumer_group(&group_id, &consumer_id, params.epoch)?;
 
     Ok(Json(epoch))
 }
