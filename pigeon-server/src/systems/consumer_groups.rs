@@ -1,8 +1,11 @@
-use std::{collections::HashMap, time::Instant};
+use std::collections::HashMap;
 
 use chrono::{DateTime, Utc};
 use parking_lot::{MutexGuard, RawMutex, lock_api::MappedMutexGuard};
-use pigeon_core::PError;
+use pigeon_core::{
+    PError,
+    rpc::consumer_group_respones::{ConsumerGroupResponse, ConsumerGroupStateResponse},
+};
 
 use crate::systems::execution_context::ExecutionContext;
 
@@ -10,10 +13,21 @@ pub struct ConsumerClient {
     last_seen: DateTime<Utc>,
 }
 
+#[derive(Clone, Copy)]
 pub enum ConsumerGroupState {
     Empty,
     Rebalancing(DateTime<Utc>),
     Stable,
+}
+
+impl From<ConsumerGroupState> for ConsumerGroupStateResponse {
+    fn from(val: ConsumerGroupState) -> Self {
+        match val {
+            ConsumerGroupState::Empty => ConsumerGroupStateResponse::Empty,
+            ConsumerGroupState::Rebalancing(_date_time) => ConsumerGroupStateResponse::Rebalancing,
+            ConsumerGroupState::Stable => ConsumerGroupStateResponse::Stable,
+        }
+    }
 }
 
 pub struct ConsumerGroup {
@@ -40,6 +54,41 @@ impl ConsumerGroup {
 
         Ok(self.epoch)
     }
+
+    fn has_timed_out_consumers(&self) -> bool {
+        self.consumers.values().any(|consumer| {
+            let time_diff = Utc::now() - consumer.last_seen;
+
+            // TODO: get from config
+            time_diff.num_milliseconds() > 100000
+        })
+    }
+
+    fn update(&mut self) {
+        if self.has_timed_out_consumers() {
+            self.start_epoch();
+        }
+
+        match self.state {
+            ConsumerGroupState::Empty | ConsumerGroupState::Stable => {}
+            ConsumerGroupState::Rebalancing(start) => {
+                let time_diff = Utc::now() - start;
+                // TODO: get from config
+                if time_diff.num_milliseconds() > 1000 {
+                    self.state = ConsumerGroupState::Stable
+                }
+            }
+        }
+    }
+
+    fn response(&self) -> ConsumerGroupResponse {
+        ConsumerGroupResponse {
+            state: self.state.into(),
+            epoch: self.epoch,
+            consumers: self.consumers.keys().cloned().collect(),
+            group_id: self.group_id.clone(),
+        }
+    }
 }
 
 // TODO: permissions + testing
@@ -50,12 +99,18 @@ impl ExecutionContext {
     ) -> Result<MappedMutexGuard<'_, RawMutex, ConsumerGroup>, PError> {
         let groups = self.system.groups.lock();
 
-        let group = MutexGuard::try_map(groups, |groups| groups.get_mut(group_id))
+        let mut group = MutexGuard::try_map(groups, |groups| groups.get_mut(group_id))
             .map_err(|_| PError::ConsumerGroupNotFound)?;
 
-        // TODO: update group, if rebalancing finished, or consumers timed out etc
+        group.update();
 
         Ok(group)
+    }
+
+    pub fn get_group_response(&self, group_id: &str) -> Result<ConsumerGroupResponse, PError> {
+        let group = self.get_group(group_id)?;
+
+        Ok(group.response())
     }
 
     pub fn create_consumer_group(&self, group_id: &str) -> Result<(), PError> {
@@ -83,7 +138,7 @@ impl ExecutionContext {
         group_id: &str,
         consumer_id: &str,
         epoch: Option<usize>,
-    ) -> Result<usize, PError> {
+    ) -> Result<ConsumerGroupResponse, PError> {
         let mut group = self.get_group(group_id)?;
 
         match group.state {
@@ -101,6 +156,6 @@ impl ExecutionContext {
 
         group.add_consumer(consumer_id.to_string())?;
 
-        Ok(group.epoch)
+        Ok(group.response())
     }
 }

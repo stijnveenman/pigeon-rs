@@ -48,6 +48,9 @@ enum GroupsCommands {
     Create {
         group_id: String,
     },
+    Get {
+        group_id: String,
+    },
     Join {
         group_id: String,
         consumer_id: Option<String>,
@@ -81,6 +84,10 @@ async fn main() {
                     Err(e) => eprintln!("Error creating group: {e} [{e:?}]"),
                 }
             }
+            GroupsCommands::Get { group_id } => match sdk.get_consumer_group(&group_id).await {
+                Ok(group) => println!("{group}"),
+                Err(e) => println!("Error joining group: {e}"),
+            },
             GroupsCommands::Join {
                 group_id,
                 consumer_id,
@@ -93,7 +100,7 @@ async fn main() {
                 )
                 .await
             {
-                Ok(epoch) => println!("Joined group {group_id} with epoch {epoch}"),
+                Ok(group) => println!("Joined group {group_id}\n{group}"),
                 Err(e) => println!("Error joining group: {e}"),
             },
         },
