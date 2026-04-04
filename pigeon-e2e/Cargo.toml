@@ -1,0 +1,12 @@
+[package]
+name = "pigeon-e2e"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+pigeon-sdk.workspace = true
+pigeon-server.workspace = true
+tokio.workspace = true
+
+[lints]
+workspace = true

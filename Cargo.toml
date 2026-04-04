@@ -26,6 +26,7 @@ tower-http = { version = "0.6.8", features = ["trace"] }
 
 # pigeon packages
 pigeon-core = { path = "./pigeon-core/" }
+pigeon-server = { path = "./pigeon-server/" }
 pigeon-sdk = { path = "./pigeon-sdk/" }
 
 [workspace.lints.clippy]
